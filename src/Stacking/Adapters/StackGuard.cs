@@ -60,23 +60,8 @@ internal static class StackGuard
         return true;
     }
 
-    private static bool TryPatch(Harmony harmony, string what, Func<MethodBase?> target, string prefix, string postfix)
-    {
-        try
-        {
-            harmony.Patch(target() ?? throw new MissingMethodException(what),
-                prefix: new HarmonyMethod(typeof(StackGuard), prefix),
-                postfix: new HarmonyMethod(typeof(StackGuard), postfix));
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _log($"could not hook {what}: {ex.Message}");
-
-            return false;
-        }
-    }
+    private static bool TryPatch(Harmony harmony, string what, Func<MethodBase?> target, string prefix, string postfix) =>
+        Hooks.TryPatch(harmony, typeof(StackGuard), what, target, _log, prefix, postfix);
 
     private static MethodInfo AddItemOverload(bool hasUses) =>
         AccessTools.GetDeclaredMethods(typeof(ItemManager))

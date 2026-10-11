@@ -23,12 +23,18 @@ public sealed class Plugin : BasePlugin
     public override void Load()
     {
         var wantedByCategory = BindLimits();
+        var isCountingWholeStacks = Config.Bind("Cooking", "CountWholeStacks", true,
+            "A cooking bench counts every unit of a stack as an ingredient, as it counts loose items, and a finished cook uses up the units its dishes took. Off: a stack counts as one ingredient, as without this mod.").Value;
+        var harmony = new Harmony(Guid);
         var log = new StackLog(Log, Path.Combine(Paths.BepInExRootPath, "stacking.log"));
 
         log.TrimIfLarge();
         log.Write($"===== Stacking {Version} started: {Describe(wantedByCategory)}");
 
-        var canGuardFreshness = StackGuard.Apply(new Harmony(Guid), log.Write, log.WriteFileOnly);
+        var canGuardFreshness = StackGuard.Apply(harmony, log.Write, log.WriteFileOnly);
+
+        if (isCountingWholeStacks) Cooking.Apply(harmony, log.Write);
+        else log.Write("cooking counts a stack as one ingredient: Cooking/CountWholeStacks is off");
 
         StackTicker.Log = log.Write;
         StackTicker.Writer = new LimitWriter(wantedByCategory, canGuardFreshness, log.Write, log.WriteFileOnly);

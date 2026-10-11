@@ -24,6 +24,8 @@
     <Reference Include="$(Interop)\AOT.dll" Private="false" />
     <Reference Include="$(Interop)\Il2Cppmscorlib.dll" Private="false" />
     <Reference Include="$(Interop)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(Interop)\R3.dll" Private="false" />
+    <Reference Include="$(Interop)\ObservableCollections.dll" Private="false" />
   </ItemGroup>
 
 </Project>
