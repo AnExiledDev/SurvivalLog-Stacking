@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
@@ -5,8 +6,11 @@ using Stacking.Core;
 
 namespace Stacking.Adapters;
 
-/// <summary>A drop the player asked to split: which stack, from which bag to which, the cell it landed on and the cell under the cursor.</summary>
-internal sealed record SplitRequest(long ItemId, long SrcOwnerId, long DstOwnerId, SplitKind Kind, Cell DropAt, Cell? Cursor);
+/// <summary>
+/// A split the player asked for: which stack, from which bag to which, the cell it landed on and the cell under the
+/// cursor. A right-click split stays in the stack's own bag and lands at the free spot nearest it.
+/// </summary>
+internal sealed record SplitRequest(long ItemId, long SrcOwnerId, long DstOwnerId, SplitKind Kind, Cell DropAt, Cell? Cursor, bool IsRightClick = false);
 
 /// <summary>Reads the live bags into the core's terms and asks it what a split drop should do.</summary>
 internal static class SplitScene
@@ -16,8 +20,11 @@ internal static class SplitScene
     /// <summary>The game can be left with a second item manager answering events for stale data; only the live one counts.</summary>
     public static bool IsLive(ItemManager items) => LiveItems() is { } live && live.Pointer == items.Pointer;
 
-    /// <summary>Vanilla when the stack is no longer the one dragged, or carries its own weight, which the game never stacks.</summary>
-    public static SplitPlan Plan(ItemManager items, ItemData source, SplitRequest request, int? chosenUnits)
+    /// <summary>
+    /// Vanilla when the stack is no longer the one dragged, or carries its own weight, which the game never stacks.
+    /// Why a container could not be read goes to the log given.
+    /// </summary>
+    public static SplitPlan Plan(ItemManager items, ItemData source, SplitRequest request, int? chosenUnits, Action<string> log)
     {
         if (source.OwnerId != request.SrcOwnerId || source.InstanceWeight != 0) return new SplitPlan.Vanilla();
 
@@ -26,6 +33,23 @@ internal static class SplitScene
         if (config == null) return new SplitPlan.Vanilla();
 
         var size = source.ItemSize;
+
+        if (request.IsRightClick)
+        {
+            var stack = new StackDrag(source.InstanceId, source.ItemCount, size.x, size.y, new Cell(source.BagPos.x, source.BagPos.y), Cursor: null);
+
+            if (BagCells.Read(items, request.DstOwnerId, source.ItemConfigId, out var why) is not { } layout)
+            {
+                log("a right-click split was refused: " + why);
+
+                return new SplitPlan.Refused(Refusal.Unreadable);
+            }
+
+            var bag = Grid(items, source, request) with { Columns = layout.Columns, Rows = layout.Rows, Blocked = layout.Blocked };
+
+            return Splitting.PlanRightClick(request.Kind, stack, bag, chosenUnits);
+        }
+
         var drag = new StackDrag(source.InstanceId, source.ItemCount, size.x, size.y, request.DropAt, request.Cursor);
 
         return Splitting.Plan(request.Kind, drag, Grid(items, source, request), config.StackLimit, UnitsWeightAllows(items, request, config.weight), chosenUnits);
@@ -37,6 +61,7 @@ internal static class SplitScene
         var inBag = items.GetItemDataList(request.DstOwnerId);
         var dragged = Facts(source);
         var isNewlyStackable = StackGuard.NewlyStackable.Contains(source.ItemConfigId);
+        var neverSpoils = StackGuard.NeverSpoils.Contains(source.ItemConfigId);
         var nowHours = StackGuard.NowHours();
         var stacks = new List<GridItem>();
 
@@ -47,15 +72,21 @@ internal static class SplitScene
             if (item == null) continue;
 
             var isSameQuality = item.ItemConfigId == source.ItemConfigId && IsSameQuality(source, item);
-            var match = Splitting.MatchOf(dragged, Facts(item), isSameQuality, isNewlyStackable, nowHours);
+            var match = Splitting.MatchOf(dragged, Facts(item), isSameQuality, isNewlyStackable, neverSpoils, nowHours);
             var cells = new Footprint(item.BagPos.x, item.BagPos.y, item.ItemSize.x, item.ItemSize.y);
 
             stacks.Add(new GridItem(item.InstanceId, cells, item.ItemCount, match));
         }
 
-        var hasOwnRules = HasOwnRules(items, request.SrcOwnerId) || HasOwnRules(items, request.DstOwnerId);
+        // The trunk only refuses what goes in, which the executor checks, so a split may take units out of it.
+        var hasOwnRules = (HasOwnRules(items, request.SrcOwnerId) && !VehicleConfig.IsBoxOwner(request.SrcOwnerId)) || HasOwnRules(items, request.DstOwnerId);
+        var isStation = Stations.IsStation(items, request.DstOwnerId);
 
-        return new BagGrid(size.x, size.y, stacks, hasOwnRules);
+        // Only while the station rule is in does the game's move put one unit in; without it a stack would go in whole.
+        var takesOneUnit = StationGuard.IsInstalled
+            && StationRule.Entry(isStation, request.SrcOwnerId == request.DstOwnerId, source.ItemCount, isNewlyStackable, source.InstanceWeight != 0) == StationEntry.OneUnit;
+
+        return new BagGrid(size.x, size.y, stacks, hasOwnRules, isStation, takesOneUnit);
     }
 
     private static StackFacts Facts(ItemData item) =>

@@ -5,7 +5,8 @@ using Stacking.Core;
 namespace Stacking.Adapters;
 
 /// <summary>
-/// Splitting a stack by dropping it with a modifier held: Shift moves half, Ctrl moves one, Ctrl+Shift asks how many.
+/// Splitting a stack by dropping or right-clicking it with a modifier held: Shift moves half, Ctrl moves one,
+/// Ctrl+Shift asks how many.
 /// The hooks catch the drop, the ticker carries it out next frame through the executor, and the picker asks and
 /// answers. Static because the ticker is made by Unity and finds its work here.
 /// </summary>
@@ -34,9 +35,10 @@ internal static class StackSplitting
 
         if (!canAsk) log("Ctrl+Shift cannot ask how many this session; Shift and Ctrl still split");
 
+        RightClickSplit.Apply(harmony, log);
         _picker = new SplitPicker(log);
         _executor = new SplitExecutor(log, logFileOnly, _picker, SplitHooks.CanStartStacks, canAsk);
-        log("stacks split when dropped with Shift (half), Ctrl (one) or Ctrl+Shift (choose)");
+        log("stacks split when dropped or right-clicked with Shift (half), Ctrl (one) or Ctrl+Shift (choose)");
 
         return true;
     }
@@ -48,7 +50,14 @@ internal static class StackSplitting
 
         SplitKeys.Sample();
 
-        if (SplitHooks.TakeBackpackClosed()) _picker.Close();
+        if (SplitHooks.TakeBackpackClosed())
+        {
+            _picker.Close();
+            RightClickSplit.Closed();
+        }
+
+        RightClickSplit.Expire();
+        RightClickSplit.Watch();
 
         while (PickerHooks.TryTakeAnswer(out var answer)) Answer(answer, now);
 

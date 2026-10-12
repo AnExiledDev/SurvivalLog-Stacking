@@ -40,10 +40,23 @@ public sealed record GridItem(long Id, Footprint Cells, int Count, StackMatch Ma
 /// <summary>
 /// The bag a stack is dropped into. When it is the bag the stack came from, the stack itself is one of the items.
 /// HasOwnRules marks a bag the game treats specially (a cooking bench, compost bin, rack or robot mold) on either end of the drag.
+/// IsStation marks a cooking or crafting station. TakesOneUnit marks a station the station rule holds this stack to:
+/// the game's move into it is cut to one unit (see StationRule). Blocked cells hold nothing but take nothing either,
+/// as mold takes no food.
 /// </summary>
-public sealed record BagGrid(int Columns, int Rows, IReadOnlyList<GridItem> Items, bool HasOwnRules = false)
+public sealed record BagGrid(
+    int Columns,
+    int Rows,
+    IReadOnlyList<GridItem> Items,
+    bool HasOwnRules = false,
+    bool IsStation = false,
+    bool TakesOneUnit = false,
+    IReadOnlyCollection<Cell>? Blocked = null)
 {
     public bool Fits(Footprint cells) => cells.X >= 0 && cells.Y >= 0 && cells.X + cells.Width <= Columns && cells.Y + cells.Height <= Rows;
+
+    public bool IsFree(Footprint cells) =>
+        Fits(cells) && !Items.Any(item => item.Cells.Overlaps(cells)) && (Blocked == null || !Blocked.Any(cells.Contains));
 }
 
 /// <summary>A dragged stack: how many units it holds, its size, the top-left cell it was dropped at, and the cell under the cursor.</summary>
@@ -56,6 +69,7 @@ public enum Refusal
     TooHeavy,
     OtherCondition,
     OwnRules,
+    Unreadable,
 }
 
 /// <summary>Where the game put a new stack: the game's add places it elsewhere when the cell is taken, and drops it when the container is full.</summary>
@@ -106,7 +120,10 @@ public static class Splitting
     {
         if (kind == SplitKind.None || drag.Count < 2 || destination == null) return new SplitPlan.Vanilla();
 
-        if (destination.HasOwnRules) return new SplitPlan.Refused(Refusal.OwnRules);
+        // The game's move into a station is cut to one unit by the station rule, which is what every split kind asks for at most.
+        if (destination.TakesOneUnit) return new SplitPlan.Vanilla();
+
+        if (destination.IsStation || destination.HasOwnRules) return new SplitPlan.Refused(Refusal.OwnRules);
 
         var dropCells = new Footprint(drag.DropAt.X, drag.DropAt.Y, drag.Width, drag.Height);
 
@@ -130,11 +147,52 @@ public static class Splitting
     }
 
     /// <summary>
+    /// A split started by right-clicking a stack: the split-off units start a new stack at the free spot in the same
+    /// container nearest the stack. What a station holds is never split, nor is anything in a container with its own rules.
+    /// </summary>
+    public static SplitPlan PlanRightClick(SplitKind kind, StackDrag stack, BagGrid bag, int? chosenUnits = null)
+    {
+        if (kind == SplitKind.None || stack.Count < 2) return new SplitPlan.Vanilla();
+
+        if (bag.IsStation || bag.HasOwnRules) return new SplitPlan.Refused(Refusal.OwnRules);
+
+        if (NearestFreeCell(bag, stack.Width, stack.Height, stack.DropAt) is not { } cell) return new SplitPlan.Refused(Refusal.NoRoom);
+
+        return Units(kind, stack.Count, stack.Count - 1, chosenUnits, units => new SplitPlan.NewStack(cell, units));
+    }
+
+    /// <summary>
+    /// The top-left cell of the free spot for an item of this size closest to a cell, by straight-line distance;
+    /// ties go to the higher row, then the column further left. A spot touching a blocked cell is not free. Null when
+    /// no spot is free.
+    /// </summary>
+    public static Cell? NearestFreeCell(BagGrid bag, int width, int height, Cell near)
+    {
+        Cell? nearest = null;
+        var nearestDistance = int.MaxValue;
+
+        for (var y = 0; y + height <= bag.Rows; y++)
+        {
+            for (var x = 0; x + width <= bag.Columns; x++)
+            {
+                var distance = (x - near.X) * (x - near.X) + (y - near.Y) * (y - near.Y);
+
+                if (distance >= nearestDistance || !bag.IsFree(new Footprint(x, y, width, height))) continue;
+
+                nearest = new Cell(x, y);
+                nearestDistance = distance;
+            }
+        }
+
+        return nearest;
+    }
+
+    /// <summary>
     /// The game stacks one item only with the same pollution, map-preset flag and quality values, and never stacks an
     /// item that carries its own weight. Items this mod made stackable must also match in freshness and uses, as the
-    /// stack guard demands of every other add.
+    /// stack guard demands of every other add, unless the item never spoils.
     /// </summary>
-    public static StackMatch MatchOf(StackFacts dragged, StackFacts other, bool isSameQuality, bool isNewlyStackable, float? nowHours)
+    public static StackMatch MatchOf(StackFacts dragged, StackFacts other, bool isSameQuality, bool isNewlyStackable, bool neverSpoils, float? nowHours)
     {
         if (dragged.ConfigId != other.ConfigId) return StackMatch.OtherItem;
 
@@ -145,7 +203,7 @@ public static class Splitting
 
         if (!isNewlyStackable) return StackMatch.Same;
 
-        return nowHours is { } hours && StackIdentity.CanShareStack(dragged.Freshness, other.Freshness, hours) ? StackMatch.Same : StackMatch.OtherCondition;
+        return StackIdentity.CanJoin(dragged.Freshness, other.Freshness, nowHours, neverSpoils) ? StackMatch.Same : StackMatch.OtherCondition;
     }
 
     /// <summary>
@@ -172,6 +230,7 @@ public static class Splitting
         Refusal.TooHeavy => "That would be too heavy for the container",
         Refusal.OtherCondition => "Those don't stack: freshness or condition differs",
         Refusal.OwnRules => "Stacks can't be split into or out of this container; split them in your bag first",
+        Refusal.Unreadable => "Couldn't read this container's layout, so nothing split: see BepInEx/stacking.log",
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "every refusal needs words for the player"),
     };
 

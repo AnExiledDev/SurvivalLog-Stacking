@@ -4,8 +4,11 @@ using System.Linq;
 
 namespace Stacking.Core;
 
-/// <summary>One item as the game's table defines it: its own stack limit and how many uses one item holds.</summary>
-public readonly record struct ItemRow(int Id, int Category, int StackLimit, int Uses);
+/// <summary>
+/// One item as the game's table defines it: its own stack limit, how many uses one item holds, and its shelf life,
+/// which is 0 or below for an item that never spoils.
+/// </summary>
+public readonly record struct ItemRow(int Id, int Category, int StackLimit, int Uses, int Life = 1);
 
 /// <summary>The limit to write per item id, and which of those items the game never stacked before.</summary>
 public sealed record StackPlan(IReadOnlyDictionary<int, int> Limits, IReadOnlySet<int> NewlyStackable);
@@ -14,7 +17,18 @@ public static class StackLimits
 {
     public const int Highest = 999;
 
+    /// <summary>The game's ItemCategory.Seed.</summary>
+    private const int SeedCategory = 10;
+
     public static int Clamp(int wanted) => Math.Clamp(wanted, 0, Highest);
+
+    /// <summary>
+    /// Seeds whose kind never spoils. Their freshness values still differ by how they were picked up, which split one
+    /// kind of seed into several stacks; with nothing to lose, every seed of one kind may share a stack. Food keeps the
+    /// freshness rule even when it never spoils.
+    /// </summary>
+    public static IReadOnlySet<int> NeverSpoiling(IEnumerable<ItemRow> gameRows) =>
+        gameRows.Where(row => row.Category == SeedCategory && row.Life <= 0).Select(row => row.Id).ToHashSet();
 
     /// <summary>
     /// Raises each item to its category's limit. An item the game never stacked is only raised when the freshness

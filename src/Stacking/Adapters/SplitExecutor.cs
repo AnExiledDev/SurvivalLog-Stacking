@@ -1,9 +1,8 @@
 using System;
+using System.Collections.Generic;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
-using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Stacking.Core;
-using UnityEngine;
 
 namespace Stacking.Adapters;
 
@@ -47,7 +46,7 @@ internal sealed class SplitExecutor
             return;
         }
 
-        var plan = SplitScene.Plan(items, source, request, chosenUnits);
+        var plan = SplitScene.Plan(items, source, request, chosenUnits, _log);
 
         switch (plan)
         {
@@ -55,6 +54,8 @@ internal sealed class SplitExecutor
                 _log("the stack changed before the split, so nothing moved");
                 break;
             case SplitPlan.Refused refused:
+                if (request.IsRightClick) _logFileOnly($"a right-click split of {source.ItemCount} (item {source.ItemConfigId}) moved nothing: {Splitting.Explain(refused.Reason)}");
+
                 _picker.Toast(Splitting.Explain(refused.Reason));
                 break;
             case SplitPlan.Choose when !_canAsk:
@@ -109,26 +110,27 @@ internal sealed class SplitExecutor
     private void StartStack(ItemManager items, ItemData source, SplitRequest request, SplitPlan.NewStack plan)
     {
         var countBefore = source.ItemCount;
-        var created = SplitHooks.StartingNewStack(() => AddLike(items, source, request.DstOwnerId, plan.At, plan.Units));
+        var copy = StackCopy.Of(source);
+        var created = AddNewStack(items, copy, request.DstOwnerId, plan);
 
         if (created == null)
         {
-            _log("the game made no new stack, so nothing moved");
+            items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
 
             return;
         }
 
         try
         {
-            CopyFreshness(source, created);
+            copy.CopyFreshnessTo(created);
             items.DecreaseItemCount(source, plan.Units);
-            ExpectCount(source, countBefore - plan.Units);
+            StackCounts.Expect(source, countBefore - plan.Units);
         }
         catch (Exception ex)
         {
             Undo("starting a new stack", ex, () =>
             {
-                RestoreCount(items, source, countBefore);
+                StackCounts.Restore(items, source, countBefore);
                 items.ForceRemoveItem(created.InstanceId);
             });
             items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
@@ -146,6 +148,96 @@ internal sealed class SplitExecutor
 
         items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
         _logFileOnly($"split {plan.Units} of {countBefore} (item {source.ItemConfigId}) into a new stack at {plan.At.X},{plan.At.Y}");
+    }
+
+    /// <summary>
+    /// The new stack, or null when there is none and the bag is as it was. The game's add can put the units in and
+    /// then throw, or return nothing for units it placed, so unless it plainly placed them somewhere else (which the
+    /// split reports), what it did is read off the bag (see AddedUnits), never off what it returned.
+    /// </summary>
+    private ItemData? AddNewStack(ItemManager items, StackCopy copy, long ownerId, SplitPlan.NewStack plan)
+    {
+        IReadOnlyDictionary<long, int> before;
+
+        try
+        {
+            before = StackCounts.In(items, ownerId);
+        }
+        catch (Exception ex)
+        {
+            _picker.Toast(Failed);
+            _log($"reading container {ownerId} before a split failed, so nothing moved: {ex}");
+
+            return null;
+        }
+
+        var (returned, thrown) = TryAdd(items, copy, ownerId, plan);
+
+        if (thrown == null && returned != null && returned.OwnerId != ownerId) return returned;
+
+        try
+        {
+            return Judge(items, before, StackCounts.In(items, ownerId), plan.Units, returned, thrown);
+        }
+        catch (Exception ex)
+        {
+            _picker.Toast(Failed);
+            _log($"container {ownerId} could not be read or put right after {plan.Units} units were added to it; check this bag's counts. The add: {thrown?.ToString() ?? "returned"}. Then: {ex}");
+
+            return null;
+        }
+    }
+
+    private static (ItemData? Returned, Exception? Thrown) TryAdd(ItemManager items, StackCopy copy, long ownerId, SplitPlan.NewStack plan)
+    {
+        try
+        {
+            return (copy.AddNewStack(items, ownerId, plan.At, plan.Units), null);
+        }
+        catch (Exception ex)
+        {
+            return (null, ex);
+        }
+    }
+
+    private ItemData? Judge(ItemManager items, IReadOnlyDictionary<long, int> before, IReadOnlyDictionary<long, int> after, int units, ItemData? returned, Exception? thrown)
+    {
+        switch (AddedUnits.Judge(before, after, units))
+        {
+            case AddResult.Started started:
+                if (thrown != null || returned?.InstanceId != started.StackId) _log($"the game's add of {units} units did not hand back the stack it made, but one new stack holds them, so the split goes on: {thrown?.ToString() ?? "it returned another item or none"}");
+
+                return items.GetItemData(started.StackId) ?? throw new InvalidOperationException($"the new stack {started.StackId} could not be read");
+            case AddResult.Undo { DidNothing: true }:
+                if (thrown == null) _log("the game made no new stack, so nothing moved");
+                else
+                {
+                    _picker.Toast(Failed);
+                    _log($"starting a new stack failed before any unit went in, so nothing moved: {thrown}");
+                }
+
+                return null;
+            case AddResult.Undo undo:
+                Undo("starting a new stack", thrown ?? new InvalidOperationException($"the add put {units} units in no single new stack"), () => TakeBackAdd(items, undo));
+
+                return null;
+            default:
+                throw new InvalidOperationException("every add needs judging: " + units);
+        }
+    }
+
+    /// <summary>Stacks the add made are taken away, and stacks already there that it topped up go back to their counts.</summary>
+    private static void TakeBackAdd(ItemManager items, AddResult.Undo undo)
+    {
+        foreach (var (stackId, countBefore) in undo.Grown)
+        {
+            var grown = items.GetItemData(stackId) ?? throw new InvalidOperationException($"stack {stackId} the add topped up is gone");
+
+            StackCounts.Restore(items, grown, countBefore);
+            StackCounts.Expect(grown, countBefore);
+        }
+
+        foreach (var stackId in undo.NewStacks) items.ForceRemoveItem(stackId);
     }
 
     /// <summary>Taking every unit merges the two stacks, so the emptied one is removed whole, as the game removes a stack it drops from a bag.</summary>
@@ -167,7 +259,7 @@ internal sealed class SplitExecutor
         try
         {
             items.IncreaseItemCount(target, plan.Units);
-            ExpectCount(target, targetBefore + plan.Units);
+            StackCounts.Expect(target, targetBefore + plan.Units);
 
             // The game's own removal of a whole stack: it leaves the bag and the caches, and only then is reported
             // destroyed, the bag told it is gone, and the object pooled, so `source` must not be read after this.
@@ -175,7 +267,7 @@ internal sealed class SplitExecutor
             else
             {
                 items.DecreaseItemCount(source, plan.Units);
-                ExpectCount(source, sourceBefore - plan.Units);
+                StackCounts.Expect(source, sourceBefore - plan.Units);
             }
         }
         catch (Exception ex)
@@ -185,8 +277,8 @@ internal sealed class SplitExecutor
             {
                 if (items.GetItemData(request.ItemId) == null) return;
 
-                RestoreCount(items, target, targetBefore);
-                RestoreCount(items, source, sourceBefore);
+                StackCounts.Restore(items, target, targetBefore);
+                StackCounts.Restore(items, source, sourceBefore);
             });
             items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
 
@@ -195,51 +287,6 @@ internal sealed class SplitExecutor
 
         items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
         _logFileOnly($"moved {plan.Units} of {sourceBefore} (item {configId}) onto a stack of {targetBefore}");
-    }
-
-    /// <summary>A copy of the dragged stack: same freshness, uses, quality and flags, never a weight of its own.</summary>
-    private static ItemData? AddLike(ItemManager items, ItemData source, long ownerId, Cell at, int units) =>
-        items.AddItem(ownerId, source.ItemConfigId, units, source.StartTime, source.TimeLeft, new Vector2Int(at.X, at.Y), source.UseTimes,
-            skipBagPos: false, timeScale: source.TimeScale, instanceVD: Clone(source.InstanceVD), instanceEffectEnd: Clone(source.InstanceEffectEnd),
-            maxUseTimes: source.MaxUseTimes, instanceBurnValue: source.InstanceBurnValue, polluted: source.Polluted, isMapPreset: source.IsMapPreset,
-            noPackage: source.NoPackage, instanceWeight: 0);
-
-    /// <summary>
-    /// The game sets the new stack's speed of decay from the bag it lands in. In a bag that keeps the same speed the
-    /// fractions the add leaves out are copied too, so the two halves age as one.
-    /// </summary>
-    private static void CopyFreshness(ItemData source, ItemData created)
-    {
-        if (created.TimeScale != source.TimeScale) return;
-
-        created.OriginalTimeLeft = source.OriginalTimeLeft;
-        created.TimeLeftFrac = source.TimeLeftFrac;
-    }
-
-    /// <summary>Each stack gets its own copy, or a change to one stack's values would show on the other.</summary>
-    private static Il2CppStructArray<float>? Clone(Il2CppStructArray<float>? values)
-    {
-        if (values == null) return null;
-
-        var copy = new Il2CppStructArray<float>(values.Length);
-
-        for (var i = 0; i < values.Length; i++) copy[i] = values[i];
-
-        return copy;
-    }
-
-    /// <summary>The game's count calls report whether a stack emptied, not whether they worked, so the count itself is checked.</summary>
-    private static void ExpectCount(ItemData item, int expected)
-    {
-        if (item.ItemCount != expected) throw new InvalidOperationException($"the stack holds {item.ItemCount}, expected {expected}");
-    }
-
-    private static void RestoreCount(ItemManager items, ItemData item, int count)
-    {
-        var missing = count - item.ItemCount;
-
-        if (missing > 0) items.IncreaseItemCount(item, missing);
-        else if (missing < 0) items.DecreaseItemCount(item, -missing);
     }
 
     private void Undo(string what, Exception cause, Action undo)

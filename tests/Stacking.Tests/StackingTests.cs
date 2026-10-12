@@ -67,6 +67,37 @@ public class StackIdentityTests
     {
         Assert.True(StackIdentity.CanShareStack(Meal(uses: 0, maxUses: 0), Meal(uses: 1, maxUses: 1), Now));
     }
+
+    /// <summary>The bug report: one kind of seed sat in a stack of 3 and a stack of 1 because their clocks differed.</summary>
+    [Fact]
+    public void Seeds_that_never_spoil_join_one_stack_whatever_their_clocks_say()
+    {
+        Assert.True(StackIdentity.CanJoin(Meal(startTime: 10, timeLeft: 48), Meal(startTime: 90, timeLeft: 0), Now, neverSpoils: true));
+    }
+
+    [Fact]
+    public void A_seed_whose_add_gave_no_values_still_joins_the_stack()
+    {
+        Assert.True(StackIdentity.CanJoin(incoming: null, Meal(), nowHours: null, neverSpoils: true));
+    }
+
+    [Fact]
+    public void A_never_spoiling_item_holding_other_uses_stays_apart()
+    {
+        Assert.False(StackIdentity.CanJoin(Meal(uses: 2, maxUses: 4), Meal(uses: 4, maxUses: 4), Now, neverSpoils: true));
+    }
+
+    [Fact]
+    public void Food_keeps_the_freshness_rule_so_a_fresher_meal_starts_its_own_stack()
+    {
+        Assert.False(StackIdentity.CanJoin(Meal(startTime: 105), Meal(), Now, neverSpoils: false));
+    }
+
+    [Fact]
+    public void Food_of_unknown_freshness_never_joins_a_stack()
+    {
+        Assert.False(StackIdentity.CanJoin(incoming: null, Meal(), Now, neverSpoils: false));
+    }
 }
 
 public class StackLimitsTests
@@ -146,5 +177,19 @@ public class StackLimitsTests
         var line = Assert.Single(StackLimits.Describe(rows, plan, id => id == Food ? "Food" : "?"));
 
         Assert.Equal("Food: 3 items, game limit 1-10, 2 raised (1 newly stackable), 1 kept for having uses", line);
+    }
+
+    [Fact]
+    public void Only_seeds_without_a_shelf_life_ignore_freshness_when_stacking()
+    {
+        var rows = new[]
+        {
+            new ItemRow(15001, Seed, 1, 0, Life: -1),
+            new ItemRow(15002, Seed, 1, 0, Life: 0),
+            new ItemRow(15003, Seed, 1, 0, Life: 72),
+            new ItemRow(7, Food, 1, 1, Life: -1),
+        };
+
+        Assert.Equal(new[] { 15001, 15002 }, StackLimits.NeverSpoiling(rows).Order());
     }
 }

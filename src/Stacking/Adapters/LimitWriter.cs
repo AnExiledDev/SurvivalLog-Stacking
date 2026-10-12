@@ -48,14 +48,15 @@ internal sealed class LimitWriter
         var written = items.Count(item => Write(item, plan));
 
         StackGuard.NewlyStackable = plan.NewlyStackable;
-        Report(rows, plan, written);
+        StackGuard.NeverSpoils = StackLimits.NeverSpoiling(rows);
+        Report(rows, plan, written, StackGuard.NeverSpoils.Count);
     }
 
     private ItemRow GameRow(Config_Item item)
     {
         if (!_gameLimits.TryGetValue(item.ID, out var gameLimit)) _gameLimits[item.ID] = gameLimit = item.StackLimit;
 
-        return new ItemRow(item.ID, item.Category, gameLimit, item.UseTimes);
+        return new ItemRow(item.ID, item.Category, gameLimit, item.UseTimes, item.Life);
     }
 
     private static bool Write(Config_Item item, StackPlan plan)
@@ -67,7 +68,7 @@ internal sealed class LimitWriter
         return true;
     }
 
-    private void Report(List<ItemRow> rows, StackPlan plan, int written)
+    private void Report(List<ItemRow> rows, StackPlan plan, int written, int neverSpoilingSeeds)
     {
         if (_hasApplied)
         {
@@ -78,6 +79,7 @@ internal sealed class LimitWriter
 
         _hasApplied = true;
         _log($"stack limits written for {written} items, {plan.NewlyStackable.Count} of which the game never stacked");
+        _log($"{neverSpoilingSeeds} of {rows.Count(row => row.Category == (int)ItemCategory.Seed)} seeds never spoil, so their freshness does not keep them apart");
 
         foreach (var line in StackLimits.Describe(rows, plan, CategoryName)) _logFileOnly(line);
     }

@@ -36,6 +36,18 @@ public static class StackIdentity
         return Math.Abs(ShelfHoursLeft(incoming, nowHours) - ShelfHoursLeft(stack, nowHours)) <= ToleranceHours;
     }
 
+    /// <summary>
+    /// Whether an item the game never stacked may join a stack. An item whose kind never spoils has no freshness to
+    /// lose, so only its uses must match, and an add whose values are unknown still joins. Anything else needs its
+    /// freshness and the game clock to be known, and unknown starts a new stack.
+    /// </summary>
+    public static bool CanJoin(Freshness? incoming, Freshness stack, float? nowHours, bool neverSpoils)
+    {
+        if (neverSpoils) return incoming is not { } item || HaveSameUses(item, stack);
+
+        return incoming is { } known && nowHours is { } hours && CanShareStack(known, stack, hours);
+    }
+
     /// <summary>A single-use item reads 0 or 1 depending on which game path made it; only items with several uses carry information here.</summary>
     private static bool HaveSameUses(Freshness a, Freshness b)
     {

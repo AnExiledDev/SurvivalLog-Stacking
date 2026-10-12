@@ -15,7 +15,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.2.0";
+    private const string Version = "0.3.0";
 
     /// <summary>Seeds and food are the two players ask to stack by name; every other category keeps the game's limit until set.</summary>
     private static readonly Dictionary<ItemCategory, int> DefaultLimits = new() { [ItemCategory.Seed] = 99, [ItemCategory.Food] = 20 };
@@ -26,7 +26,7 @@ public sealed class Plugin : BasePlugin
         var isCountingWholeStacks = Config.Bind("Cooking", "CountWholeStacks", true,
             "A cooking bench counts every unit of a stack as an ingredient, as it counts loose items, and a finished cook uses up the units its dishes took. Off: a stack counts as one ingredient, as without this mod.").Value;
         var isSplitting = Config.Bind("Splitting", "Enabled", true,
-            "Drop a stack with Shift held to move half of it, Ctrl to move one, Ctrl+Shift to choose how many. Off: a drag moves the whole stack, as without this mod.").Value;
+            "Drop a stack with Shift held to move half of it, Ctrl to move one, Ctrl+Shift to choose how many. Right-click a stack with the same keys to split it onto the nearest free spot in its own bag. Off: a drag moves the whole stack and a right-click does what the game does, as without this mod.").Value;
         var harmony = new Harmony(Guid);
         var log = new StackLog(Log, Path.Combine(Paths.BepInExRootPath, "stacking.log"));
 
@@ -38,6 +38,10 @@ public sealed class Plugin : BasePlugin
         if (isCountingWholeStacks) Cooking.Apply(harmony, log.Write);
         else log.Write("cooking counts a stack as one ingredient: Cooking/CountWholeStacks is off");
 
+        // Only items this mod made stackable are kept out of stations, and none are made stackable without the guard.
+        // The units kept out must start a stack of their own, so the station rule needs NewStacks, splitting or not.
+        if (canGuardFreshness) KeepStacksOutOfStations(harmony, log);
+
         StackTicker.Log = log.Write;
         StackTicker.Writer = new LimitWriter(wantedByCategory, canGuardFreshness, log.Write, log.WriteFileOnly);
         AddComponent<StackTicker>();
@@ -48,6 +52,20 @@ public sealed class Plugin : BasePlugin
             SplitTicker.Log = log.Write;
             AddComponent<SplitTicker>();
         }
+    }
+
+    private static void KeepStacksOutOfStations(Harmony harmony, StackLog log)
+    {
+        if (!NewStacks.Apply(harmony, log.Write))
+        {
+            log.Write("stacks can go into cooking and crafting stations whole this session: the units kept out could not start a stack of their own");
+
+            return;
+        }
+
+        var mover = new StationMover(log.Write, log.WriteFileOnly);
+
+        if (StationGuard.Apply(harmony, mover, log.Write, log.WriteFileOnly)) StackTicker.Mover = mover;
     }
 
     private Dictionary<int, int> BindLimits()

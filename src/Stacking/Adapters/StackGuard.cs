@@ -26,6 +26,9 @@ internal static class StackGuard
     /// <summary>Set by the limit writer on each sweep.</summary>
     internal static IReadOnlySet<int> NewlyStackable = new HashSet<int>();
 
+    /// <summary>Seeds that never spoil, which join a stack whatever their freshness; set by the limit writer on each sweep.</summary>
+    internal static IReadOnlySet<int> NeverSpoils = new HashSet<int>();
+
     /// <summary>The item being added, for adds that give the game its values instead of an item to copy.</summary>
     [ThreadStatic] private static Freshness? _adding;
 
@@ -134,7 +137,7 @@ internal static class StackGuard
 
     private static bool Matches(int itemConfigId, Freshness? incoming, float? now, ItemData stack)
     {
-        var isMatch = incoming is { } item && now is { } hours && StackIdentity.CanShareStack(item, Read(stack), hours);
+        var isMatch = StackIdentity.CanJoin(incoming, Read(stack), now, NeverSpoils.Contains(itemConfigId));
 
         if (_decisionsLogged < MaxLoggedDecisions)
         {
