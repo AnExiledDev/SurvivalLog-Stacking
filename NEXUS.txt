@@ -1,0 +1,66 @@
+Name: Stacking
+Summary: Bigger stacks per item category that keep fresh food apart from old food, cooking that counts every item in a stack, no whole stacks in cooking stations, and splitting stacks with Shift, Ctrl or a how-many panel.
+
+Description (BBCode):
+Most seeds and food take one bag slot each, so storage fills up fast. Stacking raises the stack limit per item category without letting a fresh meal merge into a rotting one, and lets you split stacks with a key held.
+
+[size=5]Main features[/size]
+[list]
+[*][b]Stack limits per category[/b]: seeds stack to 99 and food to 20 out of the box. Every other category can be raised in the config, up to 999.[/*]
+[*][b]Fresh food stays apart[/b]: food only stacks with food of the same freshness, so nothing old sneaks into a fresh stack.[/*]
+[*][b]Seeds stack together[/b]: every seed of one kind joins the same stack.[/*]
+[*][b]Cooking counts every item[/b]: a stack of three strawberries makes three smoothies, the same as three loose ones.[/*]
+[*][b]No stacks in stations[/b]: moving a stack into a cooking or crafting station puts in one item, and the rest stays where it was.[/*]
+[*][b]Split by drag[/b]: hold Shift to move half a stack, Ctrl to move one, or Ctrl+Shift to choose how many.[/*]
+[*][b]Split by right-click[/b]: the same keys with a right-click split the part off onto the nearest free spot.[/*]
+[*][b]Items with portions or uses keep their limit[/b]: dishes with portions and tools with uses are left alone.[/*]
+[/list]
+
+[size=5]Hotkeys[/size]
+[list]
+[*][b]Shift + drop[/b]: move half the stack.[/*]
+[*][b]Ctrl + drop[/b]: move one.[/*]
+[*][b]Ctrl + Shift + drop[/b]: a small panel asks how many.[/*]
+[*][b]Shift, Ctrl or Ctrl + Shift + right-click[/b]: split onto the nearest free spot. With two bags open, Ctrl and Ctrl + Shift right-click stay the game's own "send every item of this kind".[/*]
+[/list]
+
+The mod adds no data of its own to your save and does not edit game files, but the stacks and moves it makes are real items in your bags and storages. You can remove it at any time; stacks already bigger than the game's limit stay as they are.
+
+[size=5]Known issues[/size]
+[list]
+[*][b]Back up your save before trying it for the first time.[/b] The mod moves, splits and merges real items, and moving items around is finicky.[/*]
+[*]Version 0.3.1 has not been played through in the game yet.[/*]
+[*]Do not use it together with BaseButler. Remove BaseButler first.[/*]
+[*]Dropping a stack on the floor moves the whole stack, whatever you hold.[/*]
+[*]Compost bins, material racks and robot molds refuse a split. Split in your bag first, then drag the part you want.[/*]
+[*]A recipe's fill button puts in one of each stack, so a recipe that needs two of an item may need a second press.[/*]
+[*]Two items up to an hour apart in freshness can share a stack.[/*]
+[/list]
+If an item goes missing, doubles or lands somewhere odd, please tell me (see Feedback below).
+
+[size=5]Requirements[/size]
+[list]
+[*]Survival Log 1.1.18317. A game update can break it until the mod is updated.[/*]
+[*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
+[*]Not together with BaseButler.[/*]
+[/list]
+
+[size=5]Installation[/size]
+[list=1]
+[*]Install [url=https://www.nexusmods.com/survivallog/mods/12]BepInEx[/url] [i](if no other mods were installed before, start the game once so BepInEx finishes setup, then quit)[/i].[/*]
+[*]Put [font=Courier New]Stacking.dll[/font] in the BepInEx&#92;plugins folder inside the game folder. Full path example:
+[code]C:&#92;Program Files (x86)&#92;Steam&#92;steamapps&#92;common&#92;Survival Log&#92;BepInEx&#92;plugins&#92;Stacking.dll[/code][/*]
+[*]If you use BaseButler, delete its DLL from the same folder.[/*]
+[/list]
+
+[size=5]Uninstall[/size]
+Delete [font=Courier New]Stacking.dll[/font] from the [font=Courier New]BepInEx&#92;plugins[/font] folder. Stacks already bigger than the game's limit stay in your save as they are.
+
+[size=5]Configuration[/size]
+To change the stack limit of any item category, or turn off the cooking count or splitting, edit [font=Courier New]BepInEx&#92;config&#92;com.dev.survivallog.stacking.cfg[/font] while the game is closed (see [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url] for every setting). Changes apply at the next game start.
+
+[size=5]Feedback[/size]
+Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or leave a comment here. For bugs, please include [font=Courier New]BepInEx&#92;LogOutput.log[/font] and [font=Courier New]BepInEx&#92;stacking.log[/font].
+
+[size=5]Source and license[/size]
+Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]github.com/AnExiledDev/SurvivalLog-Stacking[/url]
