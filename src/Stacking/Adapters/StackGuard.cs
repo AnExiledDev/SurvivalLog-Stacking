@@ -157,7 +157,7 @@ internal static class StackGuard
         return moving != null ? Read(moving) : _adding;
     }
 
-    private static float? NowHours()
+    internal static float? NowHours()
     {
         if (!BaseSingleton<BattleLogicWorld>.IsInstanceCreated) return null;
 
@@ -166,7 +166,7 @@ internal static class StackGuard
         return time == null ? null : time.GetTotalSeconds() / SecondsPerHour;
     }
 
-    private static Freshness Read(ItemData item) =>
+    internal static Freshness Read(ItemData item) =>
         new(item.StartTime, item.TimeLeft, item.TimeLeftFrac, item.TimeScale, item.UseTimes, item.MaxUseTimes);
 
     private static string Describe(Freshness? item) =>

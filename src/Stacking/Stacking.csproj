@@ -26,6 +26,12 @@
     <Reference Include="$(Interop)\UnityEngine.CoreModule.dll" Private="false" />
     <Reference Include="$(Interop)\R3.dll" Private="false" />
     <Reference Include="$(Interop)\ObservableCollections.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.InputLegacyModule.dll" Private="false" />
+    <Reference Include="$(Interop)\Vuplex.WebView.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="picker.js" LogicalName="Stacking.picker.js" />
   </ItemGroup>
 
 </Project>

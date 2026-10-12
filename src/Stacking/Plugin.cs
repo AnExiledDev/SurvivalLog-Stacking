@@ -15,7 +15,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.1.0";
+    private const string Version = "0.2.0";
 
     /// <summary>Seeds and food are the two players ask to stack by name; every other category keeps the game's limit until set.</summary>
     private static readonly Dictionary<ItemCategory, int> DefaultLimits = new() { [ItemCategory.Seed] = 99, [ItemCategory.Food] = 20 };
@@ -25,6 +25,8 @@ public sealed class Plugin : BasePlugin
         var wantedByCategory = BindLimits();
         var isCountingWholeStacks = Config.Bind("Cooking", "CountWholeStacks", true,
             "A cooking bench counts every unit of a stack as an ingredient, as it counts loose items, and a finished cook uses up the units its dishes took. Off: a stack counts as one ingredient, as without this mod.").Value;
+        var isSplitting = Config.Bind("Splitting", "Enabled", true,
+            "Drop a stack with Shift held to move half of it, Ctrl to move one, Ctrl+Shift to choose how many. Off: a drag moves the whole stack, as without this mod.").Value;
         var harmony = new Harmony(Guid);
         var log = new StackLog(Log, Path.Combine(Paths.BepInExRootPath, "stacking.log"));
 
@@ -39,6 +41,13 @@ public sealed class Plugin : BasePlugin
         StackTicker.Log = log.Write;
         StackTicker.Writer = new LimitWriter(wantedByCategory, canGuardFreshness, log.Write, log.WriteFileOnly);
         AddComponent<StackTicker>();
+
+        if (!isSplitting) log.Write("stacks are not split: Splitting/Enabled is off");
+        else if (StackSplitting.Apply(harmony, log.Write, log.WriteFileOnly))
+        {
+            SplitTicker.Log = log.Write;
+            AddComponent<SplitTicker>();
+        }
     }
 
     private Dictionary<int, int> BindLimits()
