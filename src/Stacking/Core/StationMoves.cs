@@ -44,13 +44,19 @@ public interface IStationStore
     void MoveTo(long itemId, long ownerId, Cell at);
 
     /// <summary>
-    /// Adds the units as a stack with the moved stack's freshness, which the game places where it can. Returns the
-    /// stack it says it put them in, or null. Neither the answer nor a throw proves where the units went, so the steps
-    /// judge the add from the container's counts (see AddedUnits).
+    /// Adds the units as a stack, which the game places where it can, on the ground when the container has no room.
+    /// Returns the stack it says it put them in, or null. Neither the answer nor a throw proves where the units went,
+    /// so the steps judge the add from the container's counts and the ground's (see AddedUnits).
     /// </summary>
     long? AddStack(long ownerId, Cell at, int units);
 
-    /// <summary>Removes a stack whole; only ever asked for a stack the add made.</summary>
+    /// <summary>Every stack lying on the ground, each a drop of its own, by id, with its count.</summary>
+    IReadOnlyDictionary<long, int> CountsOnGround();
+
+    /// <summary>Gives a stack the add made the freshness the moved stack had before it moved.</summary>
+    void CopyFreshness(long stackId);
+
+    /// <summary>Removes a stack whole, from a container or the ground; only ever asked for a stack the add made.</summary>
     void Remove(long itemId);
 
     /// <summary>The free cell nearest a cell where this item fits, mold kept clear for food; null when none is free or the container cannot be read.</summary>
@@ -177,7 +183,7 @@ public static class StationMoves
 
             if (IsIn(fromOwnerId)) return Recover(before, StationOutcome.NothingMoved);
 
-            if (AddStack(fromOwnerId, before.At, before.Count - 1) != null) return Done(StationOutcome.OneUnitIn);
+            if (AddStack(fromOwnerId, before.At, before.Count - 1) is { } rest) return Done(Find(rest)?.OwnerId == fromOwnerId ? StationOutcome.OneUnitIn : StationOutcome.RestElsewhere);
 
             Write("moving the unit back out of the station", () => _store.MoveTo(_itemId, fromOwnerId, before.At));
 
@@ -240,20 +246,32 @@ public static class StationMoves
             return Done(StationOutcome.CountsWrong);
         }
 
+        /// <summary>The stack now holding the units, given the moved stack's freshness; null when the units went nowhere.</summary>
+        private long? AddStack(long ownerId, Cell at, int units)
+        {
+            var stack = AddJudged(ownerId, at, units);
+
+            if (stack is { } holding) Write("copying the moved stack's freshness onto the new stack", () => _store.CopyFreshness(holding));
+
+            return stack;
+        }
+
         /// <summary>
         /// The new stack for the units, judged from the container's counts before and after the add, whatever the add
         /// returned or threw. Anything but one new stack of exactly the units is put right: new stacks are taken away,
-        /// and a stack that was already there and grew is put back to its own count, never removed.
+        /// and a stack that was already there and grew is put back to its own count, never removed. A stack the add
+        /// made outside the container is taken away too; only one that cannot be is kept as where the units went.
         /// </summary>
-        private long? AddStack(long ownerId, Cell at, int units)
+        private long? AddJudged(long ownerId, Cell at, int units)
         {
             if (Ask<IReadOnlyDictionary<long, int>?>("reading the container before adding", () => _store.CountsIn(ownerId), fallback: null) is not { } before) return null;
 
-            var returned = Write<long?>("adding the units as a stack", () => _store.AddStack(ownerId, at, units), fallback: null);
+            var groundBefore = Ask<IReadOnlyDictionary<long, int>?>("reading the ground before adding", () => _store.CountsOnGround(), fallback: null);
+            long? returned = null;
+            var hasThrown = !Write("adding the units as a stack", () => returned = _store.AddStack(ownerId, at, units));
             var after = Ask<IReadOnlyDictionary<long, int>?>("reading the container after adding", () => _store.CountsIn(ownerId), fallback: null)
                 ?? throw new Blind($"container {ownerId} could not be read after {units} units were added to it, so whether they are there is unknown");
-
-            if (returned is { } id && !after.ContainsKey(id)) TakeAwayStray(id, ownerId, units);
+            var kept = returned is { } id && !after.ContainsKey(id) ? TakeAwayStray(id, ownerId, units) : null;
 
             switch (AddedUnits.Judge(before, after, units))
             {
@@ -261,30 +279,67 @@ public static class StationMoves
                     if (returned != started.StackId) _notes.Add($"the add of {units} units did not say it made stack {started.StackId}, which holds them, so that stack is kept");
 
                     return started.StackId;
+                case AddResult.Undo { DidNothing: true }:
+                    return kept ?? (hasThrown ? TakeAwayDropped(ownerId, units, groundBefore) : null);
                 case AddResult.Undo undo:
-                    if (!undo.DidNothing) PutRight(ownerId, units, before, undo);
+                    PutRight(ownerId, units, before, undo);
 
-                    return null;
+                    return kept;
                 default:
                     throw new InvalidOperationException("every add needs judging: " + ownerId);
             }
         }
 
-        /// <summary>The add said it made a stack outside the container. Only a stack of exactly the units can be the add's own.</summary>
-        private void TakeAwayStray(long strayId, long ownerId, int units)
+        /// <summary>
+        /// The add threw and put nothing in the container, but the game may have dropped the units on the ground before
+        /// it threw: a container with no room drops them there, each stack as a drop of its own. One new stack of exactly
+        /// the units on the ground is the add's, and several stop the steps. A ground that cannot be read is taken as
+        /// holding none, so the units are put back where they came from rather than lost; the notes say to check it.
+        /// </summary>
+        private long? TakeAwayDropped(long ownerId, int units, IReadOnlyDictionary<long, int>? groundBefore)
         {
-            if (Find(strayId) is not { } stray) return;
+            var groundAfter = Ask<IReadOnlyDictionary<long, int>?>("reading the ground after adding", () => _store.CountsOnGround(), fallback: null);
+
+            if (groundBefore == null || groundAfter == null)
+            {
+                _notes.Add($"the add of {units} units to container {ownerId} threw and the ground could not be read, so it is taken as having dropped nothing; check the ground near the player for a stack of {units}");
+
+                return null;
+            }
+
+            var dropped = AddedUnits.NewStacksOf(groundBefore, groundAfter, units);
+
+            return dropped.Count switch
+            {
+                0 => null,
+                1 => TakeAwayStray(dropped[0], ownerId, units),
+                _ => throw new Blind($"the add of {units} units to container {ownerId} threw and {dropped.Count} new stacks of {units} lie on the ground, so which one is the add's is unknown"),
+            };
+        }
+
+        /// <summary>
+        /// The add made a stack outside the container. Only a stack of exactly the units can be the add's own, and it is
+        /// taken away; one that cannot be is returned, because the units are there and putting them back again would
+        /// count them twice.
+        /// </summary>
+        private long? TakeAwayStray(long strayId, long ownerId, int units)
+        {
+            if (Find(strayId) is not { } stray) return null;
 
             if (stray.Count != units)
             {
                 _notes.Add($"the add of {units} units meant for container {ownerId} named stack {strayId} in container {stray.OwnerId}, which holds {stray.Count}; it is left alone");
 
-                return;
+                return null;
             }
 
             Write("taking away a stack the add made outside the container", () => _store.Remove(strayId));
 
-            if (Find(strayId) is { } left) _notes.Add($"a stack of {left.Count} the add made in container {left.OwnerId}, meant for {ownerId}, could not be taken away");
+            if (Find(strayId) is not { } left) return null;
+
+            _notes.Add($"a stack of {left.Count} the add made in container {left.OwnerId}, meant for {ownerId}, could not be taken away, so the units stay there");
+
+            return strayId;
         }
 
         private void PutRight(long ownerId, int units, IReadOnlyDictionary<long, int> before, AddResult.Undo undo)
@@ -335,7 +390,8 @@ public static class StationMoves
                 var other => throw new InvalidOperationException("every item lookup needs handling: " + other),
             };
 
-        private void Write(string step, Action call) =>
+        /// <summary>True when the call did not throw, which proves nothing about what it did.</summary>
+        private bool Write(string step, Action call) =>
             Write<bool>(step, () =>
             {
                 call();

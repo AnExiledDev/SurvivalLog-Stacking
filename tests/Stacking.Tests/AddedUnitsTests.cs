@@ -77,4 +77,30 @@ public class AddedUnitsTests
 
         Assert.Equal(4, tooMany);
     }
+
+    /// <summary>An add that threw after the game dropped its units on the ground: the one new drop of exactly the units is the add's.</summary>
+    [Fact]
+    public void A_new_stack_of_exactly_the_units_on_the_ground_is_found()
+    {
+        var dropped = AddedUnits.NewStacksOf(Before, new Dictionary<long, int> { [Mine] = 3, [New] = 4 }, units: 4);
+
+        Assert.Equal(new[] { New }, dropped);
+    }
+
+    /// <summary>A stack already on the ground, or a new one of another count, is never taken for the add's.</summary>
+    [Fact]
+    public void Stacks_already_on_the_ground_or_of_another_count_are_never_the_add_s()
+    {
+        var dropped = AddedUnits.NewStacksOf(new Dictionary<long, int> { [Mine] = 4 }, new Dictionary<long, int> { [Mine] = 4, [New] = 5 }, units: 4);
+
+        Assert.Empty(dropped);
+    }
+
+    [Fact]
+    public void Several_new_stacks_of_the_units_on_the_ground_are_all_found_so_none_is_guessed()
+    {
+        var dropped = AddedUnits.NewStacksOf(Before, new Dictionary<long, int> { [Mine] = 3, [Other] = 4, [New] = 4 }, units: 4);
+
+        Assert.Equal(new[] { New, Other }, dropped);
+    }
 }

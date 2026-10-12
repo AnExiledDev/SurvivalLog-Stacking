@@ -15,7 +15,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.3.0";
+    private const string Version = "0.3.1";
 
     /// <summary>Seeds and food are the two players ask to stack by name; every other category keeps the game's limit until set.</summary>
     private static readonly Dictionary<ItemCategory, int> DefaultLimits = new() { [ItemCategory.Seed] = 99, [ItemCategory.Food] = 20 };

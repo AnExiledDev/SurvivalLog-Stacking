@@ -26,6 +26,9 @@ public enum Fault
 
     /// <summary>The add started the stack somewhere else, as on the ground beside the player.</summary>
     LandsElsewhere,
+
+    /// <summary>The add found no room, dropped the units on the ground, and then threw, as a listener of the game's can.</summary>
+    DropsOnGroundThenThrows,
 }
 
 /// <summary>
@@ -46,6 +49,9 @@ public sealed class FakeStationStore : IStationStore
     private bool _isBlind;
 
     public List<long> RemovedNotMade { get; } = new();
+
+    /// <summary>The stacks the moved stack's freshness was copied onto, in order.</summary>
+    public List<long> FreshnessCopiedTo { get; } = new();
 
     public int ThrowsFired { get; private set; }
 
@@ -165,10 +171,24 @@ public sealed class FakeStationStore : IStationStore
                 return Made(ownerId, at, units + 1);
             case Fault.LandsElsewhere:
                 return Made(Ground, at, units);
+            case Fault.DropsOnGroundThenThrows:
+                Made(Ground, at, units);
+                ThrowsFired++;
+
+                throw new InvalidOperationException("boom in AddStack after it dropped the units on the ground");
             default:
                 return Made(ownerId, at, units);
         }
     }
+
+    public IReadOnlyDictionary<long, int> CountsOnGround()
+    {
+        ThrowIfFailing(nameof(CountsOnGround));
+
+        return In(Ground).ToDictionary(pair => pair.Id, pair => pair.Item.Count);
+    }
+
+    public void CopyFreshness(long stackId) => Run(nameof(CopyFreshness), () => FreshnessCopiedTo.Add(stackId));
 
     public void Remove(long itemId) =>
         Run(nameof(Remove), () =>
@@ -290,7 +310,9 @@ public class StationMovesTests
             [nameof(IStationStore.CountsIn)] = [Fault.Throws],
             [nameof(IStationStore.SetCount)] = [Fault.Throws, Fault.ThrowsAfterWorking],
             [nameof(IStationStore.MoveTo)] = [Fault.Throws, Fault.ThrowsAfterWorking],
-            [nameof(IStationStore.AddStack)] = [Fault.Throws, Fault.ThrowsAfterWorking, Fault.ReturnsNothing, Fault.TopsUpAStack, Fault.TopsUpAndSpills, Fault.WrongCount, Fault.LandsElsewhere],
+            [nameof(IStationStore.AddStack)] = [Fault.Throws, Fault.ThrowsAfterWorking, Fault.ReturnsNothing, Fault.TopsUpAStack, Fault.TopsUpAndSpills, Fault.WrongCount, Fault.LandsElsewhere, Fault.DropsOnGroundThenThrows],
+            [nameof(IStationStore.CountsOnGround)] = [Fault.Throws],
+            [nameof(IStationStore.CopyFreshness)] = [Fault.Throws],
             [nameof(IStationStore.Remove)] = [Fault.Throws, Fault.ThrowsAfterWorking],
             [nameof(IStationStore.FreeCell)] = [Fault.Throws, Fault.ReturnsNothing],
             [FakeStationStore.Replay] = [Fault.Throws, Fault.ThrowsAfterWorking],
@@ -531,6 +553,109 @@ public class StationMovesTests
         Assert.Contains(store.In(Bag), pair => pair.Item == new Placed(Bag, store.FreeCellAnswer, Eggs - 1));
     }
 
+    /// <summary>The rest is as fresh as the stack it came from, whether the add went cleanly or threw after making it.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData(Fault.ThrowsAfterWorking)]
+    public void The_rest_keeps_the_moved_stack_s_freshness_even_when_the_add_threw_after_making_it(Fault? fault)
+    {
+        var store = fault is { } failing ? Kitchen().Failing(nameof(IStationStore.AddStack), failing) : Kitchen();
+
+        TakeOne(store);
+
+        var rest = Assert.Single(store.In(Bag), pair => pair.Item == new Placed(Bag, EggAt, Eggs - 1));
+        Assert.Equal(new[] { rest.Id }, store.FreshnessCopiedTo);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(Fault.ThrowsAfterWorking)]
+    public void Units_sent_back_keep_the_moved_stack_s_freshness_even_when_the_add_threw_after_making_them(Fault? fault)
+    {
+        var store = fault is { } failing ? EggsLeftInThePot().Failing(nameof(IStationStore.AddStack), failing) : EggsLeftInThePot();
+
+        SendBack(store);
+
+        var sent = Assert.Single(store.In(Bag), pair => pair.Item == new Placed(Bag, store.FreeCellAnswer, Eggs - 1));
+        Assert.Equal(new[] { sent.Id }, store.FreshnessCopiedTo);
+    }
+
+    /// <summary>
+    /// The bag had no room, so the game dropped the rest on the ground and then threw. The dropped stack is taken
+    /// away and the move undone, so the rest is never in the bag and on the ground both.
+    /// </summary>
+    [Fact]
+    public void Units_the_add_dropped_on_the_ground_before_it_threw_are_taken_away_and_the_move_undone()
+    {
+        var store = Kitchen().Failing(nameof(IStationStore.AddStack), Fault.DropsOnGroundThenThrows, times: 1);
+
+        var report = TakeOne(store);
+
+        Assert.Equal(StationOutcome.MoveUndone, report.Outcome);
+        Assert.Equal(AllUnits, store.TotalUnits);
+        Assert.Empty(store.In(FakeStationStore.Ground));
+        Assert.Equal(new Placed(Bag, EggAt, Eggs), store.At(Egg));
+    }
+
+    [Fact]
+    public void Units_sent_back_that_the_add_dropped_on_the_ground_before_it_threw_are_not_counted_twice()
+    {
+        var store = EggsLeftInThePot().Failing(nameof(IStationStore.AddStack), Fault.DropsOnGroundThenThrows, times: 1);
+
+        var report = SendBack(store);
+
+        Assert.Equal(StationOutcome.StackMovedBack, report.Outcome);
+        Assert.Equal(AllUnits, store.TotalUnits);
+        Assert.Empty(store.In(FakeStationStore.Ground));
+        Assert.Equal(new Placed(Bag, store.FreeCellAnswer, Eggs), store.At(Egg));
+    }
+
+    /// <summary>
+    /// The add threw having put nothing anywhere and the ground cannot be read. Stopping there would leave the rest
+    /// of the stack cut off and lost, so the ground is taken as empty, the move is undone and every unit is back.
+    /// </summary>
+    [Fact]
+    public void An_add_that_threw_while_the_ground_cannot_be_read_is_undone_and_keeps_every_unit()
+    {
+        var store = Kitchen().Failing(nameof(IStationStore.AddStack), Fault.Throws, times: 1).Failing(nameof(IStationStore.CountsOnGround), Fault.Throws);
+
+        var report = TakeOne(store);
+
+        Assert.Equal(StationOutcome.MoveUndone, report.Outcome);
+        Assert.True(report.NeedsAttention);
+        Assert.Equal(AllUnits, store.TotalUnits);
+        Assert.Equal(new Placed(Bag, EggAt, Eggs), store.At(Egg));
+        Assert.Contains(report.Notes, note => note.Contains("the ground could not be read"));
+    }
+
+    /// <summary>A dropped stack that cannot be taken away holds the rest, so it is kept as where the rest went and nothing is put back a second time.</summary>
+    [Fact]
+    public void Units_dropped_on_the_ground_that_cannot_be_taken_away_stay_there_and_are_never_put_back_twice()
+    {
+        var store = Kitchen().Failing(nameof(IStationStore.AddStack), Fault.DropsOnGroundThenThrows, times: 1).Failing(nameof(IStationStore.Remove), Fault.Throws);
+
+        var report = TakeOne(store);
+
+        Assert.Equal(StationOutcome.RestElsewhere, report.Outcome);
+        Assert.True(report.NeedsAttention);
+        Assert.Equal(AllUnits, store.TotalUnits);
+        Assert.Equal(new Placed(Pot, new Cell(0, 0), 1), store.At(Egg));
+        Assert.Contains(store.In(FakeStationStore.Ground), pair => pair.Item.Count == Eggs - 1);
+    }
+
+    [Fact]
+    public void Units_sent_back_onto_the_ground_that_cannot_be_taken_away_count_as_sent()
+    {
+        var store = EggsLeftInThePot().Failing(nameof(IStationStore.AddStack), Fault.DropsOnGroundThenThrows, times: 1).Failing(nameof(IStationStore.Remove), Fault.Throws);
+
+        var report = SendBack(store);
+
+        Assert.Equal(StationOutcome.SentBack, report.Outcome);
+        Assert.Equal(AllUnits, store.TotalUnits);
+        Assert.Equal(1, store.At(Egg)?.Count);
+        Assert.Contains(store.In(FakeStationStore.Ground), pair => pair.Item.Count == Eggs - 1);
+    }
+
     /// <summary>The game topped up the player's stack by one and started a stack of the rest: both are put right, and the move is undone.</summary>
     [Fact]
     public void An_add_that_tops_up_a_stack_and_spills_the_rest_is_undone_whole()
@@ -584,6 +709,8 @@ public class StationMovesTests
         nameof(IStationStore.SetCount),
         nameof(IStationStore.MoveTo),
         nameof(IStationStore.AddStack),
+        nameof(IStationStore.CountsOnGround),
+        nameof(IStationStore.CopyFreshness),
         nameof(IStationStore.Remove),
         nameof(IStationStore.FreeCell),
         FakeStationStore.Replay,

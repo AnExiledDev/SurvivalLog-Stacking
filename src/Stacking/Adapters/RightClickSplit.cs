@@ -84,7 +84,7 @@ internal static class RightClickSplit
     {
         lock (Gate)
         {
-            _probes = _probes.Expired(Time.frameCount);
+            _probes = _probes.Expired(Time.frameCount, Clock.ElapsedMilliseconds);
 
             Forget();
         }
@@ -108,7 +108,7 @@ internal static class RightClickSplit
     {
         lock (Gate)
         {
-            _probes = _probes.Probed(Time.frameCount);
+            _probes = _probes.Probed(Time.frameCount, Clock.ElapsedMilliseconds);
 
             Asked.Enqueue(kind);
         }

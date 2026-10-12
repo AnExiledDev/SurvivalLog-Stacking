@@ -131,7 +131,7 @@ internal sealed class SplitExecutor
             Undo("starting a new stack", ex, () =>
             {
                 StackCounts.Restore(items, source, countBefore);
-                items.ForceRemoveItem(created.InstanceId);
+                GroundDrops.RemoveStack(items, created.InstanceId);
             });
             items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
 
@@ -153,7 +153,7 @@ internal sealed class SplitExecutor
     /// <summary>
     /// The new stack, or null when there is none and the bag is as it was. The game's add can put the units in and
     /// then throw, or return nothing for units it placed, so unless it plainly placed them somewhere else (which the
-    /// split reports), what it did is read off the bag (see AddedUnits), never off what it returned.
+    /// split reports), what it did is read off the bag and the ground (see AddedUnits), never off what it returned.
     /// </summary>
     private ItemData? AddNewStack(ItemManager items, StackCopy copy, long ownerId, SplitPlan.NewStack plan)
     {
@@ -171,13 +171,14 @@ internal sealed class SplitExecutor
             return null;
         }
 
+        var groundBefore = ReadGround("before");
         var (returned, thrown) = TryAdd(items, copy, ownerId, plan);
 
         if (thrown == null && returned != null && returned.OwnerId != ownerId) return returned;
 
         try
         {
-            return Judge(items, before, StackCounts.In(items, ownerId), plan.Units, returned, thrown);
+            return Judge(items, before, StackCounts.In(items, ownerId), plan.Units, returned, thrown, groundBefore);
         }
         catch (Exception ex)
         {
@@ -200,7 +201,8 @@ internal sealed class SplitExecutor
         }
     }
 
-    private ItemData? Judge(ItemManager items, IReadOnlyDictionary<long, int> before, IReadOnlyDictionary<long, int> after, int units, ItemData? returned, Exception? thrown)
+    private ItemData? Judge(ItemManager items, IReadOnlyDictionary<long, int> before, IReadOnlyDictionary<long, int> after, int units, ItemData? returned, Exception? thrown,
+        IReadOnlyDictionary<long, int>? groundBefore)
     {
         switch (AddedUnits.Judge(before, after, units))
         {
@@ -208,21 +210,62 @@ internal sealed class SplitExecutor
                 if (thrown != null || returned?.InstanceId != started.StackId) _log($"the game's add of {units} units did not hand back the stack it made, but one new stack holds them, so the split goes on: {thrown?.ToString() ?? "it returned another item or none"}");
 
                 return items.GetItemData(started.StackId) ?? throw new InvalidOperationException($"the new stack {started.StackId} could not be read");
-            case AddResult.Undo { DidNothing: true }:
-                if (thrown == null) _log("the game made no new stack, so nothing moved");
-                else
-                {
-                    _picker.Toast(Failed);
-                    _log($"starting a new stack failed before any unit went in, so nothing moved: {thrown}");
-                }
+            case AddResult.Undo { DidNothing: true } when thrown == null:
+                _log("the game made no new stack, so nothing moved");
 
                 return null;
+            case AddResult.Undo { DidNothing: true }:
+                return DroppedOnGround(items, groundBefore, units, thrown);
             case AddResult.Undo undo:
                 Undo("starting a new stack", thrown ?? new InvalidOperationException($"the add put {units} units in no single new stack"), () => TakeBackAdd(items, undo));
 
                 return null;
             default:
                 throw new InvalidOperationException("every add needs judging: " + units);
+        }
+    }
+
+    /// <summary>
+    /// The add threw and put nothing in the bag, but a bag with no room has the game drop the units on the ground
+    /// before anything can throw (DropItemManager.TryDropOverflowItemData). One new stack of exactly the units there is
+    /// the split's, landed on the ground as a split that fits nowhere lands; with none, nothing moved.
+    /// </summary>
+    private ItemData? DroppedOnGround(ItemManager items, IReadOnlyDictionary<long, int>? groundBefore, int units, Exception? thrown)
+    {
+        var groundAfter = groundBefore == null ? null : ReadGround("after");
+        var dropped = groundBefore == null || groundAfter == null ? null : AddedUnits.NewStacksOf(groundBefore, groundAfter, units);
+
+        if (dropped is { Count: 1 })
+        {
+            _log($"the game's add of {units} units dropped them on the ground and then threw, so the split goes on with that stack: {thrown}");
+
+            return items.GetItemData(dropped[0]) ?? throw new InvalidOperationException($"the stack of {units} dropped on the ground ({dropped[0]}) could not be read");
+        }
+
+        var what = dropped switch
+        {
+            null => "the ground could not be read, so whether the units were dropped there is unknown; check the ground near the player",
+            { Count: 0 } => "no unit went in, so nothing moved",
+            { Count: var count } => $"{count} new stacks of {units} lie on the ground, so which is the split's is unknown; check the ground near the player",
+        };
+
+        _picker.Toast(Failed);
+        _log($"starting a new stack failed and {what}: {thrown}");
+
+        return null;
+    }
+
+    private IReadOnlyDictionary<long, int>? ReadGround(string when)
+    {
+        try
+        {
+            return GroundDrops.Counts();
+        }
+        catch (Exception ex)
+        {
+            _log($"reading the ground {when} a split failed: {ex}");
+
+            return null;
         }
     }
 

@@ -61,8 +61,8 @@ Limits are capped at 999. On the first load, `BepInEx/stacking.log` lists every 
 - Items the game already stacks (fuel and the like) still stack in a station as the game allows; the station rule covers only items this mod made stackable. A Shift or Ctrl drag of them into a station is refused rather than split; drag without a modifier to move them as the game does.
 - Stacks put in a station by 0.2.0 stay there whole and still cook in full, because `Cooking/CountWholeStacks` counts every unit.
 - Dropping a stack on an item inside a station puts one unit in whichever free slot of the station the game picks, not in that item's slot, and the station item stays. Dropping a station item on a stack outside does nothing, because the trade would bring the stack in whole.
-- A Shift or Ctrl right-click with the backpack alone asks the game which item is under the tooltip through its drop key. That never drops anything. If you press the drop key yourself before the game has answered, or within about half a second (30 frames) of a right-click on an empty cell, that one press may do nothing; press it again.
-- 0.3.0 has not been run in the game yet. Back up your save before trying it.
+- A Shift or Ctrl right-click with the backpack alone asks the game which item is under the tooltip through its drop key. That never drops anything. If you press the drop key yourself before the game has answered, or within about half a second (longer at a frame rate under 60) of a right-click on an empty cell, that one press may do nothing; press it again. The first Shift or Ctrl right-click after one on an empty cell may do nothing too; click again.
+- 0.3.1 has not been run in the game yet. Back up your save before trying it.
 - Items that carry a weight of their own never stack in the game, so a drag of one stays the game's own move.
 - Holding Ctrl changes how the bag looks. That is the game's own Ctrl highlight and has no effect on the split.
 - A drag shorter than a few pixels is a click to the game, so Shift or Ctrl held on it does the game's own quick transfer or quick use, not a split.

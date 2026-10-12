@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Stacking.Adapters;
 
 /// <summary>
-/// The game's items as the station steps see them, for one stack: its units are added back with the freshness it had
+/// The game's items as the station steps see them, for one stack: its units are given back the freshness it had
 /// before it moved. Every call goes through the game's own item calls, and every check is the core's.
 /// </summary>
 internal sealed class GameStationStore : IStationStore
@@ -54,24 +54,15 @@ internal sealed class GameStationStore : IStationStore
     public void MoveTo(long itemId, long ownerId, Cell at) =>
         _items.OnMoveItem(Existing(itemId).OwnerId, itemId, ownerId, new Vector2Int(at.X, at.Y));
 
-    /// <summary>A throw from the add is passed on as it is: the steps judge from the container whether the units went in anyway.</summary>
-    public long? AddStack(long ownerId, Cell at, int units)
-    {
-        if (_stack.AddNewStack(_items, ownerId, at, units) is not { } added) return null;
+    /// <summary>A throw from the add is passed on as it is: the steps judge from the container and the ground whether the units went in anyway.</summary>
+    public long? AddStack(long ownerId, Cell at, int units) => _stack.AddNewStack(_items, ownerId, at, units)?.InstanceId;
 
-        try
-        {
-            _stack.CopyFreshnessTo(added);
-        }
-        catch (Exception ex)
-        {
-            _log($"copying freshness onto {units} units sent to container {ownerId} failed, they keep the freshness the game gave them: {ex}");
-        }
+    public IReadOnlyDictionary<long, int> CountsOnGround() => GroundDrops.Counts();
 
-        return added.InstanceId;
-    }
+    public void CopyFreshness(long stackId) => _stack.CopyFreshnessTo(Existing(stackId));
 
-    public void Remove(long itemId) => _items.ForceRemoveItem(itemId);
+    /// <summary>A stack on the ground is collected with its drop; the game's item removal alone would leave the drop behind (see GroundDrops).</summary>
+    public void Remove(long itemId) => GroundDrops.RemoveStack(_items, itemId);
 
     public Cell? FreeCell(long ownerId, long itemId, Cell near)
     {

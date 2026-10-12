@@ -45,6 +45,13 @@ public static class AddedUnits
         return new AddResult.Undo(newStacks, grown);
     }
 
+    /// <summary>
+    /// The stacks of exactly the units that were not there before, oldest id first. On the ground every stack the game
+    /// drops is a new one, so a single match is the add's own, and none means it dropped nothing there.
+    /// </summary>
+    public static IReadOnlyList<long> NewStacksOf(IReadOnlyDictionary<long, int> before, IReadOnlyDictionary<long, int> after, int units) =>
+        after.Where(stack => !before.ContainsKey(stack.Key) && stack.Value == units).Select(stack => stack.Key).OrderBy(id => id).ToList();
+
     /// <summary>Units the container holds beyond what it held before, counting only stacks that are new or grew.</summary>
     public static int UnitsTooMany(IReadOnlyDictionary<long, int> before, IReadOnlyDictionary<long, int> after) =>
         after.Sum(stack => before.TryGetValue(stack.Key, out var was) ? Math.Max(0, stack.Value - was) : stack.Value);
