@@ -9,9 +9,9 @@ public class CookingCountsTests
     private const int Fruit = 7;
     private const int Battery = 900;
 
-    private static readonly ItemUse Stackable = new(StackLimit: 20, Category: 1, ConfigUses: 0);
-    private static readonly ItemUse Single = new(StackLimit: 1, Category: 1, ConfigUses: 0);
-    private static readonly ItemUse ApplianceWithUses = new(StackLimit: 5, Category: 4, ConfigUses: 3);
+    private static readonly ItemUse Stackable = new(StackLimit: 20, Category: 1);
+    private static readonly ItemUse Single = new(StackLimit: 1, Category: 1);
+    private static readonly ItemUse Appliance = new(StackLimit: 5, Category: 4);
 
     [Fact]
     public void A_stack_of_three_counts_as_three_ingredients_like_three_single_items_do()
@@ -40,9 +40,9 @@ public class CookingCountsTests
     }
 
     [Fact]
-    public void An_appliance_with_uses_keeps_the_games_count_because_cooking_does_not_use_it_up()
+    public void An_appliance_keeps_the_games_count_even_without_uses_because_the_game_may_leave_it_in_place()
     {
-        var extras = CookingCounts.Extras(new[] { new BenchStack(Battery, 3, 4, ApplianceWithUses) });
+        var extras = CookingCounts.Extras(new[] { new BenchStack(Battery, 3, 4, Appliance) });
 
         Assert.True(extras.IsEmpty);
     }
@@ -62,9 +62,9 @@ public class SettleLedgerTests
     private const int Salt = 502;
     private const int Battery = 900;
 
-    private static readonly ItemUse Stackable = new(StackLimit: 20, Category: 1, ConfigUses: 0);
-    private static readonly ItemUse Single = new(StackLimit: 1, Category: 1, ConfigUses: 0);
-    private static readonly ItemUse ApplianceWithUses = new(StackLimit: 5, Category: 4, ConfigUses: 3);
+    private static readonly ItemUse Stackable = new(StackLimit: 20, Category: 1);
+    private static readonly ItemUse Single = new(StackLimit: 1, Category: 1);
+    private static readonly ItemUse Appliance = new(StackLimit: 5, Category: 4);
 
     private static SettleLedger Ledger(Dictionary<int, int> need, params long[] benchIds) =>
         SettleLedger.Open(new[] { need }, benchIds);
@@ -142,11 +142,11 @@ public class SettleLedgerTests
     }
 
     [Fact]
-    public void An_appliance_with_uses_is_left_to_the_game()
+    public void An_appliance_is_left_to_the_game_even_without_uses()
     {
         var ledger = Ledger(new() { [Battery] = 4 }, 1);
 
-        Assert.Equal(0, ledger.ExtraUnits(1, Battery, 4, ApplianceWithUses));
+        Assert.Equal(0, ledger.ExtraUnits(1, Battery, 4, Appliance));
     }
 
     [Fact]

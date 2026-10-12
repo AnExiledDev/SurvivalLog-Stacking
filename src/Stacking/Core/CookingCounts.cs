@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Stacking.Core;
 
 /// <summary>What the game's item table says about how an item is used up.</summary>
-public readonly record struct ItemUse(int StackLimit, int Category, int ConfigUses);
+public readonly record struct ItemUse(int StackLimit, int Category);
 
 /// <summary>One stack on a cooking bench: its item, its ingredient tag and how many units it holds.</summary>
 public readonly record struct BenchStack(int ConfigId, int SubCategory, int Count, ItemUse Use);
@@ -42,10 +42,11 @@ public static class CookingCounts
     }
 
     /// <summary>
-    /// True when cooking uses up every unit of a stack. An appliance with uses is the exception: the game's removal
-    /// leaves it in place, so counting its units would cook more than the bench holds.
+    /// True when cooking uses up every unit of a stack. Appliances are the exception: the game's removal skips them
+    /// unless the config has uses and this instance has spent them, so counting their units could cook more than the
+    /// bench gives up.
     /// </summary>
-    public static bool CountsEveryUnit(ItemUse use) => use.StackLimit > 1 && !(use.Category == ElectricalAppliances && use.ConfigUses > 0);
+    public static bool CountsEveryUnit(ItemUse use) => use.StackLimit > 1 && use.Category != ElectricalAppliances;
 
     /// <summary>How much of a stack the game counts against the recipes' need: all of it when stackable, else the one item.</summary>
     internal static int CountedUnits(int count, ItemUse use) => use.StackLimit > 1 ? Math.Max(1, count) : 1;

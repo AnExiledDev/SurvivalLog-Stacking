@@ -43,7 +43,7 @@ internal static class Cooking
         log("cooking counts every unit of a stack, and a finished cook uses up the units its dishes took");
     }
 
-    public static ItemUse UseOf(Config_Item config) => new(config.StackLimit, config.Category, config.UseTimes);
+    public static ItemUse UseOf(Config_Item config) => new(config.StackLimit, config.Category);
 
     /// <summary>Any failure stops the planner counting units, so no later cook can plan units it might not take.</summary>
     public static void Stop(string what, Exception ex)
