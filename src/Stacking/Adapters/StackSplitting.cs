@@ -70,6 +70,15 @@ internal static class StackSplitting
             case PickerAnswer.Cancel cancel:
                 _picker?.Cancelled(cancel.Token);
                 break;
+            case PickerAnswer.Shown shown:
+                _picker?.Shown(shown.Token, now);
+                break;
+            case PickerAnswer.Gone gone:
+                _picker?.Gone(gone.Token);
+                break;
+            case PickerAnswer.Ready:
+                _picker?.Reloaded();
+                break;
             case PickerAnswer.Unknown unknown:
                 _unknownAnswers++;
 

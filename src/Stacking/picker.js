@@ -1,7 +1,10 @@
 // Stacking's split picker. Runs in Root.html, the document every game page iframe sits in, and draws over all of
 // them in the game's own colours and fonts, as Storage Hub's panel does. Asks how many units of a dropped stack to
 // move and answers through vuplex.postMessage("slmod|stacking|split|<token>|<units>" or "slmod|stacking|cancel|<token>").
-// Driven by window.__slstacking. The plugin sends this whole script ahead of every call, so it installs itself once.
+// Says "slmod|stacking|shown|<token>" once the picker is on screen and again whenever the plugin checks on it, or
+// "slmod|stacking|gone|<token>" when it is not; the plugin gives the game its keys and clicks back on gone or silence.
+// Driven by window.__slstacking. The plugin sends this whole script ahead of every call, so it installs itself once,
+// and says "slmod|stacking|ready" when it does: after a reload, that tells the plugin any picker it had open is gone.
 (function () {
   if (window.__slstacking) return;
 
@@ -96,14 +99,15 @@
     document.body.appendChild(root);
     document.body.appendChild(toast);
 
-    // Nothing under the picker may see its clicks or keys; a press on the dimmed area around it cancels.
+    // Nothing under the picker may see its clicks; a press on the dimmed area around it cancels. A press on the plate
+    // itself keeps the focus in the number box, so typing and Enter still reach it.
     root.addEventListener('mousedown', function (e) {
       e.stopPropagation();
 
       if (e.target === root) cancel();
+      else if (!e.target.closest('input,button')) e.preventDefault();
     });
     root.addEventListener('click', onClick);
-    root.addEventListener('keydown', onKey);
     number.addEventListener('input', function () {
       var units = parseInt(number.value, 10);
 
@@ -139,11 +143,20 @@
     else if (act === 'split') commit();
   }
 
+  // Listens on the whole window, ahead of the page, so Enter and Esc work wherever the focus went, and no key typed
+  // into the picker reaches the page under it.
   function onKey(e) {
+    if (!asked) return;
+
     e.stopPropagation();
 
-    if (e.key === 'Enter') commit();
-    else if (e.key === 'Escape') cancel();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancel();
+    }
   }
 
   function clamp(units) {
@@ -196,11 +209,20 @@
     ui.slider.max = String(max);
     ui.root.style.display = 'flex';
     setUnits(suggested);
+    send('shown|' + token);
   }
 
   // Closed by the plugin (the bag closed, Esc, or no answer in time): no answer is sent.
   function close() {
     hide();
+  }
+
+  function check(token) {
+    send((isShowing(token) ? 'shown|' : 'gone|') + token);
+  }
+
+  function isShowing(token) {
+    return !!asked && asked.token === token && !!ui && document.body.contains(ui.root) && ui.root.style.display === 'flex';
   }
 
   function toast(text) {
@@ -211,5 +233,7 @@
     toastTimer = setTimeout(function () { ui.toast.style.display = 'none'; }, TOAST_MS);
   }
 
-  window.__slstacking = { open: open, close: close, toast: toast };
+  window.__slstacking = { open: open, close: close, toast: toast, check: check };
+  window.addEventListener('keydown', onKey, true);
+  send('ready');
 })();

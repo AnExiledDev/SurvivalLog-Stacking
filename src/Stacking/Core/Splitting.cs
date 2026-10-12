@@ -58,6 +58,14 @@ public enum Refusal
     OwnRules,
 }
 
+/// <summary>Where the game put a new stack: the game's add places it elsewhere when the cell is taken, and drops it when the container is full.</summary>
+public enum Landing
+{
+    WhereDropped,
+    ElsewhereInBag,
+    OnTheGround,
+}
+
 public abstract record SplitPlan
 {
     private SplitPlan()
@@ -165,6 +173,21 @@ public static class Splitting
         Refusal.OtherCondition => "Those don't stack: freshness or condition differs",
         Refusal.OwnRules => "Stacks can't be split into or out of this container; split them in your bag first",
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "every refusal needs words for the player"),
+    };
+
+    /// <summary>A stack that left the container it was dropped in went to the ground; the add has nowhere else to put it.</summary>
+    public static Landing LandingOf(long ownerId, Cell at, long droppedOwnerId, Cell droppedAt) =>
+        ownerId != droppedOwnerId ? Landing.OnTheGround
+        : at != droppedAt ? Landing.ElsewhereInBag
+        : Landing.WhereDropped;
+
+    /// <summary>What to tell the player about where the split-off units went; nothing when they went where they were dropped.</summary>
+    public static string? Explain(Landing landing) => landing switch
+    {
+        Landing.WhereDropped => null,
+        Landing.ElsewhereInBag => "That spot was taken, so the split-off stack went elsewhere in the container",
+        Landing.OnTheGround => "No room in the container, so the split-off stack was dropped on the ground",
+        _ => throw new ArgumentOutOfRangeException(nameof(landing), landing, "every landing needs words for the player"),
     };
 
     /// <summary>The stack under the cursor, or else the only stack the drop touches; never the dragged stack itself.</summary>

@@ -15,6 +15,13 @@ public static class PickerCalls
     /// <summary>Safe to send when the script never arrived: there is nothing to close then.</summary>
     public static string Close() => $"{Page}&&{Page}.close()";
 
+    /// <summary>
+    /// Asks whether the picker with this token is still on screen; the page answers shown or gone. Sent without the
+    /// script, so a page that reloaded and lost it answers gone from here instead of installing a fresh, empty picker.
+    /// </summary>
+    public static string Check(int token) =>
+        $"{Page}?{Page}.check({Number(token)}):window.vuplex&&window.vuplex.postMessage({Quote($"{PickerAnswer.Prefix}gone|{Number(token)}")})";
+
     /// <summary>A JavaScript string literal that no quote, backslash or line break in the text can end early.</summary>
     public static string Quote(string text)
     {

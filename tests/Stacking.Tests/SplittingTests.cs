@@ -184,6 +184,43 @@ public class SplittingTests
 
     public static TheoryData<Refusal> EveryRefusal() => new(Enum.GetValues<Refusal>());
 
+    [Theory]
+    [InlineData(Refusal.NoRoom, "No room to split the stack there")]
+    [InlineData(Refusal.StackFull, "That stack is already full")]
+    [InlineData(Refusal.TooHeavy, "That would be too heavy for the container")]
+    [InlineData(Refusal.OtherCondition, "Those don't stack: freshness or condition differs")]
+    [InlineData(Refusal.OwnRules, "Stacks can't be split into or out of this container; split them in your bag first")]
+    public void Every_refusal_tells_the_player_the_reason_decided_for_it(Refusal reason, string words)
+    {
+        Assert.Equal(words, Splitting.Explain(reason));
+    }
+
+    [Fact]
+    public void A_new_stack_that_landed_where_it_was_dropped_needs_no_word()
+    {
+        var landing = Splitting.LandingOf(5, new Cell(2, 1), 5, new Cell(2, 1));
+
+        Assert.Equal(Landing.WhereDropped, landing);
+        Assert.Null(Splitting.Explain(landing));
+    }
+
+    [Fact]
+    public void A_new_stack_the_game_put_in_another_cell_tells_the_player_it_went_elsewhere_in_the_container()
+    {
+        var landing = Splitting.LandingOf(5, new Cell(4, 0), 5, new Cell(2, 1));
+
+        Assert.Equal("That spot was taken, so the split-off stack went elsewhere in the container", Splitting.Explain(landing));
+    }
+
+    /// <summary>The game's add drops a stack it cannot place, which gives it another owner; its cell says nothing then.</summary>
+    [Fact]
+    public void A_new_stack_that_left_the_container_tells_the_player_it_was_dropped_on_the_ground()
+    {
+        var landing = Splitting.LandingOf(9, new Cell(2, 1), 5, new Cell(2, 1));
+
+        Assert.Equal("No room in the container, so the split-off stack was dropped on the ground", Splitting.Explain(landing));
+    }
+
     [Fact]
     public void The_picker_can_offer_every_unit_when_topping_up_because_nothing_is_left_behind_in_an_empty_cell()
     {

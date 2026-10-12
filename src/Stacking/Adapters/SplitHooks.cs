@@ -45,8 +45,9 @@ internal static class SplitHooks
 
         if (!isCatchingMoves && !isCatchingDrops) return false;
 
-        if (!TryPatch(harmony, "dragging an item in a bag", () => AccessTools.Method(typeof(Reducer_Web_BackpackUI), nameof(Reducer_Web_BackpackUI.RA_DragItem)),
-                prefix: nameof(RememberSplitDrop)))
+        if (!Hooks.TryPatchScope(harmony, typeof(SplitHooks), "dragging an item in a bag",
+                () => AccessTools.Method(typeof(Reducer_Web_BackpackUI), nameof(Reducer_Web_BackpackUI.RA_DragItem)), log,
+                open: nameof(RememberSplitDrop), close: nameof(ForgetSplitDrop)))
         {
             return false;
         }
@@ -115,6 +116,12 @@ internal static class SplitHooks
         }
     }
 
+    /// <summary>
+    /// The game moves or drops the stack inside its drag handler (the drop's event reaches ItemManager before the
+    /// handler returns), so a split drop the handler did not take is a drop it refused, and must not wait for the next one.
+    /// </summary>
+    private static void ForgetSplitDrop() => _pending = null;
+
     private static bool SplitInsteadOfMove(long ItemId, long FromOwnerId, long ToOwnerId) =>
         TakePending(request => request.ItemId == ItemId && request.SrcOwnerId == FromOwnerId && request.DstOwnerId == ToOwnerId) is not { } request
         || RunsOriginal(request);
@@ -131,6 +138,7 @@ internal static class SplitHooks
 
     private static void NoteBackpackClosed() => _wasBackpackClosed = true;
 
+    /// <summary>The expiry only matters when the game would not take a finalizer and a throwing drag handler skipped ForgetSplitDrop.</summary>
     private static SplitRequest? TakePending(Func<SplitRequest, bool> isThisDrop)
     {
         if (_pending is not { } pending || Clock.ElapsedMilliseconds - pending.SeenAt > PendingExpiryMs || !isThisDrop(pending.Request)) return null;

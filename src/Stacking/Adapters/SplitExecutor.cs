@@ -136,16 +136,19 @@ internal sealed class SplitExecutor
             return;
         }
 
-        if (created.OwnerId != request.DstOwnerId || created.BagPos != new Vector2Int(plan.At.X, plan.At.Y))
+        var landing = Splitting.LandingOf(created.OwnerId, new Cell(created.BagPos.x, created.BagPos.y), request.DstOwnerId, plan.At);
+
+        if (Splitting.Explain(landing) is { } whereItWent)
         {
             _log($"the new stack of {plan.Units} did not fit where it was dropped and the game put it elsewhere (owner {created.OwnerId}, cell {created.BagPos})");
+            _picker.Toast(whereItWent);
         }
 
         items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
         _logFileOnly($"split {plan.Units} of {countBefore} (item {source.ItemConfigId}) into a new stack at {plan.At.X},{plan.At.Y}");
     }
 
-    /// <summary>Taking every unit merges the two stacks, so the emptied one is removed the way the game's own merge removes it.</summary>
+    /// <summary>Taking every unit merges the two stacks, so the emptied one is removed whole, as the game removes a stack it drops from a bag.</summary>
     private void JoinStack(ItemManager items, ItemData source, SplitRequest request, SplitPlan.JoinStack plan)
     {
         var target = items.GetItemData(plan.StackId);
@@ -158,6 +161,7 @@ internal sealed class SplitExecutor
         }
 
         var (sourceBefore, targetBefore) = (source.ItemCount, target.ItemCount);
+        var configId = source.ItemConfigId;
         var isWholeStack = plan.Units >= sourceBefore;
 
         try
@@ -165,7 +169,9 @@ internal sealed class SplitExecutor
             items.IncreaseItemCount(target, plan.Units);
             ExpectCount(target, targetBefore + plan.Units);
 
-            if (isWholeStack) RemoveEmptied(items, request.SrcOwnerId, request.ItemId);
+            // The game's own removal of a whole stack: it leaves the bag and the caches, and only then is reported
+            // destroyed, the bag told it is gone, and the object pooled, so `source` must not be read after this.
+            if (isWholeStack) items.ForceRemoveItem(request.ItemId);
             else
             {
                 items.DecreaseItemCount(source, plan.Units);
@@ -188,7 +194,7 @@ internal sealed class SplitExecutor
         }
 
         items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
-        _logFileOnly($"moved {plan.Units} of {sourceBefore} (item {source.ItemConfigId}) onto a stack of {targetBefore}");
+        _logFileOnly($"moved {plan.Units} of {sourceBefore} (item {configId}) onto a stack of {targetBefore}");
     }
 
     /// <summary>A copy of the dragged stack: same freshness, uses, quality and flags, never a weight of its own.</summary>
@@ -220,14 +226,6 @@ internal sealed class SplitExecutor
         for (var i = 0; i < values.Length; i++) copy[i] = values[i];
 
         return copy;
-    }
-
-    private static void RemoveEmptied(ItemManager items, long ownerId, long itemId)
-    {
-        items.RemoveItem(ownerId, itemId);
-        GameSingleton.Existing<BattleLogicWorld>()?._ActionManager?.OnItemInstanceDestroyed(itemId);
-
-        if (items.GetItemData(itemId) != null) items.ForceRemoveItem(itemId);
     }
 
     /// <summary>The game's count calls report whether a stack emptied, not whether they worked, so the count itself is checked.</summary>

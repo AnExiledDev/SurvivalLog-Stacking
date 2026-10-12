@@ -28,4 +28,12 @@ public class PickerCallsTests
     {
         Assert.Equal("window.__slstacking.open(4,19,10)", PickerCalls.Open(4, 19, 10));
     }
+
+    /// <summary>A page that reloaded has no picker script, so the call itself must answer gone for it.</summary>
+    [Fact]
+    public void A_check_asks_the_picker_and_answers_gone_itself_when_the_page_lost_the_script()
+    {
+        Assert.Equal("window.__slstacking?window.__slstacking.check(4):window.vuplex&&window.vuplex.postMessage(\"slmod|stacking|gone|4\")",
+            PickerCalls.Check(4));
+    }
 }
