@@ -15,18 +15,17 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.3.1";
-
-    /// <summary>Seeds and food are the two players ask to stack by name; every other category keeps the game's limit until set.</summary>
-    private static readonly Dictionary<ItemCategory, int> DefaultLimits = new() { [ItemCategory.Seed] = 99, [ItemCategory.Food] = 20 };
+    private const string Version = "0.4.0";
 
     public override void Load()
     {
         var wantedByCategory = BindLimits();
         var isCountingWholeStacks = Config.Bind("Cooking", "CountWholeStacks", true,
-            "A cooking bench counts every unit of a stack as an ingredient, as it counts loose items, and a finished cook uses up the units its dishes took. Off: a stack counts as one ingredient, as without this mod.").Value;
+            "On: a cooking bench counts every item in a stack as an ingredient, like loose items, and the finished cook uses up the items its dishes took. Off: a stack counts as one ingredient, as in the base game.\n"
+            + "开启：烹饪家具把堆叠里的每一件都算作食材，和散放的物品一样，烹饪完成时扣除菜品用掉的数量。关闭：一个堆叠只算一份食材，与原版游戏相同。").Value;
         var isSplitting = Config.Bind("Splitting", "Enabled", true,
-            "Drop a stack with Shift held to move half of it, Ctrl to move one, Ctrl+Shift to choose how many. Right-click a stack with the same keys to split it onto the nearest free spot in its own bag. Off: a drag moves the whole stack and a right-click does what the game does, as without this mod.").Value;
+            "Hold Shift while you drop a stack to move half, Ctrl to move one, or Ctrl+Shift to choose how many; a right-click with the same keys splits the stack onto the nearest free spot in the same bag or storage. Off: drags and right-clicks work as in the base game.\n"
+            + "拖拽放下堆叠时按住 Shift 移动一半，按住 Ctrl 移动 1 件，按住 Ctrl+Shift 自选数量；按住同样的键右键点击，会把堆叠拆分到同一背包或储物空间里最近的空位。关闭：拖拽和右键与原版游戏相同。").Value;
         var harmony = new Harmony(Guid);
         var log = new StackLog(Log, Path.Combine(Paths.BepInExRootPath, "stacking.log"));
 
@@ -74,10 +73,8 @@ public sealed class Plugin : BasePlugin
 
         foreach (var category in Enum.GetValues(typeof(ItemCategory)).Cast<ItemCategory>().Where(c => c != ItemCategory.None))
         {
-            DefaultLimits.TryGetValue(category, out var fallback);
-
-            var limit = StackLimits.Clamp(Config.Bind("StackLimits", category.ToString(), fallback,
-                $"Most {category} items in one stack, up to {StackLimits.Highest}. 0, or anything at or below the game's own limit, keeps the game's limit. Items with portions or several uses always keep theirs. BepInEx/stacking.log lists the game's limits per category.").Value);
+            var shown = StackCategories.For((int)category, category.ToString());
+            var limit = StackLimits.Clamp(Config.Bind("StackLimits", category.ToString(), shown.Default, StackCategories.Describe(shown)).Value);
 
             if (limit > 0) wanted[(int)category] = limit;
         }

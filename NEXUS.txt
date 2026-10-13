@@ -6,7 +6,7 @@ Most seeds and food take one bag slot each, so storage fills up fast. Stacking r
 
 [size=5]Main features[/size]
 [list]
-[*][b]Stack limits per category[/b]: seeds stack to 99 and food to 20 out of the box. Every other category can be raised in the config, up to 999.[/*]
+[*][b]Stack limits per category[/b]: materials and seeds stack to 99 and food to 20 out of the box, with smaller raises for meds, fuel, fertilizer and other everyday items. Every category can be changed in the config, up to 999.[/*]
 [*][b]Fresh food stays apart[/b]: food only stacks with food of the same freshness, so nothing old sneaks into a fresh stack.[/*]
 [*][b]Seeds stack together[/b]: every seed of one kind joins the same stack.[/*]
 [*][b]Cooking counts every item[/b]: a stack of three strawberries makes three smoothies, the same as three loose ones.[/*]
@@ -29,7 +29,7 @@ The mod adds no data of its own to your save and does not edit game files, but t
 [size=5]Known issues[/size]
 [list]
 [*][b]Back up your save before trying it for the first time.[/b] The mod moves, splits and merges real items, and moving items around is finicky.[/*]
-[*]Version 0.3.1 has not been played through in the game yet.[/*]
+[*]Version 0.4.0 has not been played through in the game yet.[/*]
 [*]Do not use it together with BaseButler. Remove BaseButler first.[/*]
 [*]Dropping a stack on the floor moves the whole stack, whatever you hold.[/*]
 [*]Compost bins, material racks and robot molds refuse a split. Split in your bag first, then drag the part you want.[/*]

@@ -2,11 +2,11 @@
 
 Bigger stacks that keep fresh food apart from old food, cooking that counts every item in a stack, and a way to split stacks.
 
-In Survival Log most seeds and food take one bag slot each, so a few days of farming fill every storage you own. Stacking raises the stack limit per item category (seeds to 99 and food to 20 to start with) without letting a fresh meal merge into a rotting one. A juicer or cooking bench counts every item in a stack, stacks never sit whole inside a cooking or crafting station, and Shift, Ctrl or Ctrl+Shift splits a stack when you drag or right-click it.
+In Survival Log most seeds and food take one bag slot each, so a few days of farming fill every storage you own. Stacking raises the stack limit per item category (materials and seeds to 99 and food to 20 to start with) without letting a fresh meal merge into a rotting one. A juicer or cooking bench counts every item in a stack, stacks never sit whole inside a cooking or crafting station, and Shift, Ctrl or Ctrl+Shift splits a stack when you drag or right-click it.
 
 ## Features
 
-- **Stack limits per category**: each item category (Seed, Food, Material, Tool and the rest) has its own setting. Seeds start at 99 and food at 20; every other category keeps the game's limit until you set one. A limit only ever raises the game's, it never lowers one.
+- **Stack limits per category**: each item category (Seed, Food, Material, Tool and the rest) has its own setting. Materials and seeds start at 99; food, fertilizer and fuel at 20; renovation materials at 30; meds, household items, plants and throwables at 10. Furniture, tools, books, story items and other one-off items keep the game's limit until you set one. Each setting in the config shows the game's own limit for its category. A limit only ever raises the game's, it never lowers one.
 - **Fresh food stays apart**: the game's own stack search ignores freshness, so a bigger limit alone would let a fresh meal merge into a rotting one. For items the game never stacked, the mod only stacks items with the same freshness left (within an hour) and the same uses. A meal that matches nothing starts its own stack, as the game did before.
 - **Seeds of one kind always stack together**: seeds never spoil, so every seed of one kind joins the same stack.
 - **Items with portions or uses keep their limit**: dishes with portions, tools with uses and anything similar are left at the game's limit.
@@ -16,7 +16,7 @@ In Survival Log most seeds and food take one bag slot each, so a few days of far
 - **Splitting by right-click**: Shift, Ctrl or Ctrl+Shift with a right-click splits the part off onto the free spot nearest the stack, in the same bag or storage. Food never lands on a moldy cell.
 - **A how-many panel**: Ctrl+Shift opens a small panel. Type a number, drag the slider, or pick 1, Half or Max, then press Enter or Split. Esc, Cancel or a click outside closes it and nothing moves.
 - **Short messages**: a split the game would refuse (no room, a full stack, too heavy for the container, food of a different freshness) moves nothing and says why in a short message at the bottom of the screen.
-- **A stacking log**: what the mod did and anything that went wrong is written to `BepInEx\stacking.log`. On the first start it also lists every item category with its item count and the game's own limits, so you can see what a number would change before you pick it.
+- **A stacking log**: what the mod did and anything that went wrong is written to `BepInEx\stacking.log`. On the first start it also lists every item category with its item count, the game's own limits and how many items were raised.
 
 The game's own checks still apply: locked bags, category filters and take-out-only boxes refuse a split the same way they refuse a move.
 
@@ -55,7 +55,7 @@ Every failure is written to `BepInEx\stacking.log`, including any item that coul
 
 Moving items around is finicky. This mod moves, splits and merges real items in your bags, storages and stations, and the game was not built for stacks of food. **Back up your save before trying it for the first time**, and keep a backup while you play with a new version. If an item goes missing, doubles, or lands somewhere odd, please tell me (see [Feedback](#feedback-and-bug-reports)), even if you are not sure the mod caused it.
 
-- Version 0.3.1 has not been played through in the game yet.
+- Version 0.4.0 has not been played through in the game yet.
 - Dropping a stack on the floor moves the whole stack whatever you hold, and Shift+Q is still the game's own drop-one key. Items that carry a weight of their own are never split by a right-click, and never stack in the game, so a drag of one stays the game's own move.
 - Compost bins, material racks and robot molds run their own code on every change, so a split into or out of one is refused. Split the stack in your bag first, then drag the part you want.
 - What a cooking or crafting station holds is never split by a right-click.
@@ -95,11 +95,11 @@ Settings live in `BepInEx\config\com.dev.survivallog.stacking.cfg`, created the 
 
 Built against BepInEx `6.0.0-be.788`.
 
-Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.3.1 started`. It lists the stack limits you set, for example `Food 20, Seed 99`. The lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
+Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.4.0 started`. It lists the stack limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`. The lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
 
 The same lines, plus every split, every station move and every failure, are in `BepInEx\stacking.log`, which survives restarts. When that file passes 1 MB, it is cut down to its newest part at the next game start.
 
-If stacks still stop at the game's limits, check that BaseButler is removed and that the category's setting is above the game's own limit (the log lists the game's limits per category).
+If stacks still stop at the game's limits, check that BaseButler is removed and that the category's setting is above the game's own limit (each setting in the config shows the game's limit).
 
 ## Feedback and bug reports
 
