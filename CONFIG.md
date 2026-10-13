@@ -50,3 +50,13 @@ A cook that was started with this on and finishes after you turn it off is settl
 | `Enabled` | `true` | Hold Shift while you drop a stack to move half, Ctrl to move one, or Ctrl+Shift to choose how many. A right-click with the same keys splits the stack onto the nearest free spot in the same bag or storage. `false` makes drags and right-clicks work as in the base game. |
 
 Turning splitting off does not change the station rule: a stack moved into a cooking or crafting station still puts in one item.
+
+## Keys
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `QuickUseKey` | `LeftAlt` | The key to hold while you click an item in the bag to use it at once, which the game puts on Ctrl. Holding it also lights up the items that can be used that way. With it off Ctrl, Ctrl in the bag is only for splitting stacks. `Ctrl` gives quick use back to the game, and `None` turns it off. |
+
+Any Unity key name works, such as `LeftAlt`, `RightAlt` or `Z`. Shift and the mouse buttons cannot be used, since Shift splits stacks and the mouse button is the click itself; a name like that, or one Unity does not know, uses `LeftAlt` and says so in `BepInEx\stacking.log`. This setting works whether splitting is on or off.
+
+Left Alt is also the game's own highlight key. With the backpack beside a storage, trunk or second bag, a click with it held sends every item of that kind across, as in the game, so quick use on Left Alt only works with the backpack open alone. Pick another key to quick use there too. The hint at the bottom of the bag still says Ctrl.
