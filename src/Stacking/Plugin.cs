@@ -15,7 +15,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.4.3";
+    private const string Version = "0.4.4";
 
     public override void Load()
     {
@@ -40,6 +40,9 @@ public sealed class Plugin : BasePlugin
         // Only items this mod made stackable are kept out of stations, and none are made stackable without the guard.
         // The units kept out must start a stack of their own, so the station rule needs NewStacks, splitting or not.
         if (canGuardFreshness) KeepStacksOutOfStations(harmony, log);
+
+        // Any stack can reach the shredder hopper, the game's own stacks too, so this does not wait on the guard.
+        ShredderStacks.Apply(harmony, log.Write, log.WriteFileOnly);
 
         StackTicker.Log = log.Write;
         StackTicker.Writer = new LimitWriter(wantedByCategory, canGuardFreshness, log.Write, log.WriteFileOnly);
