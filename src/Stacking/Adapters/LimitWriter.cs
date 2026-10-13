@@ -21,6 +21,7 @@ internal sealed class LimitWriter
     private readonly Dictionary<int, int> _gameLimits = new();
 
     private bool _hasApplied;
+    private bool _hasReportedWaiting;
 
     public LimitWriter(IReadOnlyDictionary<int, int> wantedByCategory, bool canGuardFreshness, Action<string> log, Action<string> logFileOnly)
     {
@@ -32,9 +33,19 @@ internal sealed class LimitWriter
 
     public void Sweep()
     {
-        var table = BaseSingleton<ConfigManager>.IsInstanceCreated ? BaseSingleton<ConfigManager>.Instance._Config_Item_Dict : null;
+        var config = BaseSingleton<ConfigManager>.IsInstanceCreated ? BaseSingleton<ConfigManager>.Instance : null;
+        var table = config?._Config_Item_Dict;
 
-        if (table == null || table.Count == 0) return;
+        if (config == null || table == null || table.Count == 0) return;
+
+        var cookedItems = CookedItems(config);
+
+        if (cookedItems == null)
+        {
+            ReportWaitingForRecipes();
+
+            return;
+        }
 
         var items = new List<Config_Item>(table.Count);
 
@@ -43,7 +54,7 @@ internal sealed class LimitWriter
             if (item != null) items.Add(item);
         }
 
-        var rows = items.Select(GameRow).ToList();
+        var rows = items.Select(item => GameRow(item, cookedItems)).ToList();
         var plan = StackLimits.Plan(rows, _wantedByCategory, _canGuardFreshness);
         var written = items.Count(item => Write(item, plan));
 
@@ -52,11 +63,31 @@ internal sealed class LimitWriter
         Report(rows, plan, written, StackGuard.NeverSpoils.Count);
     }
 
-    private ItemRow GameRow(Config_Item item)
+    /// <summary>
+    /// The dishes the recipe table can make, or null until the game has loaded it: writing before then would raise
+    /// every dish, and a later sweep never lowers a limit it wrote.
+    /// </summary>
+    private static IReadOnlySet<int>? CookedItems(ConfigManager config)
+    {
+        var recipes = config._Config_CookingRecipe_Dict;
+
+        if (recipes == null || recipes.Count == 0) return null;
+
+        var outputs = new List<RecipeOutputs>(recipes.Count);
+
+        foreach (var recipe in recipes.Values)
+        {
+            if (recipe != null) outputs.Add(new RecipeOutputs(recipe.PerfectItemID, recipe.GoodItemID, recipe.NormalItemID, recipe.FailItemID));
+        }
+
+        return StackLimits.CookedItems(outputs);
+    }
+
+    private ItemRow GameRow(Config_Item item, IReadOnlySet<int> cookedItems)
     {
         if (!_gameLimits.TryGetValue(item.ID, out var gameLimit)) _gameLimits[item.ID] = gameLimit = item.StackLimit;
 
-        return new ItemRow(item.ID, item.Category, gameLimit, item.UseTimes, item.Life);
+        return new ItemRow(item.ID, item.Category, gameLimit, item.UseTimes, item.Life, cookedItems.Contains(item.ID));
     }
 
     private static bool Write(Config_Item item, StackPlan plan)
@@ -66,6 +97,14 @@ internal sealed class LimitWriter
         item.StackLimit = limit;
 
         return true;
+    }
+
+    private void ReportWaitingForRecipes()
+    {
+        if (_hasReportedWaiting) return;
+
+        _hasReportedWaiting = true;
+        _log("the item table is loaded but the cooking recipe table is not; stack limits wait for it, so no dish is raised");
     }
 
     private void Report(List<ItemRow> rows, StackPlan plan, int written, int neverSpoilingSeeds)

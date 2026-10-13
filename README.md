@@ -9,14 +9,14 @@ In Survival Log most seeds and food take one bag slot each, so a few days of far
 - **Stack limits per category**: each item category (Seed, Food, Material, Tool and the rest) has its own setting. Materials and seeds start at 99; food, fertilizer and fuel at 20; renovation materials at 30; meds, household items, plants and throwables at 10. Furniture, tools, books, story items and other one-off items keep the game's limit until you set one. Each setting in the config shows the game's own limit for its category. A limit only ever raises the game's, it never lowers one.
 - **Fresh food stays apart**: the game's own stack search ignores freshness, so a bigger limit alone would let a fresh meal merge into a rotting one. For items the game never stacked, the mod only stacks items with the same freshness left (within an hour) and the same uses. A meal that matches nothing starts its own stack, as the game did before.
 - **Seeds of one kind stack together**: seeds never spoil, so seeds of one kind usually join the same stack.
-- **Items with portions or uses keep their limit**: dishes with portions, tools with uses and anything similar are left at the game's limit.
+- **Dishes and items with uses keep their limit**: every dish a cooking recipe can make, tools with uses and anything similar are left at the game's limit. A dish holds as many servings as the cook split it into, and the game only takes one serving at a time from a dish that does not stack, so dishes never stack.
 - **Cooking counts every item**: without the mod, three strawberries in one stack make one smoothie, where three loose ones make three. With it, a stack of three counts as three, and a finished cook uses up every item its dishes took, leaving cans and bottles behind for each one as the game does. Appliances and dishes with portions still count as one.
 - **No stacks in cooking or crafting stations**: moving a stack into a station puts in one item and the rest stays where it was. A second item takes a second slot, so two eggs take two slots, never one stack of two. With no free slot, nothing moves. This holds for drags, quick moves, the game's fill buttons and moves made by other mods (such as Storage Hub's organize and put-away). Moving a whole bag into a station keeps one of each stack there and sends the rest back to a free spot in the bag it came from.
 - **Splitting by drag**: hold Shift, Ctrl or both while you drop a stack in a bag or a storage to move only part of it (see the table below). Drop on a free spot to start a new stack, or on a stack of the same item to top it up as far as its limit allows. The new stack keeps the old one's freshness, uses and quality. This works in the bag, in storages, in vehicle trunks, and in the cooking, crafting table, brewing and shop windows.
 - **Splitting by right-click**: Shift, Ctrl or Ctrl+Shift with a right-click splits the part off onto the free spot nearest the stack, in the same bag or storage. Food never lands on a moldy cell.
 - **A how-many panel**: Ctrl+Shift opens a small panel. Type a number, drag the slider, or pick 1, Half or Max, then press Enter or Split. Esc, Cancel or a click outside closes it and nothing moves.
 - **Short messages**: a split the game would refuse (no room, a full stack, too heavy for the container, food of a different freshness) moves nothing and says why in a short message at the bottom of the screen.
-- **Quick use moved off Ctrl**: the game uses an item at once when you click it with Ctrl held, which got in the way of Ctrl splits. That quick use, and the bag's highlight of the items it works on, now follow Left Alt instead, so Ctrl in the bag only ever splits. Pick another key, turn quick use off, or give Ctrl back to the game with `QuickUseKey` in the config.
+- **Ctrl-click opens no item details**: a click on an item with Ctrl held never opens the item's details window, in any window: the bag on its own or beside a storage, the merchant's trade window, the shop, the stations and the codex. In the bag, a Ctrl-click still uses an item at once where the game allows it. A plain click opens the details as before.
 - **A stacking log**: what the mod did and anything that went wrong is written to `BepInEx\stacking.log`. On the first start it also lists every item category with its item count, the game's own limits and how many items were raised.
 
 The game's own checks still apply: locked bags, category filters and take-out-only boxes refuse a split the same way they refuse a move.
@@ -49,7 +49,7 @@ Stacking adds no data of its own to your save and does not edit game files. The 
 - If the cooking count cannot be put in place, cooking goes back to the game's own counting for that session.
 - If a split or a station move fails part way, the items are put back, or the rest goes to a free spot in the bag it came from. Nothing ever lands in a station as a whole stack.
 - If the drag hooks cannot be put in place, drags move whole stacks as they did before.
-- If the quick-use key cannot be put in place, quick use stays on Ctrl for that session.
+- If the item details hook cannot be put in place, a Ctrl-click opens the item's details as in the base game.
 
 Every failure is written to `BepInEx\stacking.log`, including any item that could not be put back.
 
@@ -57,7 +57,9 @@ Every failure is written to `BepInEx\stacking.log`, including any item that coul
 
 Moving items around is finicky. This mod moves, splits and merges real items in your bags, storages and stations, and the game was not built for stacks of food. **Back up your save before trying it for the first time**, and keep a backup while you play with a new version. If an item goes missing, doubles, or lands somewhere odd, please tell me (see [Feedback](#feedback-and-bug-reports)), even if you are not sure the mod caused it.
 
-- Version 0.4.1 has not been played through in the game yet.
+- Version 0.4.2 has not been played through in the game yet.
+- Dishes that already share a stack from an earlier version stay in that stack. How the game serves from a stack of dishes it would never stack has not been checked in the game.
+- The merchant's trade window offers whole stacks, so a stack cannot be split there, and a Ctrl-click there does nothing. Split the stack in your bag first, then offer the part you want.
 - Dropping a stack on the floor moves the whole stack whatever you hold, and Shift+Q is still the game's own drop-one key. Items that carry a weight of their own are never split by a right-click, and never stack in the game, so a drag of one stays the game's own move.
 - Compost bins, material racks and robot molds run their own code on every change, so a split into or out of one is refused. Split the stack in your bag first, then drag the part you want.
 - What a cooking or crafting station holds is never split by a right-click.
@@ -66,9 +68,8 @@ Moving items around is finicky. This mod moves, splits and merges real items in 
 - Stacks put in a station by version 0.2.0 stay there whole, and still cook in full.
 - Dropping a stack on an item inside a station puts one item in whichever free slot of the station the game picks, not in that item's slot, and the station item stays. Dropping a station item on a stack outside does nothing.
 - A Shift or Ctrl right-click with the backpack open alone asks the game which item is under the mouse through its drop key. That never drops anything. If you press the drop key yourself right after a right-click on an empty cell (within about half a second, longer at a low frame rate), that one press may do nothing; press it again. The first Shift or Ctrl right-click after one on an empty cell may do nothing too; click again.
-- The hint at the bottom of the bag still says Ctrl for quick use. The key that does it is the one set in `QuickUseKey`, Left Alt unless you change it.
-- Left Alt is also the game's own highlight key. With the backpack beside a storage, trunk or second bag, a click with Left Alt held sends every item of that kind across, as in the game, so quick use on Left Alt only works with the backpack open alone. Set `QuickUseKey` to another key to quick use there too.
-- A very short drag (a few pixels) is a click to the game, so Shift held on it does the game's own quick transfer, not a split. With quick use moved off Ctrl, a click with Ctrl held does what a plain click does and shows the item's details.
+- Holding Ctrl changes how the bag looks. That is the game's own Ctrl highlight and has no effect on the split.
+- A very short drag (a few pixels) is a click to the game, so Shift or Ctrl held on it does the game's own quick transfer or quick use, not a split. On an item with no quick use, a Ctrl one does nothing.
 - Dragging a whole stack onto another without a key held is the game's own merge and is not checked by the mod. What that merge does with food of different freshness has not been checked in the game.
 - A cook started with whole stacks counted and finished after you turn `CountWholeStacks` off, or after you remove the mod, is settled the game's way: that one cook takes only one item from each stack, so its extra dishes come free.
 - The game keeps freshness to the hour, so two items up to an hour apart in freshness can share a stack.
@@ -100,7 +101,7 @@ A config file you already have keeps its saved numbers. To get the new default s
 
 Built against BepInEx `6.0.0-be.788`.
 
-Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.4.1 started`. It lists the stack limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`. The lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
+Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.4.2 started`. It lists the stack limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`. The lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
 
 The same lines, plus every split, every station move and every failure, are in `BepInEx\stacking.log`, which survives restarts. When that file passes 1 MB, it is cut down to its newest part at the next game start.
 
@@ -120,7 +121,7 @@ dotnet build src/Stacking -c Release -p:GameDir="C:\path\to\Survival Log"
 
 `GameDir` is the game folder. The default in the project file is a local path you will almost certainly need to override. The output DLL is at `src\Stacking\bin\Release\Stacking.dll`.
 
-The unit tests cover the pure rules (stack limits, freshness, cooking counts, station moves, splitting and the quick-use key) and need nothing from the game:
+The unit tests cover the pure rules (stack limits, freshness, cooking counts, station moves, splitting and Ctrl-clicks) and need nothing from the game:
 
 ```
 dotnet test tests/Stacking.Tests

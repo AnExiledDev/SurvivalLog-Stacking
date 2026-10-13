@@ -171,12 +171,48 @@ public class StackLimitsTests
     [Fact]
     public void The_log_tells_the_player_each_categorys_game_limit_so_they_can_tune_it()
     {
-        var rows = new[] { new ItemRow(7, Food, 1, 1), new ItemRow(8, Food, 10, 0), new ItemRow(9, Food, 1, 4) };
+        var rows = new[]
+        {
+            new ItemRow(7, Food, 1, 1),
+            new ItemRow(8, Food, 10, 0),
+            new ItemRow(9, Food, 1, 4),
+            new ItemRow(10, Food, 1, 1, IsCooked: true),
+            new ItemRow(11, Food, 1, 4, IsCooked: true),
+        };
         var plan = StackLimits.Plan(rows, FoodTo20, canGuardFreshness: true);
 
         var line = Assert.Single(StackLimits.Describe(rows, plan, id => id == Food ? "Food" : "?"));
 
-        Assert.Equal("Food: 3 items, game limit 1-10, 2 raised (1 newly stackable), 1 kept for having uses", line);
+        Assert.Equal("Food: 5 items, game limit 1-10, 2 raised (1 newly stackable), 2 kept for having uses, 1 kept as cooked dishes", line);
+    }
+
+    [Fact]
+    public void A_cooked_dish_keeps_limit_one_because_one_use_of_a_stackable_dish_eats_every_serving()
+    {
+        var cooked = StackLimits.CookedItems(new[] { new RecipeOutputs(Perfect: 0, Good: 0, Normal: 12049, Fail: 0) });
+        var rows = new[] { new ItemRow(12049, Food, 1, 1, IsCooked: cooked.Contains(12049)), new ItemRow(7, Food, 1, 1, IsCooked: cooked.Contains(7)) };
+
+        var plan = StackLimits.Plan(rows, FoodTo20, canGuardFreshness: true);
+
+        Assert.False(plan.Limits.ContainsKey(12049));
+        Assert.DoesNotContain(12049, plan.NewlyStackable);
+        Assert.Equal(20, plan.Limits[7]);
+    }
+
+    [Fact]
+    public void A_cooked_dish_the_game_already_stacks_is_not_raised_either()
+    {
+        var plan = StackLimits.Plan(new[] { new ItemRow(7, Food, 10, 0, IsCooked: true) }, FoodTo20, canGuardFreshness: true);
+
+        Assert.Empty(plan.Limits);
+    }
+
+    [Fact]
+    public void Every_quality_a_recipe_can_turn_out_counts_as_a_cooked_dish()
+    {
+        var recipes = new[] { new RecipeOutputs(13424, 12051, 12050, 12049), new RecipeOutputs(0, 0, 12052, 0) };
+
+        Assert.Equal(new[] { 12049, 12050, 12051, 12052, 13424 }, StackLimits.CookedItems(recipes).Order());
     }
 
     [Fact]

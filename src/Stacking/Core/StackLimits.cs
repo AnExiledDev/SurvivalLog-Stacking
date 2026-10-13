@@ -5,10 +5,13 @@ using System.Linq;
 namespace Stacking.Core;
 
 /// <summary>
-/// One item as the game's table defines it: its own stack limit, how many uses one item holds, and its shelf life,
-/// which is 0 or below for an item that never spoils.
+/// One item as the game's tables define it: its own stack limit, how many uses one item holds, its shelf life,
+/// which is 0 or below for an item that never spoils, and whether a cooking recipe makes it.
 /// </summary>
-public readonly record struct ItemRow(int Id, int Category, int StackLimit, int Uses, int Life = 1);
+public readonly record struct ItemRow(int Id, int Category, int StackLimit, int Uses, int Life = 1, bool IsCooked = false);
+
+/// <summary>The four dishes one cooking recipe can make, by how well the cook went; 0 where a tier makes nothing.</summary>
+public readonly record struct RecipeOutputs(int Perfect, int Good, int Normal, int Fail);
 
 /// <summary>The limit to write per item id, and which of those items the game never stacked before.</summary>
 public sealed record StackPlan(IReadOnlyDictionary<int, int> Limits, IReadOnlySet<int> NewlyStackable);
@@ -21,6 +24,10 @@ public static class StackLimits
     private const int SeedCategory = 10;
 
     public static int Clamp(int wanted) => Math.Clamp(wanted, 0, Highest);
+
+    /// <summary>Every item a cook can make, as the game's own codex collects them.</summary>
+    public static IReadOnlySet<int> CookedItems(IEnumerable<RecipeOutputs> recipes) =>
+        recipes.SelectMany(recipe => new[] { recipe.Perfect, recipe.Good, recipe.Normal, recipe.Fail }).Where(id => id > 0).ToHashSet();
 
     /// <summary>
     /// Seeds whose kind never spoils. Their freshness values still differ by how they were picked up, which split one
@@ -41,7 +48,7 @@ public static class StackLimits
 
         foreach (var row in gameRows)
         {
-            if (!HasSingleUse(row) || !wantedByCategory.TryGetValue(row.Category, out var wanted) || wanted <= row.StackLimit) continue;
+            if (KeepsItsLimit(row) || !wantedByCategory.TryGetValue(row.Category, out var wanted) || wanted <= row.StackLimit) continue;
 
             var isNew = row.StackLimit <= 1;
 
@@ -64,15 +71,19 @@ public static class StackLimits
             var highest = category.Max(row => row.StackLimit);
             var raised = category.Count(row => plan.Limits.ContainsKey(row.Id));
             var newlyStackable = category.Count(row => plan.NewlyStackable.Contains(row.Id));
-            var kept = category.Count(row => !HasSingleUse(row));
+            var keptForUses = category.Count(HasUses);
+            var keptAsDishes = category.Count(row => row.IsCooked && !HasUses(row));
             var gameLimit = lowest == highest ? $"{lowest}" : $"{lowest}-{highest}";
 
-            yield return $"{categoryName(category.Key)}: {category.Count()} items, game limit {gameLimit}, {raised} raised ({newlyStackable} newly stackable), {kept} kept for having uses";
+            yield return $"{categoryName(category.Key)}: {category.Count()} items, game limit {gameLimit}, {raised} raised ({newlyStackable} newly stackable), {keptForUses} kept for having uses, {keptAsDishes} kept as cooked dishes";
         }
     }
 
     /// <summary>
-    /// Items with portions or uses keep their limit: the game merges their portions itself, and only while the limit is 1.
+    /// The game takes one use or serving at a time only while an item's limit is 1; above it, one use removes the whole
+    /// item. A cooked dish holds as many servings as the cook split it into, whatever its table row says.
     /// </summary>
-    private static bool HasSingleUse(ItemRow row) => row.Uses is 0 or 1;
+    private static bool KeepsItsLimit(ItemRow row) => HasUses(row) || row.IsCooked;
+
+    private static bool HasUses(ItemRow row) => row.Uses is not (0 or 1);
 }

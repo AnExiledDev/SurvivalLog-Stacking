@@ -31,7 +31,7 @@ Each setting is the most items of one item category in one stack. The setting na
 | `Renovation` | Renovation Materials | 1 to 10 | `30` | Wallpaper and flooring (10 in the game). Dyes can be used again and again, so they keep the game's limit. |
 | `TaskItem` | Quest Items | 1 | `0` | Garage Key, Cold Storage Key |
 
-Each takes a whole number from 0 to 999; a bigger number counts as 999 and a negative one as 0. `0`, or any number at or below the game's own limit, keeps the game's limit: a setting only ever raises a limit, it never lowers one. Items with portions or more than one use always keep the game's limit.
+Each takes a whole number from 0 to 999; a bigger number counts as 999 and a negative one as 0. `0`, or any number at or below the game's own limit, keeps the game's limit: a setting only ever raises a limit, it never lowers one. Dishes a cooking recipe can make, and items with more than one use, always keep the game's limit.
 
 For items the game never stacked (most food, for example), only items with the same freshness left (within an hour) and the same uses share a stack. Seeds of one kind usually share a stack, since they never spoil.
 
@@ -49,14 +49,4 @@ A cook that was started with this on and finishes after you turn it off is settl
 | --- | --- | --- |
 | `Enabled` | `true` | Hold Shift while you drop a stack to move half, Ctrl to move one, or Ctrl+Shift to choose how many. A right-click with the same keys splits the stack onto the nearest free spot in the same bag or storage. `false` makes drags and right-clicks work as in the base game. |
 
-Turning splitting off does not change the station rule: a stack moved into a cooking or crafting station still puts in one item.
-
-## Keys
-
-| Setting | Default | What it does |
-| --- | --- | --- |
-| `QuickUseKey` | `LeftAlt` | The key to hold while you click an item in the bag to use it at once, which the game puts on Ctrl. Holding it also lights up the items that can be used that way. With it off Ctrl, Ctrl in the bag is only for splitting stacks. `Ctrl` gives quick use back to the game, and `None` turns it off. |
-
-Any Unity key name works, such as `LeftAlt`, `RightAlt` or `Z`. Shift and the mouse buttons cannot be used, since Shift splits stacks and the mouse button is the click itself; a name like that, or one Unity does not know, uses `LeftAlt` and says so in `BepInEx\stacking.log`. This setting works whether splitting is on or off.
-
-Left Alt is also the game's own highlight key. With the backpack beside a storage, trunk or second bag, a click with it held sends every item of that kind across, as in the game, so quick use on Left Alt only works with the backpack open alone. Pick another key to quick use there too. The hint at the bottom of the bag still says Ctrl.
+Turning splitting off does not change the station rule: a stack moved into a cooking or crafting station still puts in one item. Nor does it bring back the item details on a Ctrl-click: that stays off either way.

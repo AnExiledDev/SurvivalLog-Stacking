@@ -7,7 +7,7 @@ namespace Stacking.Adapters;
 /// <summary>
 /// Which modifier keys the player holds as a stack is dropped. The drop reaches the game a frame or two after the
 /// mouse button comes up, and players let go of Shift and the button together, so a key seen down in the last
-/// moment still counts. Static because the drag hook reads it.
+/// moment still counts. Static because the drag and item click hooks read it.
 /// </summary>
 internal static class SplitKeys
 {
