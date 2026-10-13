@@ -8,7 +8,7 @@ Most seeds and food take one bag slot each, so storage fills up fast. Stacking r
 [list]
 [*][b]Stack limits per category[/b]: materials and seeds stack to 99 and food to 20 out of the box, with smaller raises for meds, fuel, fertilizer and other everyday items. Every category can be changed in the config, up to 999.[/*]
 [*][b]Fresh food stays apart[/b]: food only stacks with food of the same freshness, so nothing old sneaks into a fresh stack.[/*]
-[*][b]Seeds stack together[/b]: every seed of one kind joins the same stack.[/*]
+[*][b]Seeds stack together[/b]: seeds of one kind usually join the same stack.[/*]
 [*][b]Cooking counts every item[/b]: a stack of three strawberries makes three smoothies, the same as three loose ones.[/*]
 [*][b]No stacks in stations[/b]: moving a stack into a cooking or crafting station puts in one item, and the rest stays where it was.[/*]
 [*][b]Split by drag[/b]: hold Shift to move half a stack, Ctrl to move one, or Ctrl+Shift to choose how many.[/*]

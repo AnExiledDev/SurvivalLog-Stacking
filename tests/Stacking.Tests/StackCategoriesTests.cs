@@ -43,6 +43,24 @@ public class StackCategoriesTests
         Assert.True(material.Game is { } game && material.Default > game.Highest);
     }
 
+    [Theory]
+    [InlineData(1)] // Food
+    [InlineData(2)] // Drug
+    [InlineData(5)] // DailyNecessities
+    [InlineData(Material)]
+    [InlineData(10)] // Seed
+    [InlineData(11)] // Fertilizer
+    [InlineData(13)] // Fuel
+    [InlineData(15)] // Flower
+    [InlineData(16)] // Throwable
+    [InlineData(Renovation)]
+    public void Everyday_consumables_stack_higher_than_the_game_by_default(int id)
+    {
+        var category = Category(id);
+
+        Assert.True(category.Game is { } game && category.Default > game.Highest);
+    }
+
     /// <summary>A default at or below the game's limit would look like a raise in the config and change nothing.</summary>
     [Fact]
     public void Every_raised_default_is_above_the_games_own_limit()

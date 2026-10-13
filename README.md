@@ -8,7 +8,7 @@ In Survival Log most seeds and food take one bag slot each, so a few days of far
 
 - **Stack limits per category**: each item category (Seed, Food, Material, Tool and the rest) has its own setting. Materials and seeds start at 99; food, fertilizer and fuel at 20; renovation materials at 30; meds, household items, plants and throwables at 10. Furniture, tools, books, story items and other one-off items keep the game's limit until you set one. Each setting in the config shows the game's own limit for its category. A limit only ever raises the game's, it never lowers one.
 - **Fresh food stays apart**: the game's own stack search ignores freshness, so a bigger limit alone would let a fresh meal merge into a rotting one. For items the game never stacked, the mod only stacks items with the same freshness left (within an hour) and the same uses. A meal that matches nothing starts its own stack, as the game did before.
-- **Seeds of one kind always stack together**: seeds never spoil, so every seed of one kind joins the same stack.
+- **Seeds of one kind stack together**: seeds never spoil, so seeds of one kind usually join the same stack.
 - **Items with portions or uses keep their limit**: dishes with portions, tools with uses and anything similar are left at the game's limit.
 - **Cooking counts every item**: without the mod, three strawberries in one stack make one smoothie, where three loose ones make three. With it, a stack of three counts as three, and a finished cook uses up every item its dishes took, leaving cans and bottles behind for each one as the game does. Appliances and dishes with portions still count as one.
 - **No stacks in cooking or crafting stations**: moving a stack into a station puts in one item and the rest stays where it was. A second item takes a second slot, so two eggs take two slots, never one stack of two. With no free slot, nothing moves. This holds for drags, quick moves, the game's fill buttons and moves made by other mods (such as Storage Hub's organize and put-away). Moving a whole bag into a station keeps one of each stack there and sends the rest back to a free spot in the bag it came from.
@@ -90,6 +90,8 @@ Delete `Stacking.dll` from the `BepInEx\plugins` folder. For a clean slate, also
 ## Configuration
 
 Settings live in `BepInEx\config\com.dev.survivallog.stacking.cfg`, created the first time the game starts with the mod. Edit it while the game is closed; changes apply at the next game start. See [CONFIG.md](CONFIG.md) for every setting.
+
+A config file you already have keeps its saved numbers. To get the new default stack limits, delete its `[StackLimits]` section (or the whole file) while the game is closed.
 
 ## Troubleshooting
 
