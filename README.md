@@ -12,6 +12,7 @@ In Survival Log most seeds and food take one bag slot each, so a few days of far
 - **Dishes and items with uses keep their limit**: every dish a cooking recipe can make, tools with uses and anything similar are left at the game's limit. A dish holds as many servings as the cook split it into, and the game only takes one serving at a time from a dish that does not stack, so dishes never stack.
 - **Cooking counts every item**: without the mod, three strawberries in one stack make one smoothie, where three loose ones make three. With it, a stack of three counts as three, and a finished cook uses up every item its dishes took, leaving cans and bottles behind for each one as the game does. Appliances and dishes with portions still count as one.
 - **No stacks in cooking or crafting stations**: moving a stack into a station puts in one item and the rest stays where it was. A second item takes a second slot, so two eggs take two slots, never one stack of two. With no free slot, nothing moves. This holds for drags, quick moves, the game's fill buttons and moves made by other mods (such as Storage Hub's organize and put-away). Moving a whole bag into a station keeps one of each stack there and sends the rest back to a free spot in the bag it came from.
+- **The crafting table counts every item in a stack**: a recipe that needs two glass can be made from a stack of eight. The fill button and batch crafting take single items off a stack onto the bench, one per slot, and the rest stays where it was.
 - **Splitting by drag**: hold Shift, Ctrl or both while you drop a stack in a bag or a storage to move only part of it (see the table below). Drop on a free spot to start a new stack, or on a stack of the same item to top it up as far as its limit allows. The new stack keeps the old one's freshness, uses and quality. This works in the bag, in storages, in vehicle trunks, and in the cooking, crafting table, brewing and shop windows.
 - **Splitting by right-click**: Shift, Ctrl or Ctrl+Shift with a right-click splits the part off onto the free spot nearest the stack, in the same bag or storage. Food never lands on a moldy cell.
 - **A how-many panel**: Ctrl+Shift opens a small panel. Type a number, drag the slider, or pick 1, Half or Max, then press Enter or Split. Esc, Cancel or a click outside closes it and nothing moves.
@@ -49,6 +50,7 @@ Stacking adds no data of its own to your save and does not edit game files. The 
 - If the cooking count cannot be put in place, cooking goes back to the game's own counting for that session.
 - Stack limits wait for the game's cooking recipe table, so no dish is ever raised by mistake. If a game update changes that table so it cannot be read, no limit is raised at all, and the log says the limits are waiting for it.
 - If a split or a station move fails part way, the items are put back, or the rest goes to a free spot in the bag it came from. Nothing ever lands in a station as a whole stack.
+- If the crafting table hooks cannot be put in place, the crafting table counts and fills with whole items only, as in the base game. If a single item cannot be put on the bench, the items already taken go back and the fill works as in the base game.
 - If the drag hooks cannot be put in place, drags move whole stacks as they did before.
 - If the item details hook cannot be put in place, a Ctrl-click opens the item's details as in the base game.
 
@@ -58,13 +60,12 @@ Every failure is written to `BepInEx\stacking.log`, including any item that coul
 
 Moving items around is finicky. This mod moves, splits and merges real items in your bags, storages and stations, and the game was not built for stacks of food. **Back up your save before trying it for the first time**, and keep a backup while you play with a new version. If an item goes missing, doubles, or lands somewhere odd, please tell me (see [Feedback](#feedback-and-bug-reports)), even if you are not sure the mod caused it.
 
-- Version 0.4.2 has not been played through in the game yet.
+- Version 0.4.3 has not been played through in the game yet.
 - Dishes that already share a stack from an earlier version stay in that stack. How the game serves from a stack of dishes it would never stack has not been checked in the game.
 - The merchant's trade window offers whole stacks, so a stack cannot be split there, and a Ctrl-click there does nothing. Split the stack in your bag first, then offer the part you want.
 - Dropping a stack on the floor moves the whole stack whatever you hold, and Shift+Q is still the game's own drop-one key. Items that carry a weight of their own are never split by a right-click, and never stack in the game, so a drag of one stays the game's own move.
 - Compost bins, material racks and robot molds run their own code on every change, so a split into or out of one is refused. Split the stack in your bag first, then drag the part you want.
 - What a cooking or crafting station holds is never split by a right-click.
-- A recipe's fill button puts in one of each stack it picks, so a recipe that needs two of an item may need a second press.
 - Items the game already stacks still stack in a station as the game allows; the station rule only covers items this mod made stackable. A Shift or Ctrl drag of them into a station is refused rather than split; drag without a key held to move them as the game does.
 - Stacks put in a station by version 0.2.0 stay there whole, and still cook in full.
 - Dropping a stack on an item inside a station puts one item in whichever free slot of the station the game picks, not in that item's slot, and the station item stays. Dropping a station item on a stack outside does nothing.
@@ -102,7 +103,7 @@ A config file you already have keeps its saved numbers. To get the new default s
 
 Built against BepInEx `6.0.0-be.788`.
 
-Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.4.2 started`. It lists the stack limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`. The lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
+Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.4.3 started`. It lists the stack limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`. The lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
 
 The same lines, plus every split, every station move and every failure, are in `BepInEx\stacking.log`, which survives restarts. When that file passes 1 MB, it is cut down to its newest part at the next game start.
 

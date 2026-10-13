@@ -91,6 +91,19 @@ internal sealed class StationMover
         return report.Outcome != StationOutcome.Unreadable && HasLeft(items, move);
     }
 
+    /// <summary>
+    /// For a recipe's fill, which takes several units off one stack in a row: the report names the stack left behind,
+    /// which the next unit comes off. May throw before anything moved.
+    /// </summary>
+    public StationReport TakeUnitNow(ItemManager items, StationWork.TakeOne move)
+    {
+        var report = TakeOne(items, move);
+
+        if (report.Outcome != StationOutcome.Skipped) _redraws.Enqueue((move.FromOwnerId, move.ToOwnerId));
+
+        return report;
+    }
+
     private bool HasLeft(ItemManager items, StationWork.TakeOne move)
     {
         try

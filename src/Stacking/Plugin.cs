@@ -15,7 +15,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.4.2";
+    private const string Version = "0.4.3";
 
     public override void Load()
     {
@@ -66,7 +66,11 @@ public sealed class Plugin : BasePlugin
 
         var mover = new StationMover(log.Write, log.WriteFileOnly);
 
-        if (StationGuard.Apply(harmony, mover, log.Write, log.WriteFileOnly)) StackTicker.Mover = mover;
+        if (!StationGuard.Apply(harmony, mover, log.Write, log.WriteFileOnly)) return;
+
+        StackTicker.Mover = mover;
+
+        CraftingFill.Apply(harmony, mover, log.Write, log.WriteFileOnly);
     }
 
     private Dictionary<int, int> BindLimits()

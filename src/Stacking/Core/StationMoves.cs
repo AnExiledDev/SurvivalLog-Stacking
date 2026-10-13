@@ -97,7 +97,8 @@ public enum StationOutcome
 }
 
 /// <summary>What the steps did, and every failure they caught along the way.</summary>
-public sealed record StationReport(StationOutcome Outcome, IReadOnlyList<string> Notes)
+/// <param name="RestId">The stack now holding the units kept out of the station, when one unit went in.</param>
+public sealed record StationReport(StationOutcome Outcome, IReadOnlyList<string> Notes, long? RestId = null)
 {
     /// <summary>A failure was caught, or a stack is left where the rule says none may be.</summary>
     public bool NeedsAttention => Notes.Count > 0 || Outcome is StationOutcome.CountsWrong or StationOutcome.StackStays or StationOutcome.Unreadable;
@@ -183,7 +184,7 @@ public static class StationMoves
 
             if (IsIn(fromOwnerId)) return Recover(before, StationOutcome.NothingMoved);
 
-            if (AddStack(fromOwnerId, before.At, before.Count - 1) is { } rest) return Done(Find(rest)?.OwnerId == fromOwnerId ? StationOutcome.OneUnitIn : StationOutcome.RestElsewhere);
+            if (AddStack(fromOwnerId, before.At, before.Count - 1) is { } rest) return Done(Find(rest)?.OwnerId == fromOwnerId ? StationOutcome.OneUnitIn : StationOutcome.RestElsewhere, rest);
 
             Write("moving the unit back out of the station", () => _store.MoveTo(_itemId, fromOwnerId, before.At));
 
@@ -421,6 +422,6 @@ public static class StationMoves
             }
         }
 
-        private StationReport Done(StationOutcome outcome) => new(outcome, _notes);
+        private StationReport Done(StationOutcome outcome, long? restId = null) => new(outcome, _notes, restId);
     }
 }

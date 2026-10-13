@@ -366,6 +366,28 @@ public class StationMovesTests
     }
 
     [Fact]
+    public void The_report_names_the_stack_left_behind_so_a_second_unit_can_follow()
+    {
+        var store = Kitchen();
+
+        var report = TakeOne(store);
+
+        Assert.Equal(StationOutcome.OneUnitIn, report.Outcome);
+        Assert.NotNull(report.RestId);
+        Assert.Equal(new Placed(Bag, EggAt, Eggs - 1), store.At(report.RestId ?? Egg));
+    }
+
+    [Fact]
+    public void A_move_that_puts_no_unit_in_names_no_stack_left_behind()
+    {
+        var store = Kitchen();
+
+        var report = StationMoves.TakeOne(store, Egg, Bag, Pot, store.Refuses());
+
+        Assert.Null(report.RestId);
+    }
+
+    [Fact]
     public void A_pot_that_takes_nothing_leaves_the_stack_whole_where_it_was()
     {
         var store = Kitchen();
