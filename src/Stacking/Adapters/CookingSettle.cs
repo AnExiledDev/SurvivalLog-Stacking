@@ -95,7 +95,10 @@ internal static class CookingSettle
 
             if (extra <= 0) return;
 
-            if (!__instance.DecreaseItemCount(item, extra)) throw new InvalidOperationException($"the game would not take {extra} units of item {item.ItemConfigId}");
+            var countBefore = item.ItemCount;
+
+            __instance.DecreaseItemCount(item, extra);
+            StackCounts.Expect(item, countBefore - extra);
 
             if (returnCall is { } call && call.ItemConfigId == item.ItemConfigId) settle.ExtraReturns.AddRange(ReturnsFor(__instance, call, extra));
         }

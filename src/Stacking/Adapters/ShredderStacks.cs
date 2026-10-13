@@ -61,7 +61,7 @@ internal static class ShredderStacks
 
         if (settle == null) return true;
 
-        // Without a finalizer a shred that throws leaves its settle open; a frame later it is known to be stale.
+        // Where Harmony takes no finalizer, a shred that throws leaves its settle open; a frame later it is known to be stale.
         if (settle.Frame != Time.frameCount)
         {
             _settle = null;
@@ -78,8 +78,9 @@ internal static class ShredderStacks
 
             var countBefore = item.ItemCount;
 
-            if (!__instance.DecreaseItemCount(item, 1)) throw new InvalidOperationException($"the game would not take one unit of item {item.ItemConfigId}");
-
+            __instance.DecreaseItemCount(item, 1);
+            StackCounts.Expect(item, countBefore - 1);
+            ShowNewCount(__instance, item.OwnerId);
             _logFileOnly($"shredded one of {countBefore} (item {item.ItemConfigId}); {countBefore - 1} left to shred");
 
             return false;
@@ -89,6 +90,19 @@ internal static class ShredderStacks
             Fail("taking one shredded unit off a stack", ex);
 
             return true;
+        }
+    }
+
+    /// <summary>The count drop sends no event, so the open hopper would keep showing the old count; a failure here is display only.</summary>
+    private static void ShowNewCount(ItemManager items, long hopperId)
+    {
+        try
+        {
+            items.SyncBothBags(hopperId, hopperId);
+        }
+        catch (Exception ex)
+        {
+            Fail("showing the hopper's new count", ex);
         }
     }
 
