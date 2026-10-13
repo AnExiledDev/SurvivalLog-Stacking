@@ -13,9 +13,9 @@ namespace Stacking.Adapters;
 
 /// <summary>
 /// The crafting table fills a recipe only with whole items that fit what is still needed, so with nothing but stacks
-/// at hand a recipe reads as short of materials. Its material checks are asked again over units, and its fill takes
-/// single units off stacks onto the bench, each by the station rule's own move (see StationMover), before the game
-/// moves the rest of its picks there itself. Static because Harmony patches are.
+/// at hand a recipe reads as short of materials. Its recipe list's material check is asked again over units, and its
+/// fill takes single units off stacks onto the bench (see CraftingUnits), before the game moves the rest of its picks
+/// there itself. Static because Harmony patches are.
 /// </summary>
 internal static class CraftingFill
 {
@@ -27,7 +27,7 @@ internal static class CraftingFill
     private static Action<string> _logFileOnly = _ => { };
     private static int _failures;
 
-    /// <summary>The material checks are only hooked once the fill is, so a recipe never reads as ready that its fill cannot take.</summary>
+    /// <summary>The material check is only hooked once the fill is, so a recipe never reads as ready that its fill cannot take.</summary>
     public static void Apply(Harmony harmony, StationMover mover, Action<string> log, Action<string> logFileOnly)
     {
         _mover = mover;
@@ -41,50 +41,37 @@ internal static class CraftingFill
             return;
         }
 
-        var hooked = new[]
+        // The recipe list asks only this check; the game never calls the bag-only one on its own.
+        if (TryPatch(harmony, "the crafting table's material check", nameof(Reducer_Web_ToolTable.CheckMaterialSufficiencyAcrossLinked), nameof(CountUnits)))
         {
-            TryPatch(harmony, "the crafting table's material check across linked storage", nameof(Reducer_Web_ToolTable.CheckMaterialSufficiencyAcrossLinked), nameof(CountUnitsAcrossLinked)),
-            TryPatch(harmony, "the crafting table's material check", nameof(Reducer_Web_ToolTable.CheckMaterialSufficiency), nameof(CountUnitsInBag)),
-        };
-
-        if (hooked.All(isHooked => isHooked)) log("the crafting table counts every item in a stack, and its fill takes single items off stacks");
-        else log("the crafting table's fill takes single items off stacks, but some recipes may still show as short of materials: see the lines above");
+            log("the crafting table counts every item in a stack, and its fill takes single items off stacks");
+        }
+        else
+        {
+            log("the crafting table's fill takes single items off stacks, but its recipe list may still show a recipe as short of materials: see the line above");
+        }
     }
 
     private static bool TryPatch(Harmony harmony, string what, string method, string postfix) =>
         Hooks.TryPatch(harmony, typeof(CraftingFill), what, () => AccessTools.Method(typeof(Reducer_Web_ToolTable), method), _log, postfix: postfix);
 
-    /// <summary>The recipe list's check, over the bench and every storage linked to the table.</summary>
-    private static void CountUnitsAcrossLinked(State_Web_ToolTable state, State_Data_Item itemState, GameNeeds materialNeeded, ref bool __result)
+    /// <summary>The recipe list's check, over the bench and every storage linked to the table. It turns only a no into a yes, and only when the fill would step in.</summary>
+    private static void CountUnits(State_Web_ToolTable state, State_Data_Item itemState, GameNeeds materialNeeded, ref bool __result)
     {
         if (__result) return;
 
         try
         {
-            if (BenchOf(state) is not { } bench) return;
+            if (Live() is not { } items || BenchOf(state) is not { } bench || itemState == null || materialNeeded == null) return;
 
             var owners = new List<long> { bench };
 
             owners.AddRange(Managed(Reducer_Web_ToolTable.GetAllLinkedOwnerIds(state)));
 
-            __result = CanFill(itemState, materialNeeded, owners, bench);
-        }
-        catch (Exception ex)
-        {
-            Fail($"counting a recipe's materials by unit failed: {ex}");
-        }
-    }
+            var needs = Needs(materialNeeded);
+            var candidates = Candidates(items, itemState, needs, owners, bench);
 
-    /// <summary>The same check over the bench and the bag only.</summary>
-    private static void CountUnitsInBag(State_Web_ToolTable state, State_Data_Item itemState, GameNeeds materialNeeded, ref bool __result)
-    {
-        if (__result) return;
-
-        try
-        {
-            if (BenchOf(state) is not { } bench || state.BagOwnerId?.Value is not { } bag) return;
-
-            __result = CanFill(itemState, materialNeeded, new List<long> { bench, bag }, bench);
+            __result = candidates.Any(candidate => candidate.IsCut) && CraftingPick.Plan(needs, candidates) is PickPlan.Filled;
         }
         catch (Exception ex)
         {
@@ -99,63 +86,49 @@ internal static class CraftingFill
     /// </summary>
     private static void TakeUnitsFromStacks(State_Web_ToolTable state, State_Data_Item itemState, GameNeeds materialNeeded, long leftOwnerId, ref GameIds? __result, ref GameSources? sourceOf)
     {
-        if (!IsReady() || SplitScene.LiveItems() is not { } items) return;
-
-        var onBench = new List<(long UnitId, long FromOwnerId)>();
+        var landed = new List<BenchUnit>();
+        ItemManager? items = null;
         long bench = 0;
 
         try
         {
-            if (BenchOf(state) is not { } benchId || itemState == null || materialNeeded == null) return;
+            if (_mover is not { } mover || Live() is not { } live || BenchOf(state) is not { } benchId || itemState == null || materialNeeded == null) return;
 
+            items = live;
             bench = benchId;
-            var candidates = Candidates(itemState, Managed(Reducer_Web_ToolTable.GetLinkedOwnersInFillOrder(state, leftOwnerId)), bench);
+            var needs = Needs(materialNeeded);
+            var candidates = Candidates(live, itemState, needs, Managed(Reducer_Web_ToolTable.GetLinkedOwnersInFillOrder(state, leftOwnerId)), benchId);
 
-            if (!NeedsUnits(__result, candidates) || CraftingPick.Plan(Needs(materialNeeded), candidates) is not PickPlan.Filled plan) return;
+            if (!NeedsUnits(__result, candidates) || CraftingPick.Plan(needs, candidates) is not PickPlan.Filled plan) return;
 
-            var whole = new List<WholePick>(plan.Whole);
+            if (plan.Units.Count > 0) ClearBench(state, itemState, benchId, leftOwnerId, plan.Whole);
 
-            foreach (var take in plan.Units)
+            switch (TakeUnits(mover, live, benchId, plan.Units))
             {
-                if (TakeUnits(items, take, bench, onBench, whole)) continue;
+                case UnitsTaken.PutBack putBack:
+                    ReportPutBack(putBack, benchId);
 
-                PutBack(items, bench, onBench);
-                Fail($"a single unit of stack {take.StackId} did not land on crafting bench {bench}, so the units taken went back");
+                    return;
+                case UnitsTaken.Landed taken:
+                    landed.AddRange(taken.OnBench);
+                    _logFileOnly($"a recipe's fill took {taken.OnBench.Count} single units off stacks onto crafting bench {benchId}");
+                    Answer(state, taken.OnBench, plan.Whole.Concat(taken.Whole), ref __result, ref sourceOf);
 
-                return;
+                    return;
+                default:
+                    throw new InvalidOperationException("every way of taking units needs handling");
             }
-
-            var picks = onBench.Concat(whole.Select(pick => (UnitId: pick.ItemId, FromOwnerId: pick.OwnerId))).ToList();
-            var ids = new GameIds();
-
-            foreach (var (id, _) in picks) ids.Add(id);
-
-            // The game notes where each item it moves came from, so emptying the bench later sends it home; it moves none of these units itself.
-            foreach (var (unitId, fromOwnerId) in onBench) Reducer_Web_ToolTable.RecordBenchOrigin(state, unitId, fromOwnerId);
-
-            // The game made this map itself and reads it after this returns, so it is refilled in place.
-            sourceOf ??= new GameSources();
-
-            sourceOf.Clear();
-
-            foreach (var (id, owner) in picks) sourceOf.Add(id, owner);
-
-            __result = ids;
-
-            _logFileOnly($"a recipe's fill took {onBench.Count} single units off stacks onto crafting bench {bench}");
         }
         catch (Exception ex)
         {
-            PutBack(items, bench, onBench);
-            Fail($"taking single units off stacks for a recipe failed: {ex}");
+            var why = $"taking single units off stacks for a recipe failed: {ex}";
+
+            if (items != null && landed.Count > 0) ReportPutBack(CraftingUnits.PutBack(Find(items), bench, landed, MoveOff(items, bench), why), bench);
+            else Fail(why);
         }
     }
 
-    private static bool IsReady() => _mover != null && StationGuard.IsInstalled && SplitScene.LiveItems() != null;
-
-    private static bool CanFill(State_Data_Item itemState, GameNeeds materialNeeded, IReadOnlyList<long> owners, long bench) =>
-        IsReady() && itemState != null && materialNeeded != null
-        && CraftingPick.Plan(Needs(materialNeeded), Candidates(itemState, owners, bench)) is PickPlan.Filled;
+    private static ItemManager? Live() => StationGuard.IsInstalled ? SplitScene.LiveItems() : null;
 
     /// <summary>The game's pick stands unless it found nothing, or took a stack the rule cuts, which would reach the bench as one unit.</summary>
     private static bool NeedsUnits(GameIds? picked, IReadOnlyList<PickCandidate> candidates)
@@ -175,75 +148,95 @@ internal static class CraftingFill
     }
 
     /// <summary>
-    /// Moves the take's units onto the bench one at a time, each off the stack the last one left behind. A stack down to
-    /// its last unit goes in whole with the game's picks instead. False when a unit did not land; any unit that reached
-    /// the bench is noted for putting back.
+    /// The game sends items a recipe does not use off the bench only as it moves its picks there, after the pick, so
+    /// items left from an earlier recipe would hold the cells the units need. They go home first, by the game's own
+    /// call; the bench items the plan uses stay.
     /// </summary>
-    private static bool TakeUnits(ItemManager items, UnitTake take, long bench, List<(long UnitId, long FromOwnerId)> onBench, List<WholePick> whole)
+    private static void ClearBench(State_Web_ToolTable state, State_Data_Item itemState, long bench, long leftOwnerId, IEnumerable<WholePick> whole)
     {
-        var stackId = take.StackId;
+        var kept = whole.Where(pick => pick.OwnerId == bench).Select(pick => pick.ItemId).ToHashSet();
+        var others = new GameIds();
 
-        for (var unit = 1; unit <= take.Units; unit++)
+        foreach (var item in HeldBy(itemState, bench))
         {
-            if (_mover == null || items.GetItemData(stackId) is not { } stack || stack.OwnerId != take.OwnerId) return false;
+            var itemId = item.LogicId;
 
-            if (stack.ItemCount <= 1)
-            {
-                whole.Add(new WholePick(stackId, take.OwnerId));
-
-                return unit == take.Units;
-            }
-
-            var report = _mover.TakeUnitNow(items, new StationWork.TakeOne(stackId, take.OwnerId, bench, StationPath.Quick, default, IsSilent: true, AvoidsMold: false));
-            var isOnBench = IsOn(items, stackId, bench);
-
-            if (isOnBench) onBench.Add((stackId, take.OwnerId));
-
-            if (!isOnBench || report.Outcome != StationOutcome.OneUnitIn || report.RestId is not { } rest) return false;
-
-            stackId = rest;
+            if (item.OwnerId == bench && !kept.Contains(itemId)) others.Add(itemId);
         }
 
-        return true;
+        if (others.Count > 0) Reducer_Web_ToolTable.ReturnBenchItemsToOrigins(state, itemState, others, bench, leftOwnerId, null);
     }
 
-    /// <summary>Units this fill put on the bench go back to where they came from, so a fill that failed leaves the containers as it found them.</summary>
-    private static void PutBack(ItemManager items, long bench, IReadOnlyList<(long UnitId, long FromOwnerId)> onBench)
+    private static UnitsTaken TakeUnits(StationMover mover, ItemManager items, long bench, IReadOnlyList<UnitTake> takes) =>
+        CraftingUnits.Take(
+            Find(items),
+            takes,
+            bench,
+            (stackId, ownerId) => mover.TakeUnitNow(items, new StationWork.TakeOne(stackId, ownerId, bench, StationPath.Quick, default, IsSilent: true, AvoidsMold: false)),
+            MoveOff(items, bench));
+
+    private static Func<long, ItemLookup> Find(ItemManager items) => itemId => GameStationStore.Find(items, itemId);
+
+    private static Func<long, long, bool> MoveOff(ItemManager items, long bench) => (unitId, toOwnerId) => items.TryQuickMoveItem(unitId, bench, toOwnerId, true, false);
+
+    /// <summary>
+    /// The pick made again around the units. The game made the source map itself and reads it after this returns, so
+    /// everything is built first and the map and the result are set last, back to back, so a failure leaves both as
+    /// the game made them.
+    /// </summary>
+    private static void Answer(State_Web_ToolTable state, IReadOnlyList<BenchUnit> onBench, IEnumerable<WholePick> whole, ref GameIds? result, ref GameSources? sourceOf)
     {
-        foreach (var (unitId, fromOwnerId) in onBench)
+        var picks = onBench.Select(unit => (Id: unit.UnitId, OwnerId: unit.FromOwnerId)).Concat(whole.Select(pick => (Id: pick.ItemId, pick.OwnerId))).ToList();
+        var ids = new GameIds();
+        var sources = new GameSources();
+
+        foreach (var (id, ownerId) in picks)
         {
-            try
-            {
-                if (IsOn(items, unitId, bench)) items.TryQuickMoveItem(unitId, bench, fromOwnerId, true, false);
-            }
-            catch (Exception ex)
-            {
-                _log($"a unit (item {unitId}) taken onto crafting bench {bench} could not go back to container {fromOwnerId}, so it stays on the bench: {ex}");
-            }
+            ids.Add(id);
+            sources.Add(id, ownerId);
         }
+
+        // The game notes where each item it moves came from, so emptying the bench later sends it home; it moves none of these units itself.
+        foreach (var unit in onBench) Reducer_Web_ToolTable.RecordBenchOrigin(state, unit.UnitId, unit.FromOwnerId);
+
+        if (sourceOf == null)
+        {
+            sourceOf = sources;
+        }
+        else
+        {
+            sourceOf.Clear();
+
+            foreach (var (id, ownerId) in picks) sourceOf.Add(id, ownerId);
+        }
+
+        result = ids;
     }
 
-    /// <summary>Every item in the containers, in fill order; within a container the largest first, as the game sorts them.</summary>
-    private static List<PickCandidate> Candidates(State_Data_Item itemState, IEnumerable<long> owners, long bench)
+    /// <summary>Every needed item in the containers, in fill order; within a container the largest first, as the game sorts them.</summary>
+    private static List<PickCandidate> Candidates(ItemManager items, State_Data_Item itemState, IReadOnlyDictionary<int, int> needs, IEnumerable<long> owners, long bench)
     {
+        // The bench holds one unit a slot only while the table's screen is open; with it closed nothing is cut and the game's own pick stands.
+        var canCut = Stations.IsStation(items, bench);
         var candidates = new List<PickCandidate>();
         var seen = new HashSet<long>();
-        var cache = itemState.OwnerCache;
-
-        if (cache == null) return candidates;
 
         foreach (var owner in owners)
         {
-            if (owner == 0 || !seen.Add(owner) || !cache.TryGetValue(owner, out var held) || held == null) continue;
+            if (!seen.Add(owner)) continue;
 
             var inOwner = new List<PickCandidate>();
 
-            foreach (var item in held.Values)
+            foreach (var item in HeldBy(itemState, owner))
             {
-                // The cache can keep stale entries whose owner moved on; the game's moves would refuse those.
-                if (item == null || item.OwnerId != owner) continue;
+                var configId = item.ItemConfigId;
 
-                inOwner.Add(new PickCandidate(item.LogicId, owner, item.ItemConfigId, item.ItemCount, IsCut: owner != bench && IsCut(item)));
+                // The cache can keep stale entries whose owner moved on; the game's moves would refuse those.
+                if (!needs.ContainsKey(configId) || item.OwnerId != owner) continue;
+
+                var count = item.ItemCount;
+
+                inOwner.Add(new PickCandidate(item.LogicId, owner, configId, count, IsCut: canCut && owner != bench && IsCut(count, configId, item.InstanceWeight != 0)));
             }
 
             candidates.AddRange(inOwner.OrderByDescending(candidate => candidate.Count));
@@ -252,8 +245,18 @@ internal static class CraftingFill
         return candidates;
     }
 
-    private static bool IsCut(Data_Item item) =>
-        StationRule.UnitsToSendBack(item.ItemCount, StackGuard.NewlyStackable.Contains(item.ItemConfigId), item.InstanceWeight != 0) > 0;
+    private static IEnumerable<Data_Item> HeldBy(State_Data_Item itemState, long owner)
+    {
+        if (owner == 0 || itemState.OwnerCache is not { } cache || !cache.TryGetValue(owner, out var held) || held == null) yield break;
+
+        foreach (var item in held.Values)
+        {
+            if (item != null) yield return item;
+        }
+    }
+
+    private static bool IsCut(int count, int configId, bool hasOwnWeight) =>
+        StationRule.UnitsToSendBack(count, StackGuard.NewlyStackable.Contains(configId), hasOwnWeight) > 0;
 
     private static Dictionary<int, int> Needs(GameNeeds materialNeeded)
     {
@@ -275,7 +278,17 @@ internal static class CraftingFill
 
     private static long? BenchOf(State_Web_ToolTable? state) => state?.WorkbenchOwnerId?.Value is { } bench && bench != 0 ? bench : null;
 
-    private static bool IsOn(ItemManager items, long itemId, long ownerId) => items.GetItemData(itemId) is { } item && item.OwnerId == ownerId;
+    /// <summary>A unit that could not go back is named every time, past the failure cap: it is a real item left on the bench.</summary>
+    private static void ReportPutBack(UnitsTaken.PutBack putBack, long bench)
+    {
+        var stayed = putBack.StillOnBench;
+
+        if (stayed.Count > 0) _log($"units {string.Join(", ", stayed.Select(unit => unit.UnitId))} could not go back from crafting bench {bench} to the containers they came from, so they stay on the bench");
+
+        var back = stayed.Count == 0 ? "every unit it took went back" : $"{stayed.Count} units it took stayed on the bench";
+
+        Fail($"a recipe's fill could not take single units off stacks onto crafting bench {bench}, and {back}: {string.Join("; ", putBack.Notes)}");
+    }
 
     private static void Fail(string what)
     {

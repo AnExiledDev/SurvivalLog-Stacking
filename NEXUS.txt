@@ -1,5 +1,5 @@
 Name: Stacking
-Summary: Bigger stacks per item category that keep fresh food apart from old food, cooking that counts every item in a stack, no whole stacks in cooking stations, and splitting stacks with Shift, Ctrl or a how-many panel.
+Summary: Bigger stacks per item category that keep fresh food apart from old food, cooking and crafting that count every item in a stack, no whole stacks in cooking stations, and splitting stacks with Shift, Ctrl or a how-many panel.
 
 Description (BBCode):
 Most seeds and food take one bag slot each, so storage fills up fast. Stacking raises the stack limit per item category without letting a fresh meal merge into a rotting one, and lets you split stacks with a key held.

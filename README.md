@@ -1,8 +1,8 @@
 # Stacking
 
-Bigger stacks that keep fresh food apart from old food, cooking that counts every item in a stack, and a way to split stacks.
+Bigger stacks that keep fresh food apart from old food, cooking and crafting that count every item in a stack, and a way to split stacks.
 
-In Survival Log most seeds and food take one bag slot each, so a few days of farming fill every storage you own. Stacking raises the stack limit per item category (materials and seeds to 99 and food to 20 to start with) without letting a fresh meal merge into a rotting one. A juicer or cooking bench counts every item in a stack, stacks never sit whole inside a cooking or crafting station, and Shift, Ctrl or Ctrl+Shift splits a stack when you drag or right-click it.
+In Survival Log most seeds and food take one bag slot each, so a few days of farming fill every storage you own. Stacking raises the stack limit per item category (materials and seeds to 99 and food to 20 to start with) without letting a fresh meal merge into a rotting one. A juicer, a cooking bench and the crafting table count every item in a stack, stacks never sit whole inside a cooking or crafting station, and Shift, Ctrl or Ctrl+Shift splits a stack when you drag or right-click it.
 
 ## Features
 

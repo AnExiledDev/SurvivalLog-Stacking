@@ -23,11 +23,14 @@ internal sealed class GameStationStore : IStationStore
         _log = log;
     }
 
-    public ItemLookup Find(long itemId)
+    public ItemLookup Find(long itemId) => Find(_items, itemId);
+
+    /// <summary>Where an item is now, for steps that need no stack of their own. Never throws.</summary>
+    public static ItemLookup Find(ItemManager items, long itemId)
     {
         try
         {
-            return _items.GetItemData(itemId) is { } item
+            return items.GetItemData(itemId) is { } item
                 ? new ItemLookup.Found(new Placed(item.OwnerId, new Cell(item.BagPos.x, item.BagPos.y), item.ItemCount))
                 : new ItemLookup.Gone();
         }
