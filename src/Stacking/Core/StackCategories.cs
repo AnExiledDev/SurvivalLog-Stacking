@@ -113,7 +113,7 @@ public static class StackCategories
             ? $"默认 {category.Default}，最高 {StackLimits.Highest}"
             : $"游戏上限 {game.Value.Text(" 至 ")}，默认 {category.Default}，最高 {StackLimits.Highest}";
 
-        return $"{category.Holds} {limits}. 0 keeps the game's limit, and items with portions or more than one use always keep it.\n"
-            + $"{category.HoldsChinese}{limitsChinese}。设为 0 保持游戏上限；有份数或可多次使用的物品始终保持游戏上限。";
+        return $"{category.Holds} {limits}. 0 keeps the game's limit, and dishes a cooking recipe makes and items with more than one use always keep it.\n"
+            + $"{category.HoldsChinese}{limitsChinese}。设为 0 保持游戏上限；烹饪配方做出的菜品和可多次使用的物品始终保持游戏上限。";
     }
 }

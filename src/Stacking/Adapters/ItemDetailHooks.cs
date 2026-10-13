@@ -9,8 +9,7 @@ namespace Stacking.Adapters;
 /// Keeps a Ctrl-click on an item from opening the item details popup. Every window that shows the popup for a click
 /// (the bag on its own or beside a storage, the merchant's trade window, the shop, the stations, the codex) opens it
 /// through the one action, so the click is caught there rather than in each window. The bag's own Ctrl-click quick use
-/// is decided before that and stays the game's. With splitting off nothing samples the keys each frame, so only a Ctrl
-/// still down as the click arrives counts. Static because Harmony patches are.
+/// is decided before that and stays the game's. Static because Harmony patches are.
 /// </summary>
 internal static class ItemDetailHooks
 {
@@ -29,7 +28,7 @@ internal static class ItemDetailHooks
     {
         try
         {
-            return ItemClicks.OpensDetails(SplitKeys.Current());
+            return ItemClicks.OpensDetails(SplitKeys.ForClick());
         }
         catch (Exception ex)
         {

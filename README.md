@@ -47,6 +47,7 @@ Stacking adds no data of its own to your save and does not edit game files. The 
 
 - If the freshness check cannot be put in place, items the game never stacked keep a limit of 1, and only items the game already stacks get raised.
 - If the cooking count cannot be put in place, cooking goes back to the game's own counting for that session.
+- Stack limits wait for the game's cooking recipe table, so no dish is ever raised by mistake. If a game update changes that table so it cannot be read, no limit is raised at all, and the log says the limits are waiting for it.
 - If a split or a station move fails part way, the items are put back, or the rest goes to a free spot in the bag it came from. Nothing ever lands in a station as a whole stack.
 - If the drag hooks cannot be put in place, drags move whole stacks as they did before.
 - If the item details hook cannot be put in place, a Ctrl-click opens the item's details as in the base game.

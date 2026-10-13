@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Stacking.Adapters;
 
-/// <summary>Drives stack splitting once a frame: watches the modifier keys, hears the picker, carries out split drops.</summary>
+/// <summary>Drives stack splitting once a frame: hears the picker, carries out split drops.</summary>
 public sealed class SplitTicker : MonoBehaviour
 {
     private const int MaxLoggedFailures = 3;

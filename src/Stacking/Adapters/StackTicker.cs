@@ -3,7 +3,10 @@ using UnityEngine;
 
 namespace Stacking.Adapters;
 
-/// <summary>Every frame, carries out the station rule's moves; every few real seconds, makes sure the item table carries the chosen limits.</summary>
+/// <summary>
+/// Every frame, notes the modifier keys and carries out the station rule's moves; every few real seconds, makes sure
+/// the item table carries the chosen limits.
+/// </summary>
 public sealed class StackTicker : MonoBehaviour
 {
     private const float SweepSeconds = 5f;
@@ -16,6 +19,7 @@ public sealed class StackTicker : MonoBehaviour
     private float _nextSweepAt;
     private int _failures;
     private int _moveFailures;
+    private int _keyFailures;
 
     public StackTicker(IntPtr pointer) : base(pointer)
     {
@@ -23,6 +27,7 @@ public sealed class StackTicker : MonoBehaviour
 
     private void Update()
     {
+        SampleKeys();
         MoveIntoStations();
 
         if (Writer == null || Time.unscaledTime < _nextSweepAt) return;
@@ -38,6 +43,21 @@ public sealed class StackTicker : MonoBehaviour
             _failures++;
 
             if (_failures <= MaxLoggedFailures) Log($"writing stack limits failed, tried again in {SweepSeconds:0}s (logged {_failures} of {MaxLoggedFailures}): {ex}");
+        }
+    }
+
+    /// <summary>For both splitting and item clicks, so a key let go with the mouse button reads the same either way.</summary>
+    private void SampleKeys()
+    {
+        try
+        {
+            SplitKeys.Sample();
+        }
+        catch (Exception ex)
+        {
+            _keyFailures++;
+
+            if (_keyFailures <= MaxLoggedFailures) Log($"reading the modifier keys failed (logged {_keyFailures} of {MaxLoggedFailures}): {ex}");
         }
     }
 

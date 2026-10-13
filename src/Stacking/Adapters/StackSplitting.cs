@@ -48,8 +48,6 @@ internal static class StackSplitting
     {
         if (_picker == null || _executor == null) return;
 
-        SplitKeys.Sample();
-
         if (SplitHooks.TakeBackpackClosed())
         {
             _picker.Close();

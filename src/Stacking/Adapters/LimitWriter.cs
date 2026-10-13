@@ -104,7 +104,7 @@ internal sealed class LimitWriter
         if (_hasReportedWaiting) return;
 
         _hasReportedWaiting = true;
-        _log("the item table is loaded but the cooking recipe table is not; stack limits wait for it, so no dish is raised");
+        _log("the item table is loaded but the cooking recipe table is not; stack limits wait for it, so no limit is raised until then");
     }
 
     private void Report(List<ItemRow> rows, StackPlan plan, int written, int neverSpoilingSeeds)
