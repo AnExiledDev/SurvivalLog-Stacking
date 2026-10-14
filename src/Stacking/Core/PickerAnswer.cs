@@ -8,7 +8,9 @@ namespace Stacking.Core;
 /// "split|token|units" and "cancel|token" answer the question; "shown|token" and "gone|token" say whether the picker
 /// with that token is on screen, after it opens and when the plugin checks; "ready" says the script has just installed
 /// itself, which after the picker opened means the page reloaded. The token ties a message to the drag that opened the
-/// picker, so one about an older picker is told apart. Anything else parses to Unknown so it can be logged rather than acted on.
+/// picker, so one about an older picker is told apart. The drop watcher in the station views says "onto|item|target"
+/// when a dragged item is let go over another, which those views put back without telling the game.
+/// Anything else parses to Unknown so it can be logged rather than acted on.
 /// </summary>
 public abstract record PickerAnswer
 {
@@ -28,6 +30,8 @@ public abstract record PickerAnswer
 
     public sealed record Ready : PickerAnswer;
 
+    public sealed record Onto(long ItemId, long TargetId) : PickerAnswer;
+
     public sealed record Unknown(string Text) : PickerAnswer;
 
     public static bool IsOurs(string? message) => message is not null && message.StartsWith(Prefix, StringComparison.Ordinal);
@@ -46,9 +50,12 @@ public abstract record PickerAnswer
             ("shown", 2) when TryInt(parts[1], out var token) => new Shown(token),
             ("gone", 2) when TryInt(parts[1], out var token) => new Gone(token),
             ("ready", 1) => new Ready(),
+            ("onto", 3) when TryId(parts[1], out var item) && TryId(parts[2], out var target) && item != target => new Onto(item, target),
             _ => new Unknown(message),
         };
     }
 
     private static bool TryInt(string text, out int value) => int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out value);
+
+    private static bool TryId(string text, out long id) => long.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out id) && id > 0;
 }

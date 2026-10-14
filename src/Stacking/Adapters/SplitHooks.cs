@@ -14,9 +14,10 @@ namespace Stacking.Adapters;
 /// <summary>
 /// Catches a stack dropped with Shift or Ctrl held. The bag's drag handler runs the game's own checks first and then
 /// either moves the stack or drops it on the item under the cursor; the split takes the place of that move or drop,
-/// so every drop the game would refuse is still refused. The bag also shows inside the crafting table, brewing, shop
-/// and cooking views, each with a drag handler of its own that ends in the same move. The split itself is carried
-/// out next frame by the ticker, never inside the game's handler. Static because Harmony patches are.
+/// so every drop the game would refuse is still refused. The bag also shows inside the shop and the station views
+/// (crafting table, brewing, cooking, shredder and the rest), each with a drag handler of its own that ends in the
+/// same move. The split itself is carried out next frame by the ticker, never inside the game's handler. Static
+/// because Harmony patches are.
 /// </summary>
 internal static class SplitHooks
 {
@@ -25,6 +26,27 @@ internal static class SplitHooks
 
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
     private static readonly ConcurrentQueue<SplitRequest> Requests = new();
+
+    /// <summary>
+    /// Each view's drag handler, which ends in the bag's move. The Dobby rule holds for each new one (no relative jump
+    /// or call in the first 14 bytes; a register save, pushes and a stack reserve come before the first compare and
+    /// short jump): compressor rva 0x28c8ec0, dyeing 0x295dbf0, drone hub 0x2954ab0, greenhouse 0x299b800, shredder
+    /// 0x2a6d6f0, aid depot 0x2878380, traps 0x2ae2cb0, rat cage 0x2a24350.
+    /// </summary>
+    private static readonly (string View, Type Reducer, string Method)[] ViewDrags =
+    {
+        ("the crafting table", typeof(Reducer_Web_ToolTable), nameof(Reducer_Web_ToolTable.RA_ItemMove)),
+        ("brewing", typeof(Reducer_Web_Brew), nameof(Reducer_Web_Brew.RA_ItemMove)),
+        ("the shop", typeof(Reducer_Web_ShopUI), nameof(Reducer_Web_ShopUI.RA_DragItem)),
+        ("the shredder", typeof(Reducer_Web_Shredder), nameof(Reducer_Web_Shredder.RA_ItemMove)),
+        ("the compressor", typeof(Reducer_Web_Compressor), nameof(Reducer_Web_Compressor.RA_ItemMove)),
+        ("dyeing", typeof(Reducer_Web_Dye), nameof(Reducer_Web_Dye.RA_ItemMove)),
+        ("the drone hub", typeof(Reducer_Web_DroneHub), nameof(Reducer_Web_DroneHub.RA_ItemMove)),
+        ("greenhouse building", typeof(Reducer_Web_GreenhouseBuild), nameof(Reducer_Web_GreenhouseBuild.RA_ItemMove)),
+        ("the aid depot", typeof(Reducer_Web_AidDepot), nameof(Reducer_Web_AidDepot.RA_ItemMove)),
+        ("traps", typeof(Reducer_Web_TrapPanel), nameof(Reducer_Web_TrapPanel.RA_ItemMove)),
+        ("the rat cage", typeof(Reducer_Web_RatCage), nameof(Reducer_Web_RatCage.RA_FoodMove)),
+    };
 
     [ThreadStatic] private static bool _isInViewDrag;
 
@@ -70,8 +92,9 @@ internal static class SplitHooks
     public static bool TryTakeRequest(out SplitRequest? request) => Requests.TryDequeue(out request);
 
     /// <summary>
-    /// The crafting table, brewing and shop views move a dragged item with the same move the bag uses; the cooking
-    /// view sends its own move to the item manager instead, so it is caught there.
+    /// The shop and most station views move a dragged item with the same move the bag uses, after their own checks;
+    /// the cooking view sends its own move to the item manager instead, so it is caught there. The heater, fuel
+    /// generator and material rack views send no move within the bag at all, so a drag there has nothing to split.
     /// </summary>
     private static void CatchViewDrags(Harmony harmony, Action<string> log, bool isCatchingMoves)
     {
@@ -79,9 +102,10 @@ internal static class SplitHooks
 
         if (isCatchingMoves)
         {
-            if (TryPatchViewDrag(harmony, log, "the crafting table", typeof(Reducer_Web_ToolTable), nameof(Reducer_Web_ToolTable.RA_ItemMove))) splitsIn.Add("the crafting table");
-            if (TryPatchViewDrag(harmony, log, "brewing", typeof(Reducer_Web_Brew), nameof(Reducer_Web_Brew.RA_ItemMove))) splitsIn.Add("brewing");
-            if (TryPatchViewDrag(harmony, log, "the shop", typeof(Reducer_Web_ShopUI), nameof(Reducer_Web_ShopUI.RA_DragItem))) splitsIn.Add("the shop");
+            foreach (var (view, reducer, method) in ViewDrags)
+            {
+                if (TryPatchViewDrag(harmony, log, view, reducer, method)) splitsIn.Add(view);
+            }
         }
 
         if (TryPatch(harmony, "dragging an item in the cooking view", () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.OnCookingDragMove)),
@@ -91,6 +115,7 @@ internal static class SplitHooks
         }
 
         log(splitsIn.Count == 0 ? "a drag in a view other than the bag moves the whole stack this session" : "a drag also splits in the views of " + string.Join(", ", splitsIn));
+        log("a drag with Shift or Ctrl onto a free spot does not split in the heater, fuel generator or material rack views: the game never moves an item within the bag there");
     }
 
     private static bool TryPatchViewDrag(Harmony harmony, Action<string> log, string view, Type reducer, string method) =>

@@ -35,6 +35,13 @@ public class PickerAnswerTests
         Assert.Equal(new PickerAnswer.Ready(), PickerAnswer.Parse("slmod|stacking|ready"));
     }
 
+    /// <summary>A station view puts back a stack let go over another; the watcher says which was dropped onto which.</summary>
+    [Fact]
+    public void A_drop_onto_another_item_names_the_dragged_item_and_the_one_under_it()
+    {
+        Assert.Equal(new PickerAnswer.Onto(9000000001, 9000000002), PickerAnswer.Parse("slmod|stacking|onto|9000000001|9000000002"));
+    }
+
     [Fact]
     public void Another_mod_s_page_message_is_not_ours_to_swallow()
     {
@@ -52,6 +59,12 @@ public class PickerAnswerTests
     [InlineData("slmod|stacking|shown")]
     [InlineData("slmod|stacking|gone|x")]
     [InlineData("slmod|stacking|ready|7")]
+    [InlineData("slmod|stacking|onto|7")]
+    [InlineData("slmod|stacking|onto|7|7")]
+    [InlineData("slmod|stacking|onto|0|8")]
+    [InlineData("slmod|stacking|onto|7|-8")]
+    [InlineData("slmod|stacking|onto|7|x")]
+    [InlineData("slmod|stacking|onto|7|8|9")]
     public void A_malformed_answer_moves_nothing(string message)
     {
         Assert.IsType<PickerAnswer.Unknown>(PickerAnswer.Parse(message));

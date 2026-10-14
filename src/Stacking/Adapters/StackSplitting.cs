@@ -8,7 +8,8 @@ namespace Stacking.Adapters;
 /// Splitting a stack by dropping or right-clicking it with a modifier held: Shift moves half, Ctrl moves one,
 /// Ctrl+Shift asks how many.
 /// The hooks catch the drop, the ticker carries it out next frame through the executor, and the picker asks and
-/// answers. Static because the ticker is made by Unity and finds its work here.
+/// answers. In the station views the click hooks catch the right-click, and the drop watcher hears a drop onto another
+/// item. Static because the ticker is made by Unity and finds its work here.
 /// </summary>
 internal static class StackSplitting
 {
@@ -17,6 +18,7 @@ internal static class StackSplitting
     private static Action<string> _log = _ => { };
     private static SplitPicker? _picker;
     private static SplitExecutor? _executor;
+    private static DropWatch? _drops;
     private static int _unknownAnswers;
 
     /// <summary>True when drops can be split; the ticker only needs adding then.</summary>
@@ -36,6 +38,8 @@ internal static class StackSplitting
         if (!canAsk) log("Ctrl+Shift cannot ask how many this session; Shift and Ctrl still split");
 
         RightClickSplit.Apply(harmony, log);
+        ViewClickSplit.Apply(harmony, log);
+        WatchStationDrops(canAsk, log);
         _picker = new SplitPicker(log);
         _executor = new SplitExecutor(log, logFileOnly, _picker, SplitHooks.CanStartStacks, canAsk);
         log("stacks split when dropped or right-clicked with Shift (half), Ctrl (one) or Ctrl+Shift (choose)");
@@ -60,11 +64,26 @@ internal static class StackSplitting
         while (PickerHooks.TryTakeAnswer(out var answer)) Answer(answer, now);
 
         _picker.Tick(now);
+        _drops?.Tick(now);
 
         while (SplitHooks.TryTakeRequest(out var request))
         {
             if (request != null) _executor.Run(request, chosenUnits: null, now);
         }
+    }
+
+    /// <summary>The watcher's word on a drop comes the way the picker's answers do, so it is only worth sending while those are heard.</summary>
+    private static void WatchStationDrops(bool canHearPage, Action<string> log)
+    {
+        if (!canHearPage)
+        {
+            log("a drag with Shift or Ctrl onto a stack does not split in the station views this session");
+
+            return;
+        }
+
+        _drops = new DropWatch(log);
+        log("a drag with Shift or Ctrl onto a matching stack also splits in the station views");
     }
 
     private static void Answer(PickerAnswer? answer, float now)
@@ -85,6 +104,9 @@ internal static class StackSplitting
                 break;
             case PickerAnswer.Ready:
                 _picker?.Reloaded();
+                break;
+            case PickerAnswer.Onto onto:
+                DropWatch.DroppedOnto(onto);
                 break;
             case PickerAnswer.Unknown unknown:
                 _unknownAnswers++;

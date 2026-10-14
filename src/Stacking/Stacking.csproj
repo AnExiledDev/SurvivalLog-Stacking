@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="picker.js" LogicalName="Stacking.picker.js" />
+    <EmbeddedResource Include="drops.js" LogicalName="Stacking.drops.js" />
   </ItemGroup>
 
 </Project>
