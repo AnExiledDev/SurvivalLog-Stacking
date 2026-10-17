@@ -12,6 +12,8 @@
   var TOAST_MS = 2600;
 
   var ui = null;
+  // The plugin sends the picker's words in the game's language with every open (Texts.cs); English stands in until then.
+  var words = { title: 'Split stack', hint: 'How many to move: 1 to {0}', half: 'Half', max: 'Max', cancel: 'Cancel', split: 'Split' };
   var asked = null;
   var toastTimer = 0;
 
@@ -79,14 +81,15 @@
 
     var quick = el('div', 'sls-quick');
     quick.appendChild(button('1', 'one'));
-    quick.appendChild(button('Half', 'half'));
-    quick.appendChild(button('Max', 'max'));
+    quick.appendChild(button(words.half, 'half'));
+    quick.appendChild(button(words.max, 'max'));
 
     var foot = el('div', 'sls-foot');
-    foot.appendChild(button('Cancel', 'cancel'));
-    foot.appendChild(button('Split', 'split', 'sls-go'));
+    foot.appendChild(button(words.cancel, 'cancel'));
+    foot.appendChild(button(words.split, 'split', 'sls-go'));
 
-    plate.appendChild(el('div', 'sls-title', 'Split stack'));
+    var title = el('div', 'sls-title', words.title);
+    plate.appendChild(title);
     plate.appendChild(hint);
     plate.appendChild(row);
     plate.appendChild(quick);
@@ -115,7 +118,7 @@
     });
     slider.addEventListener('input', function () { number.value = slider.value; });
 
-    ui = { root: root, hint: hint, number: number, slider: slider, toast: toast };
+    ui = { root: root, title: title, hint: hint, number: number, slider: slider, toast: toast };
   }
 
   // The style outlives a lost root, so a rebuild must not stack another copy of it.
@@ -201,15 +204,29 @@
     if (ui) ui.root.style.display = 'none';
   }
 
-  function open(token, max, suggested) {
+  function open(token, max, suggested, said) {
+    if (said) words = said;
+
     build();
+    relabel();
     asked = { token: token, max: max, suggested: suggested };
-    ui.hint.textContent = 'How many to move: 1 to ' + max;
+    ui.hint.textContent = words.hint.replace('{0}', max);
     ui.number.max = String(max);
     ui.slider.max = String(max);
     ui.root.style.display = 'flex';
     setUnits(suggested);
     send('shown|' + token);
+  }
+
+  // A picker built in one language keeps its nodes when the game switches to the other, so its words are set at every open.
+  function relabel() {
+    ui.title.textContent = words.title;
+
+    ['half', 'max', 'cancel', 'split'].forEach(function (action) {
+      var node = ui.root.querySelector('[data-act="' + action + '"]');
+
+      if (node) node.textContent = words[action];
+    });
   }
 
   // Closed by the plugin (the bag closed, Esc, or no answer in time): no answer is sent.

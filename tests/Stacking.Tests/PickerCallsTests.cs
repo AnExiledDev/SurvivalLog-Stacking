@@ -26,7 +26,23 @@ public class PickerCallsTests
     [Fact]
     public void The_picker_opens_with_its_token_the_most_it_may_split_and_the_amount_it_suggests()
     {
-        Assert.Equal("window.__slstacking.open(4,19,10)", PickerCalls.Open(4, 19, 10));
+        Assert.StartsWith("window.__slstacking.open(4,19,10,{", PickerCalls.Open(4, 19, 10, isChinese: false));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void The_picker_words_are_in_the_games_language(bool isChinese)
+    {
+        var call = PickerCalls.Open(4, 19, 10, isChinese);
+        var words = JsonDocument.Parse(call["window.__slstacking.open(4,19,10,".Length..^1]).RootElement;
+
+        Assert.Equal(Texts.PickerTitle.Pick(isChinese), words.GetProperty("title").GetString());
+        Assert.Equal(Texts.PickerHint.Pick(isChinese), words.GetProperty("hint").GetString());
+        Assert.Equal(Texts.PickerHalf.Pick(isChinese), words.GetProperty("half").GetString());
+        Assert.Equal(Texts.PickerMax.Pick(isChinese), words.GetProperty("max").GetString());
+        Assert.Equal(Texts.PickerCancel.Pick(isChinese), words.GetProperty("cancel").GetString());
+        Assert.Equal(Texts.PickerSplit.Pick(isChinese), words.GetProperty("split").GetString());
     }
 
     /// <summary>A page that reloaded has no picker script, so the call itself must answer gone for it.</summary>

@@ -13,11 +13,6 @@ namespace Stacking.Adapters;
 /// </summary>
 internal sealed class SplitExecutor
 {
-    private const string TakeOutOnly = "Items can only be taken out of this box";
-    private const string NotForThisBasket = "That can't go in this basket";
-    private const string NoNewStacks = "Splitting onto a free spot is off this session: see BepInEx/stacking.log";
-    private const string NoPicker = "Ctrl+Shift needs the amount picker, which could not start: see BepInEx/stacking.log";
-    private const string Failed = "The split failed and nothing moved: see BepInEx/stacking.log";
 
     private readonly Action<string> _log;
     private readonly Action<string> _logFileOnly;
@@ -59,10 +54,10 @@ internal sealed class SplitExecutor
                 _picker.Toast(Splitting.Explain(refused.Reason));
                 break;
             case SplitPlan.Choose when !_canAsk:
-                _picker.Toast(NoPicker);
+                _picker.Toast(Texts.NoPicker);
                 break;
             case SplitPlan.NewStack when !_canStartStacks:
-                _picker.Toast(NoNewStacks);
+                _picker.Toast(Texts.NoNewStacks);
                 break;
             case SplitPlan.Choose choose:
                 if (IsAllowed(request, source.ItemConfigId)) _picker.Ask(request, choose.Max, choose.Suggested, now);
@@ -97,11 +92,11 @@ internal sealed class SplitExecutor
             return false;
         }
 
-        var refusal = ItemManager.IsNeighborBasketForbidden(to, configId) ? NotForThisBasket
-            : VehicleConfig.IsBoxOwner(to) ? TakeOutOnly
+        Phrase? refusal = ItemManager.IsNeighborBasketForbidden(to, configId) ? Texts.NotForThisBasket
+            : VehicleConfig.IsBoxOwner(to) ? Texts.TakeOutOnly
             : null;
 
-        if (refusal != null) _picker.Toast(refusal);
+        if (refusal is { } words) _picker.Toast(words);
 
         return refusal == null;
     }
@@ -165,7 +160,7 @@ internal sealed class SplitExecutor
         }
         catch (Exception ex)
         {
-            _picker.Toast(Failed);
+            _picker.Toast(Texts.Failed);
             _log($"reading container {ownerId} before a split failed, so nothing moved: {ex}");
 
             return null;
@@ -182,7 +177,7 @@ internal sealed class SplitExecutor
         }
         catch (Exception ex)
         {
-            _picker.Toast(Failed);
+            _picker.Toast(Texts.Failed);
             _log($"container {ownerId} could not be read or put right after {plan.Units} units were added to it; check this bag's counts. The add: {thrown?.ToString() ?? "returned"}. Then: {ex}");
 
             return null;
@@ -249,7 +244,7 @@ internal sealed class SplitExecutor
             { Count: var count } => $"{count} new stacks of {units} lie on the ground, so which is the split's is unknown; check the ground near the player",
         };
 
-        _picker.Toast(Failed);
+        _picker.Toast(Texts.Failed);
         _log($"starting a new stack failed and {what}: {thrown}");
 
         return null;
@@ -334,7 +329,7 @@ internal sealed class SplitExecutor
 
     private void Undo(string what, Exception cause, Action undo)
     {
-        _picker.Toast(Failed);
+        _picker.Toast(Texts.Failed);
 
         try
         {

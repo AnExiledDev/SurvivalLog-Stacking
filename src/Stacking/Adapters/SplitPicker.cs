@@ -36,7 +36,7 @@ internal sealed class SplitPicker
 
         var token = _session.Ask(request, now);
 
-        if (Run(PickerCalls.Open(token, max, suggested))) return;
+        if (Run(PickerCalls.Open(token, max, suggested, GameLanguage.IsChinese()))) return;
 
         _session.Close();
         _log("could not open the split picker, so nothing moved");
@@ -119,8 +119,10 @@ internal sealed class SplitPicker
     }
 
     /// <summary>A toast the web UI cannot show goes to the log instead, once per text every few seconds.</summary>
-    public void Toast(string text)
+    public void Toast(Phrase words)
     {
+        var text = words.Pick(GameLanguage.IsChinese());
+
         if (Run(PickerCalls.Toast(text))) return;
 
         var now = Time.unscaledTime;

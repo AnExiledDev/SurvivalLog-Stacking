@@ -223,14 +223,14 @@ public static class Splitting
         return (int)Math.Min(int.MaxValue - 1, Math.Floor((spare + Rounding) / unitWeight));
     }
 
-    public static string Explain(Refusal reason) => reason switch
+    public static Phrase Explain(Refusal reason) => reason switch
     {
-        Refusal.NoRoom => "No room to split the stack there",
-        Refusal.StackFull => "That stack is already full",
-        Refusal.TooHeavy => "That would be too heavy for the container",
-        Refusal.OtherCondition => "Those don't stack: freshness or condition differs",
-        Refusal.OwnRules => "Stacks can't be split into or out of this container; split them in your bag first",
-        Refusal.Unreadable => "Couldn't read this container's layout, so nothing split: see BepInEx/stacking.log",
+        Refusal.NoRoom => Texts.NoRoom,
+        Refusal.StackFull => Texts.StackFull,
+        Refusal.TooHeavy => Texts.TooHeavy,
+        Refusal.OtherCondition => Texts.OtherCondition,
+        Refusal.OwnRules => Texts.OwnRules,
+        Refusal.Unreadable => Texts.Unreadable,
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "every refusal needs words for the player"),
     };
 
@@ -241,11 +241,11 @@ public static class Splitting
         : Landing.WhereDropped;
 
     /// <summary>What to tell the player about where the split-off units went; nothing when they went where they were dropped.</summary>
-    public static string? Explain(Landing landing) => landing switch
+    public static Phrase? Explain(Landing landing) => landing switch
     {
         Landing.WhereDropped => null,
-        Landing.ElsewhereInBag => "That spot was taken, so the split-off stack went elsewhere in the container",
-        Landing.OnTheGround => "No room in the container, so the split-off stack was dropped on the ground",
+        Landing.ElsewhereInBag => Texts.ElsewhereInBag,
+        Landing.OnTheGround => Texts.OnTheGround,
         _ => throw new ArgumentOutOfRangeException(nameof(landing), landing, "every landing needs words for the player"),
     };
 

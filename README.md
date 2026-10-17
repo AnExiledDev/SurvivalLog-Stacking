@@ -80,7 +80,7 @@ Moving items around is finicky. This mod moves, splits and merges real items in 
 
 ## Requirements
 
-- Survival Log 1.1.18317. Built for this version; a game update can break it until the mod is updated.
+- Survival Log 1.1.18902. Built for this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game.
 - Not together with BaseButler. Both change stack limits and they will fight; remove BaseButler before installing this.
 
@@ -96,7 +96,9 @@ Delete `Stacking.dll` from the `BepInEx\plugins` folder. For a clean slate, also
 
 ## Configuration
 
-Settings live in `BepInEx\config\com.dev.survivallog.stacking.cfg`, created the first time the game starts with the mod. Edit it while the game is closed; changes apply at the next game start. See [CONFIG.md](CONFIG.md) for every setting.
+Settings live in `BepInEx\config\com.dev.survivallog.stacking.cfg`, created the first time the game starts with the mod. Edit it while the game is closed; changes apply at the next game start. Each setting in the cfg file is explained in English and Simplified Chinese. See [CONFIG.md](CONFIG.md) for every setting.
+
+The split panel and the messages a split shows follow the game's language, English or Simplified Chinese.
 
 A config file you already have keeps its saved numbers. To get the new default stack limits, delete its `[StackLimits]` section (or the whole file) while the game is closed.
 
@@ -104,7 +106,7 @@ A config file you already have keeps its saved numbers. To get the new default s
 
 Built against BepInEx `6.0.0-be.788`.
 
-Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.4.4 started`. It lists the stack limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`. The lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
+Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.4.6 started`. It lists the stack limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`. The lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
 
 The same lines, plus every split, every station move and every failure, are in `BepInEx\stacking.log`, which survives restarts. When that file passes 1 MB, it is cut down to its newest part at the next game start.
 

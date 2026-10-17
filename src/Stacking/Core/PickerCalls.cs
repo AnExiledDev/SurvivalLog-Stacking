@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace Stacking.Core;
@@ -8,7 +9,9 @@ public static class PickerCalls
 {
     private const string Page = "window.__slstacking";
 
-    public static string Open(int token, int max, int suggested) => $"{Page}.open({Number(token)},{Number(max)},{Number(suggested)})";
+    /// <summary>Opens the picker with its words in the game's language: {title, hint, half, max, cancel, split}, the hint still holding {0}.</summary>
+    public static string Open(int token, int max, int suggested, bool isChinese) =>
+        $"{Page}.open({Number(token)},{Number(max)},{Number(suggested)},{Words(isChinese)})";
 
     public static string Toast(string text) => $"{Page}.toast({Quote(text)})";
 
@@ -47,6 +50,17 @@ public static class PickerCalls
         }
 
         return literal.Append('"').ToString();
+    }
+
+    private static string Words(bool isChinese)
+    {
+        var words = new[]
+        {
+            ("title", Texts.PickerTitle), ("hint", Texts.PickerHint), ("half", Texts.PickerHalf), ("max", Texts.PickerMax),
+            ("cancel", Texts.PickerCancel), ("split", Texts.PickerSplit),
+        };
+
+        return "{" + string.Join(",", words.Select(word => Quote(word.Item1) + ":" + Quote(word.Item2.Pick(isChinese)))) + "}";
     }
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);

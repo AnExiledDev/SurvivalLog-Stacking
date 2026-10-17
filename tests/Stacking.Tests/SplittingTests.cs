@@ -215,7 +215,7 @@ public class SplittingTests
     [MemberData(nameof(EveryRefusal))]
     public void Every_refusal_tells_the_player_why(Refusal reason)
     {
-        Assert.False(string.IsNullOrWhiteSpace(Splitting.Explain(reason)));
+        Assert.False(string.IsNullOrWhiteSpace(Splitting.Explain(reason).En));
     }
 
     public static TheoryData<Refusal> EveryRefusal() => new(Enum.GetValues<Refusal>());
@@ -229,7 +229,7 @@ public class SplittingTests
     [InlineData(Refusal.Unreadable, "Couldn't read this container's layout, so nothing split: see BepInEx/stacking.log")]
     public void Every_refusal_tells_the_player_the_reason_decided_for_it(Refusal reason, string words)
     {
-        Assert.Equal(words, Splitting.Explain(reason));
+        Assert.Equal(words, Splitting.Explain(reason).En);
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public class SplittingTests
         var landing = Splitting.LandingOf(5, new Cell(2, 1), 5, new Cell(2, 1));
 
         Assert.Equal(Landing.WhereDropped, landing);
-        Assert.Null(Splitting.Explain(landing));
+        Assert.Null(Splitting.Explain(landing)?.En);
     }
 
     [Fact]
@@ -246,7 +246,7 @@ public class SplittingTests
     {
         var landing = Splitting.LandingOf(5, new Cell(4, 0), 5, new Cell(2, 1));
 
-        Assert.Equal("That spot was taken, so the split-off stack went elsewhere in the container", Splitting.Explain(landing));
+        Assert.Equal("That spot was taken, so the split-off stack went elsewhere in the container", Splitting.Explain(landing)?.En);
     }
 
     /// <summary>The game's add drops a stack it cannot place, which gives it another owner; its cell says nothing then.</summary>
@@ -255,7 +255,7 @@ public class SplittingTests
     {
         var landing = Splitting.LandingOf(9, new Cell(2, 1), 5, new Cell(2, 1));
 
-        Assert.Equal("No room in the container, so the split-off stack was dropped on the ground", Splitting.Explain(landing));
+        Assert.Equal("No room in the container, so the split-off stack was dropped on the ground", Splitting.Explain(landing)?.En);
     }
 
     [Fact]
