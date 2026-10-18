@@ -60,7 +60,7 @@ internal sealed class LimitWriter
 
         StackGuard.NewlyStackable = plan.NewlyStackable;
         StackGuard.NeverSpoils = StackLimits.NeverSpoiling(rows);
-        Report(rows, plan, written, StackGuard.NeverSpoils.Count);
+        Report(rows, plan, written, StackGuard.NeverSpoils);
     }
 
     /// <summary>
@@ -107,7 +107,7 @@ internal sealed class LimitWriter
         _log("the item table is loaded but the cooking recipe table is not; stack limits wait for it, so no limit is raised until then");
     }
 
-    private void Report(List<ItemRow> rows, StackPlan plan, int written, int neverSpoilingSeeds)
+    private void Report(List<ItemRow> rows, StackPlan plan, int written, IReadOnlySet<int> neverSpoils)
     {
         if (_hasApplied)
         {
@@ -118,7 +118,7 @@ internal sealed class LimitWriter
 
         _hasApplied = true;
         _log($"stack limits written for {written} items, {plan.NewlyStackable.Count} of which the game never stacked");
-        _log($"{neverSpoilingSeeds} of {rows.Count(row => row.Category == (int)ItemCategory.Seed)} seeds never spoil, so their freshness does not keep them apart");
+        _log($"{plan.NewlyStackable.Count(neverSpoils.Contains)} of the newly stackable items never spoil, so when they were picked up does not keep them apart");
 
         foreach (var line in StackLimits.Describe(rows, plan, CategoryName)) _logFileOnly(line);
     }

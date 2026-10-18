@@ -20,8 +20,6 @@ public static class StackLimits
 {
     public const int Highest = 999;
 
-    /// <summary>The game's ItemCategory.Seed.</summary>
-    private const int SeedCategory = 10;
 
     public static int Clamp(int wanted) => Math.Clamp(wanted, 0, Highest);
 
@@ -30,12 +28,11 @@ public static class StackLimits
         recipes.SelectMany(recipe => new[] { recipe.Perfect, recipe.Good, recipe.Normal, recipe.Fail }).Where(id => id > 0).ToHashSet();
 
     /// <summary>
-    /// Seeds whose kind never spoils. Their freshness values still differ by how they were picked up, which split one
-    /// kind of seed into several stacks; with nothing to lose, every seed of one kind may share a stack. Food keeps the
-    /// freshness rule even when it never spoils.
+    /// Items whose kind never spoils, in any category. Their freshness values still carry the hour they were picked up,
+    /// which split one kind of item into a stack per pickup; with no shelf life to lose, only their uses keep them apart.
     /// </summary>
     public static IReadOnlySet<int> NeverSpoiling(IEnumerable<ItemRow> gameRows) =>
-        gameRows.Where(row => row.Category == SeedCategory && row.Life <= 0).Select(row => row.Id).ToHashSet();
+        gameRows.Where(row => row.Life <= 0).Select(row => row.Id).ToHashSet();
 
     /// <summary>
     /// Raises each item to its category's limit. An item the game never stacked is only raised when the freshness

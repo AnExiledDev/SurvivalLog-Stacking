@@ -104,6 +104,8 @@ public class StackLimitsTests
 {
     private const int Food = 1;
     private const int Seed = 10;
+    private const int Material = 9;
+    private const int Fuel = 13;
 
     private static readonly Dictionary<int, int> FoodTo20 = new() { [Food] = 20 };
 
@@ -216,16 +218,28 @@ public class StackLimitsTests
     }
 
     [Fact]
-    public void Only_seeds_without_a_shelf_life_ignore_freshness_when_stacking()
+    public void Any_item_without_a_shelf_life_ignores_freshness_when_stacking_whatever_its_category()
     {
         var rows = new[]
         {
             new ItemRow(15001, Seed, 1, 0, Life: -1),
-            new ItemRow(15002, Seed, 1, 0, Life: 0),
             new ItemRow(15003, Seed, 1, 0, Life: 72),
+            new ItemRow(40000, Fuel, 1, 0, Life: -1),
+            new ItemRow(9001, Material, 1, 0, Life: 0),
             new ItemRow(7, Food, 1, 1, Life: -1),
+            new ItemRow(1, Food, 20, 1, Life: 30),
         };
 
-        Assert.Equal(new[] { 15001, 15002 }, StackLimits.NeverSpoiling(rows).Order());
+        Assert.Equal(new[] { 7, 9001, 15001, 40000 }, StackLimits.NeverSpoiling(rows).Order());
+    }
+
+    [Fact]
+    public void Two_diesel_cans_picked_up_hours_apart_share_a_stack()
+    {
+        var neverSpoils = StackLimits.NeverSpoiling(new[] { new ItemRow(40000, Fuel, 1, 0, Life: -1) }).Contains(40000);
+        var earlier = new Freshness(StartTime: 1538, TimeLeft: -1, TimeLeftFrac: 0f, TimeScale: 1f, UseTimes: 0, MaxUseTimes: 0);
+        var later = earlier with { StartTime = 1906 };
+
+        Assert.True(StackIdentity.CanJoin(earlier, later, nowHours: 2155f, neverSpoils));
     }
 }
