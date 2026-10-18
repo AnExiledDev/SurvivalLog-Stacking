@@ -33,8 +33,6 @@ Works in English and Chinese.
 
 [size=5]Known issues[/size]
 [list]
-[*][b]Back up your save before trying it for the first time.[/b] The mod moves, splits and merges real items, and moving items around is finicky.[/*]
-[*]Version 0.4.3 has not been played through in the game yet.[/*]
 [*]Dishes that already share a stack from an earlier version stay in that stack.[/*]
 [*]The merchant's trade window offers whole stacks, so split a stack in your bag first.[/*]
 [*]Do not use it together with BaseButler. Remove BaseButler first.[/*]
@@ -42,7 +40,6 @@ Works in English and Chinese.
 [*]Compost bins, material racks and robot molds refuse a split. Split in your bag first, then drag the part you want.[/*]
 [*]Two items up to an hour apart in freshness can share a stack.[/*]
 [/list]
-If an item goes missing, doubles or lands somewhere odd, please tell me (see Feedback below).
 
 [size=5]Requirements[/size]
 [list]
@@ -106,8 +103,6 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 
 [size=5]已知问题[/size]
 [list]
-[*][b]第一次使用前请备份存档。[/b]模组会移动、拆分和合并真实的物品，而移动物品这件事比较难处理。[/*]
-[*]0.4.3 版还没有在游戏中完整试玩过。[/*]
 [*]以前版本里已经叠在一起的菜品会保持原样。[/*]
 [*]商人的交易界面只接受整堆，请先在背包里拆分。[/*]
 [*]不要和 BaseButler 一起使用。请先移除 BaseButler。[/*]
@@ -115,7 +110,6 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 [*]堆肥箱、材料架和机器人模具不接受拆分。请先在背包里拆分，再把需要的部分拖过去。[/*]
 [*]新鲜程度相差不到一小时的两件物品可能叠在同一堆。[/*]
 [/list]
-如果有物品丢失、重复或出现在奇怪的地方，请告诉我（见下方反馈）。
 
 [size=5]前置要求[/size]
 [list]

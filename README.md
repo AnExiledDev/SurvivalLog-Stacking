@@ -59,10 +59,7 @@ Every failure is written to `BepInEx\stacking.log`, including any item that coul
 
 ## Known issues and limits
 
-Moving items around is finicky. This mod moves, splits and merges real items in your bags, storages and stations, and the game was not built for stacks of food. **Back up your save before trying it for the first time**, and keep a backup while you play with a new version. If an item goes missing, doubles, or lands somewhere odd, please tell me (see [Feedback](#feedback-and-bug-reports)), even if you are not sure the mod caused it.
-
-- Version 0.4.4 has not been played through in the game yet.
-- Dishes that already share a stack from an earlier version stay in that stack. How the game serves from a stack of dishes it would never stack has not been checked in the game.
+- Dishes that already share a stack from an earlier version stay in that stack.
 - The merchant's trade window offers whole stacks, so a stack cannot be split there, and a Ctrl-click there does nothing. Split the stack in your bag first, then offer the part you want.
 - Dropping a stack on the floor moves the whole stack whatever you hold, and Shift+Q is still the game's own drop-one key. Items that carry a weight of their own are never split by a right-click, and never stack in the game, so a drag of one stays the game's own move.
 - Compost bins, material racks and robot molds run their own code on every change, so a split into or out of one is refused. Split the stack in your bag first, then drag the part you want.
@@ -73,7 +70,7 @@ Moving items around is finicky. This mod moves, splits and merges real items in 
 - A Shift or Ctrl right-click with the backpack open alone asks the game which item is under the mouse through its drop key. That never drops anything. If you press the drop key yourself right after a right-click on an empty cell (within about half a second, longer at a low frame rate), that one press may do nothing; press it again. The first Shift or Ctrl right-click after one on an empty cell may do nothing too; click again.
 - Holding Ctrl changes how the bag looks. That is the game's own Ctrl highlight and has no effect on the split.
 - A very short drag (a few pixels) is a click to the game, so Shift or Ctrl held on it does the game's own quick transfer or quick use, not a split. On an item with no quick use, a Ctrl one does nothing.
-- Dragging a whole stack onto another without a key held is the game's own merge and is not checked by the mod. What that merge does with food of different freshness has not been checked in the game.
+- Dragging a whole stack onto another without a key held is the game's own merge and is not checked by the mod.
 - A cook started with whole stacks counted and finished after you turn `CountWholeStacks` off, or after you remove the mod, is settled the game's way: that one cook takes only one item from each stack, so its extra dishes come free.
 - The game keeps freshness to the hour, so two items up to an hour apart in freshness can share a stack.
 - Carry weight is not part of this mod. Keep SurvivalLog CapacityMod installed if you use it for carry weight, furniture weight and batteries.
