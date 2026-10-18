@@ -26,6 +26,14 @@ internal static class CraftingFill
     private static Action<string> _log = _ => { };
     private static Action<string> _logFileOnly = _ => { };
     private static int _failures;
+    private static bool _isRebuildingList;
+    private static Shelves? _shelves;
+
+    /// <summary>
+    /// What the bench and its linked storages hold, read once per recipe list rebuild. The list checks every recipe
+    /// against the same storages, and reading them through the game is the slow part.
+    /// </summary>
+    private sealed record Shelves(IntPtr State, IntPtr Items, List<List<PickCandidate>> Held);
 
     /// <summary>The material check is only hooked once the fill is, so a recipe never reads as ready that its fill cannot take.</summary>
     public static void Apply(Harmony harmony, StationMover mover, Action<string> log, Action<string> logFileOnly)
@@ -45,6 +53,10 @@ internal static class CraftingFill
         if (TryPatch(harmony, "the crafting table's material check", nameof(Reducer_Web_ToolTable.CheckMaterialSufficiencyAcrossLinked), nameof(CountUnits)))
         {
             log("the crafting table counts every item in a stack, and its fill takes single items off stacks");
+
+            // Without it each recipe reads the storages itself, as slow as before but just as right.
+            Hooks.TryPatchScope(harmony, typeof(CraftingFill), "the crafting table's recipe list",
+                () => AccessTools.Method(typeof(Reducer_Web_ToolTable), nameof(Reducer_Web_ToolTable.RefreshRecipeList)), log, nameof(OpenRebuild), nameof(CloseRebuild));
         }
         else
         {
@@ -64,12 +76,8 @@ internal static class CraftingFill
         {
             if (Live() is not { } items || BenchOf(state) is not { } bench || itemState == null || materialNeeded == null) return;
 
-            var owners = new List<long> { bench };
-
-            owners.AddRange(Managed(Reducer_Web_ToolTable.GetAllLinkedOwnerIds(state)));
-
             var needs = Needs(materialNeeded);
-            var candidates = Candidates(items, itemState, needs, owners, bench);
+            var candidates = Needed(HeldForList(items, state, itemState, bench), needs);
 
             __result = candidates.Any(candidate => candidate.IsCut) && CraftingPick.Plan(needs, candidates) is PickPlan.Filled;
         }
@@ -77,6 +85,34 @@ internal static class CraftingFill
         {
             Fail($"counting a recipe's materials by unit failed: {ex}");
         }
+    }
+
+    private static void OpenRebuild()
+    {
+        _isRebuildingList = true;
+        _shelves = null;
+    }
+
+    private static void CloseRebuild()
+    {
+        _isRebuildingList = false;
+        _shelves = null;
+    }
+
+    /// <summary>Storages do not change while the list rebuilds, so one read serves every recipe in it.</summary>
+    private static List<List<PickCandidate>> HeldForList(ItemManager items, State_Web_ToolTable state, State_Data_Item itemState, long bench)
+    {
+        if (_isRebuildingList && _shelves is { } shelves && shelves.State == state.Pointer && shelves.Items == itemState.Pointer) return shelves.Held;
+
+        var owners = new List<long> { bench };
+
+        owners.AddRange(Managed(Reducer_Web_ToolTable.GetAllLinkedOwnerIds(state)));
+
+        var held = Held(items, itemState, owners, bench, _ => true);
+
+        if (_isRebuildingList) _shelves = new Shelves(state.Pointer, itemState.Pointer, held);
+
+        return held;
     }
 
     /// <summary>
@@ -214,11 +250,24 @@ internal static class CraftingFill
     }
 
     /// <summary>Every needed item in the containers, in fill order; within a container the largest first, as the game sorts them.</summary>
-    private static List<PickCandidate> Candidates(ItemManager items, State_Data_Item itemState, IReadOnlyDictionary<int, int> needs, IEnumerable<long> owners, long bench)
+    private static List<PickCandidate> Candidates(ItemManager items, State_Data_Item itemState, IReadOnlyDictionary<int, int> needs, IEnumerable<long> owners, long bench) =>
+        Needed(Held(items, itemState, owners, bench, needs.ContainsKey), needs);
+
+    private static List<PickCandidate> Needed(List<List<PickCandidate>> held, IReadOnlyDictionary<int, int> needs)
+    {
+        var candidates = new List<PickCandidate>();
+
+        foreach (var inOwner in held) candidates.AddRange(inOwner.Where(candidate => needs.ContainsKey(candidate.ConfigId)).OrderByDescending(candidate => candidate.Count));
+
+        return candidates;
+    }
+
+    /// <summary>The items of each container once, in fill order and in the cache's own order within a container.</summary>
+    private static List<List<PickCandidate>> Held(ItemManager items, State_Data_Item itemState, IEnumerable<long> owners, long bench, Predicate<int> isWanted)
     {
         // The bench holds one unit a slot only while the table's screen is open; with it closed nothing is cut and the game's own pick stands.
         var canCut = Stations.IsStation(items, bench);
-        var candidates = new List<PickCandidate>();
+        var held = new List<List<PickCandidate>>();
         var seen = new HashSet<long>();
 
         foreach (var owner in owners)
@@ -232,17 +281,17 @@ internal static class CraftingFill
                 var configId = item.ItemConfigId;
 
                 // The cache can keep stale entries whose owner moved on; the game's moves would refuse those.
-                if (!needs.ContainsKey(configId) || item.OwnerId != owner) continue;
+                if (!isWanted(configId) || item.OwnerId != owner) continue;
 
                 var count = item.ItemCount;
 
                 inOwner.Add(new PickCandidate(item.LogicId, owner, configId, count, IsCut: canCut && owner != bench && IsCut(count, configId, item.InstanceWeight != 0)));
             }
 
-            candidates.AddRange(inOwner.OrderByDescending(candidate => candidate.Count));
+            held.Add(inOwner);
         }
 
-        return candidates;
+        return held;
     }
 
     private static IEnumerable<Data_Item> HeldBy(State_Data_Item itemState, long owner)
