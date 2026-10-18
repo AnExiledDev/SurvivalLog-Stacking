@@ -28,12 +28,12 @@ Each setting is the most items of one item category in one stack. The setting na
 | `StoryItem` | Story Items | 1 | `0` | Mysterious Envelope, Note |
 | `Collectible` | Collectibles | 1 | `0` | Gold Bar, Diamond Ring, Artistic Sculpture |
 | `Record` | Records | 1 | `0` | "The Long Night", "The Way Home" |
-| `Renovation` | Renovation Materials | 1 to 10 | `30` | Wallpaper and flooring (10 in the game). Dyes can be used again and again, so they keep the game's limit. |
+| `Renovation` | Renovation Materials | 1 to 10 | `30` | Wallpaper and flooring (10 in the game), dyes (1 in the game) |
 | `TaskItem` | Quest Items | 1 | `0` | Garage Key, Cold Storage Key |
 
-Each takes a whole number from 0 to 999; a bigger number counts as 999 and a negative one as 0. `0`, or any number at or below the game's own limit, keeps the game's limit: a setting only ever raises a limit, it never lowers one. Dishes a cooking recipe can make, and items with more than one use, always keep the game's limit.
+Each takes a whole number from 0 to 999; a bigger number counts as 999 and a negative one as 0. `0`, or any number at or below the game's own limit, keeps the game's limit: a setting only ever raises a limit, it never lowers one. Dishes a cooking recipe can make, and items with more than one use that runs out, always keep the game's limit. Reusable items, such as dyes, wire and a comb, stack like any other.
 
-For items the game never stacked (most food, for example), only items with the same freshness left (within an hour) and the same uses share a stack. Items that never spoil, such as seeds, fuel and materials, share a stack whenever their uses match, no matter when they were picked up.
+For items the game never stacked (most food, for example), only items with the same freshness left (within an hour) and the same uses share a stack. Items that never spoil, such as seeds, fuel and materials, share a stack whenever their uses match, no matter when they were picked up, and items found on the map share a stack with ones you made or bought.
 
 ## Cooking
 

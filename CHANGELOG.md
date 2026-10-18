@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.8
+
+Reusable items, such as dyes, Electrical Wire, Integrated Circuits, Iron Rods and the comb, now stack. The game marks them as never used up, and the mod used to treat that like items with uses. Items that never spoil also stack whether you found them on the map or made or bought them; the game kept those apart only because found food spoils at its own rate.
+
 ## 0.4.7
 
 Items that never spoil, such as diesel, gas canisters and materials, now stack no matter when you picked them up. Before, only seeds did, so these items started a new stack for every pickup and Auto Organize could not merge them.

@@ -143,6 +143,24 @@ public class StackLimitsTests
         Assert.Empty(plan.Limits);
     }
 
+    /// <summary>Dyes, wire and a comb carry -1 uses: no use ever takes from them, so nothing is lost by stacking them.</summary>
+    [Fact]
+    public void Reusable_items_stack_because_no_use_ever_takes_from_them()
+    {
+        var plan = StackLimits.Plan(new[] { new ItemRow(7, Food, 1, -1) }, FoodTo20, canGuardFreshness: true);
+
+        Assert.Equal(20, plan.Limits[7]);
+        Assert.Contains(7, plan.NewlyStackable);
+    }
+
+    [Fact]
+    public void Items_with_two_uses_keep_their_limit()
+    {
+        var plan = StackLimits.Plan(new[] { new ItemRow(7, Food, 1, 2) }, FoodTo20, canGuardFreshness: true);
+
+        Assert.Empty(plan.Limits);
+    }
+
     [Fact]
     public void Categories_left_unset_are_untouched()
     {

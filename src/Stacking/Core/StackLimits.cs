@@ -82,5 +82,9 @@ public static class StackLimits
     /// </summary>
     private static bool KeepsItsLimit(ItemRow row) => HasUses(row) || row.IsCooked;
 
-    private static bool HasUses(ItemRow row) => row.Uses is not (0 or 1);
+    /// <summary>
+    /// Only a count above 1 is uses that run out. 0 and 1 are a single use, and -1 marks a reusable item, such as dyes,
+    /// wire or a comb, which no use ever takes from.
+    /// </summary>
+    private static bool HasUses(ItemRow row) => row.Uses > 1;
 }

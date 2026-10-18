@@ -26,11 +26,17 @@ internal static class StackGuard
     /// <summary>Set by the limit writer on each sweep.</summary>
     internal static IReadOnlySet<int> NewlyStackable = new HashSet<int>();
 
-    /// <summary>Seeds that never spoil, which join a stack whatever their freshness; set by the limit writer on each sweep.</summary>
+    /// <summary>
+    /// Items whose kind never spoils, in any category, which join a stack whatever their freshness and whether or not
+    /// they were found on the map; set by the limit writer on each sweep.
+    /// </summary>
     internal static IReadOnlySet<int> NeverSpoils = new HashSet<int>();
 
     /// <summary>The item being added, for adds that give the game its values instead of an item to copy.</summary>
     [ThreadStatic] private static Freshness? _adding;
+
+    /// <summary>True while the search runs a second time for the other map flag; its check is already narrowed.</summary>
+    [ThreadStatic] private static bool _isSearchingOtherMapFlag;
 
     private static Action<string> _log = _ => { };
     private static Action<string> _logFileOnly = _ => { };
@@ -86,7 +92,7 @@ internal static class StackGuard
 
     private static void OnlyMatchingFreshness(int itemConfigId, ref ItemPredicate? extraPredicate)
     {
-        if (!_canNarrowSearch || !NewlyStackable.Contains(itemConfigId)) return;
+        if (_isSearchingOtherMapFlag || !_canNarrowSearch || !NewlyStackable.Contains(itemConfigId)) return;
 
         try
         {
@@ -104,19 +110,55 @@ internal static class StackGuard
         }
     }
 
-    /// <summary>Only does anything once narrowing the search has failed; until then every find already matches.</summary>
-    private static void RefuseOtherFreshness(int itemConfigId, ItemPredicate? extraPredicate, ref ItemData? __result)
+    private static void RefuseOtherFreshness(ItemManager __instance, long ownerId, int itemConfigId, ItemPredicate? extraPredicate, bool polluted, bool isMapPreset, ref ItemData? __result)
     {
-        if (_canNarrowSearch || __result == null || !NewlyStackable.Contains(itemConfigId)) return;
+        if (!NewlyStackable.Contains(itemConfigId)) return;
+
+        RefuseMismatch(itemConfigId, extraPredicate, ref __result);
+
+        if (__result == null) __result = SearchOtherMapFlag(__instance, ownerId, itemConfigId, extraPredicate, polluted, isMapPreset);
+    }
+
+    /// <summary>Only does anything once narrowing the search has failed; until then every find already matches.</summary>
+    private static void RefuseMismatch(int itemConfigId, ItemPredicate? extraPredicate, ref ItemData? found)
+    {
+        if (_canNarrowSearch || found == null) return;
 
         try
         {
-            if (!Matches(itemConfigId, Incoming(extraPredicate), NowHours(), __result)) __result = null;
+            if (!Matches(itemConfigId, Incoming(extraPredicate), NowHours(), found)) found = null;
         }
         catch (Exception ex)
         {
             Fail("refusing a stack", ex);
-            __result = null;
+            found = null;
+        }
+    }
+
+    /// <summary>
+    /// The game keeps items found on the map apart from the rest only because a found item spoils at its own rate. An
+    /// item that never spoils loses nothing by joining either, so when no stack matched, the search runs again for
+    /// stacks with the other flag. Same check as the first search, already narrowed to matching uses.
+    /// </summary>
+    private static ItemData? SearchOtherMapFlag(ItemManager items, long ownerId, int itemConfigId, ItemPredicate? extraPredicate, bool polluted, bool isMapPreset)
+    {
+        if (_isSearchingOtherMapFlag || !NeverSpoils.Contains(itemConfigId)) return null;
+
+        _isSearchingOtherMapFlag = true;
+
+        try
+        {
+            return items.FindStackableItem(ownerId, itemConfigId, extraPredicate, polluted, !isMapPreset);
+        }
+        catch (Exception ex)
+        {
+            Fail("searching stacks found on the map", ex);
+
+            return null;
+        }
+        finally
+        {
+            _isSearchingOtherMapFlag = false;
         }
     }
 
