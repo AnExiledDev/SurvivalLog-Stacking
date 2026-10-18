@@ -15,7 +15,7 @@ Most seeds and food take one bag slot each, so storage fills up fast. Stacking r
 [*][b]Split by drag[/b]: hold Shift to move half a stack, Ctrl to move one, or Ctrl+Shift to choose how many.[/*]
 [*][b]Split by right-click[/b]: the same keys with a right-click split the part off onto the nearest free spot.[/*]
 [*][b]Ctrl-click opens no item details[/b]: in any window, from the bag to the merchant's trade window. In the bag, Ctrl-click still uses an item at once where the game allows it.[/*]
-[*][b]Dishes and items with uses keep their limit[/b]: dishes never stack, since each one holds its own servings, and tools whose uses run out are left alone. Reusable items, such as dyes and wire, stack.[/*]
+[*][b]Dishes and items with uses keep their limit[/b]: dishes never stack, since each one holds its own servings, and tools whose uses run out are left alone. Reusable items you use directly, such as dyes, keep their limit too; reusable materials such as wire stack.[/*]
 [/list]
 
 [size=5]Hotkeys[/size]
@@ -85,7 +85,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 [*][b]拖拽拆分[/b]：按住 Shift 移动半堆，按住 Ctrl 移动 1 件，按住 Ctrl+Shift 自选数量。[/*]
 [*][b]右键拆分[/b]：按住同样的键右键点击，会把拆出的部分放到最近的空位。[/*]
 [*][b]Ctrl+点击不打开物品详情[/b]：在任何界面都是如此，从背包到商人的交易界面。在背包里，游戏允许时 Ctrl+点击仍会直接使用物品。[/*]
-[*][b]菜品和有使用次数的物品保持原上限[/b]：每份菜品都有自己的份数，所以菜品从不堆叠；使用次数会用完的工具也保持不变。可反复使用的物品，如染料和电线，可以堆叠。[/*]
+[*][b]菜品和有使用次数的物品保持原上限[/b]：每份菜品都有自己的份数，所以菜品从不堆叠；使用次数会用完的工具也保持不变。直接使用的可反复使用物品（如染料）也保持原上限；可反复使用的材料，如电线，可以堆叠。[/*]
 [/list]
 
 [size=5]快捷键[/size]

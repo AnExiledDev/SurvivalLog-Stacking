@@ -2,7 +2,7 @@
 
 ## 0.4.8
 
-Reusable items, such as dyes, Electrical Wire, Integrated Circuits, Iron Rods and the comb, now stack. The game marks them as never used up, and the mod used to treat that like items with uses. Items that never spoil also stack whether you found them on the map or made or bought them; the game kept those apart only because found food spoils at its own rate.
+Reusable materials, such as Electrical Wire, Integrated Circuits, Iron Rods and sheet metal, now stack. The game marks them as never used up, and the mod used to treat that like items with uses. Reusable items you use directly, such as dyes, the comb and dumbbells, keep the game's limit, because the game takes one from a stack each time you use one. Items that never spoil also stack whether you found them on the map or made or bought them; the game kept those apart only because found food spoils at its own rate.
 
 ## 0.4.7
 

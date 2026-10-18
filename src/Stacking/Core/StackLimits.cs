@@ -8,7 +8,7 @@ namespace Stacking.Core;
 /// One item as the game's tables define it: its own stack limit, how many uses one item holds, its shelf life,
 /// which is 0 or below for an item that never spoils, and whether a cooking recipe makes it.
 /// </summary>
-public readonly record struct ItemRow(int Id, int Category, int StackLimit, int Uses, int Life = 1, bool IsCooked = false);
+public readonly record struct ItemRow(int Id, int Category, int StackLimit, int Uses, int Life = 1, bool IsCooked = false, bool IsUsable = false);
 
 /// <summary>The four dishes one cooking recipe can make, by how well the cook went; 0 where a tier makes nothing.</summary>
 public readonly record struct RecipeOutputs(int Perfect, int Good, int Normal, int Fail);
@@ -19,7 +19,6 @@ public sealed record StackPlan(IReadOnlyDictionary<int, int> Limits, IReadOnlySe
 public static class StackLimits
 {
     public const int Highest = 999;
-
 
     public static int Clamp(int wanted) => Math.Clamp(wanted, 0, Highest);
 
@@ -83,8 +82,10 @@ public static class StackLimits
     private static bool KeepsItsLimit(ItemRow row) => HasUses(row) || row.IsCooked;
 
     /// <summary>
-    /// Only a count above 1 is uses that run out. 0 and 1 are a single use, and -1 marks a reusable item, such as dyes,
-    /// wire or a comb, which no use ever takes from.
+    /// A count above 1 is uses that run out; 0 and 1 are a single use. -1 marks a reusable item. One the player uses
+    /// directly, such as a comb, dumbbells or dyes, keeps its limit, because above a limit of 1 the game removes one per
+    /// use even from a reusable item. One that cannot be used directly, such as wire or iron rods, is only ever taken by
+    /// the unit, so it stacks.
     /// </summary>
-    private static bool HasUses(ItemRow row) => row.Uses > 1;
+    private static bool HasUses(ItemRow row) => row.Uses > 1 || (row.Uses < 0 && row.IsUsable);
 }

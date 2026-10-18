@@ -87,7 +87,7 @@ internal sealed class LimitWriter
     {
         if (!_gameLimits.TryGetValue(item.ID, out var gameLimit)) _gameLimits[item.ID] = gameLimit = item.StackLimit;
 
-        return new ItemRow(item.ID, item.Category, gameLimit, item.UseTimes, item.Life, cookedItems.Contains(item.ID));
+        return new ItemRow(item.ID, item.Category, gameLimit, item.UseTimes, item.Life, cookedItems.Contains(item.ID), !item.CantUse);
     }
 
     private static bool Write(Config_Item item, StackPlan plan)

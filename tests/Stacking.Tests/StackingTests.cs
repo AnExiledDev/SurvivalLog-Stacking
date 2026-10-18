@@ -143,14 +143,31 @@ public class StackLimitsTests
         Assert.Empty(plan.Limits);
     }
 
-    /// <summary>Dyes, wire and a comb carry -1 uses: no use ever takes from them, so nothing is lost by stacking them.</summary>
+    /// <summary>Wire and iron rods carry -1 uses and cannot be used directly, so they are only ever taken by the unit.</summary>
     [Fact]
-    public void Reusable_items_stack_because_no_use_ever_takes_from_them()
+    public void Reusable_materials_that_cannot_be_used_directly_stack()
     {
-        var plan = StackLimits.Plan(new[] { new ItemRow(7, Food, 1, -1) }, FoodTo20, canGuardFreshness: true);
+        var plan = StackLimits.Plan(new[] { new ItemRow(7, Food, 1, -1, IsUsable: false) }, FoodTo20, canGuardFreshness: true);
 
         Assert.Equal(20, plan.Limits[7]);
         Assert.Contains(7, plan.NewlyStackable);
+    }
+
+    /// <summary>Above a limit of 1 the game removes one per use even from a reusable item, so a stacked comb would be used up.</summary>
+    [Fact]
+    public void Reusable_items_the_player_uses_keep_their_limit_so_a_use_never_eats_one()
+    {
+        var plan = StackLimits.Plan(new[] { new ItemRow(7, Food, 1, -1, IsUsable: true) }, FoodTo20, canGuardFreshness: true);
+
+        Assert.Empty(plan.Limits);
+    }
+
+    [Fact]
+    public void Single_use_items_the_player_uses_still_stack()
+    {
+        var plan = StackLimits.Plan(new[] { new ItemRow(7, Food, 1, 1, IsUsable: true) }, FoodTo20, canGuardFreshness: true);
+
+        Assert.Equal(20, plan.Limits[7]);
     }
 
     [Fact]
