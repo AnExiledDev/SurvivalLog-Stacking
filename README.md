@@ -14,7 +14,8 @@ In Survival Log most seeds and food take one bag slot each, so a few days of far
 - **No stacks in cooking or crafting stations**: moving a stack into a station puts in one item and the rest stays where it was. A second item takes a second slot, so two eggs take two slots, never one stack of two. With no free slot, nothing moves. This holds for drags, quick moves, the game's fill buttons and moves made by other mods (such as Storage Hub's organize and put-away). Moving a whole bag into a station keeps one of each stack there and sends the rest back to a free spot in the bag it came from.
 - **The crafting table counts every item in a stack**: a recipe that needs two glass can be made from a stack of eight. The fill button and batch crafting take single items off a stack onto the bench, one per slot, and the rest stays where it was.
 - **The shredder shreds every item in a stack**: without the mod, a stack in the shredder is shredded all at once and gives back what one item would. With it, the shredder takes one item off the stack per shred, gives that item's full yield, and goes on to the next until the stack is gone.
-- **Splitting by drag**: hold Shift, Ctrl or both while you drop a stack in a bag or a storage to move only part of it (see the table below). Drop on a free spot to start a new stack, or on a stack of the same item to top it up as far as its limit allows. The new stack keeps the old one's freshness, uses and quality. This works in the bag, in storages, in vehicle trunks, and in the cooking, crafting table, brewing and shop windows.
+- **Splitting by drag**: hold Shift, Ctrl or both while you drop a stack in a bag or a storage to move only part of it (see the table below). Drop on a free spot to start a new stack, or on a stack of the same item to top it up as far as its limit allows. The new stack keeps the old one's freshness, uses and quality. This works in the bag, in storages, in vehicle trunks, and in the cooking, crafting table, brewing, compressor, dye, drone hub and shop windows.
+- **Joining stacks**: drop a stack on a stack of the same item with no key held, and as much as fits joins it; the rest stays where it was. The game itself only swaps the two. Food of a different freshness, a full stack or a different item gets the game's own move.
 - **Splitting by right-click**: Shift, Ctrl or Ctrl+Shift with a right-click splits the part off onto the free spot nearest the stack, in the same bag or storage. Food never lands on a moldy cell.
 - **A how-many panel**: Ctrl+Shift opens a small panel. Type a number, drag the slider, or pick 1, Half or Max, then press Enter or Split. Esc, Cancel or a click outside closes it and nothing moves.
 - **Short messages**: a split the game would refuse (no room, a full stack, too heavy for the container, food of a different freshness) moves nothing and says why in a short message at the bottom of the screen.
@@ -28,7 +29,7 @@ The game's own checks still apply: locked bags, category filters and take-out-on
 | Shift | Half the stack, rounded down |
 | Ctrl | One item |
 | Ctrl + Shift | A panel asks how many |
-| Nothing | The whole stack, as the game does |
+| Nothing | The whole stack, as the game does. On a stack of the same item, as much as fits joins it |
 
 | Right-click | Backpack open alone | Backpack beside a storage, trunk or second bag |
 | --- | --- | --- |
@@ -70,7 +71,7 @@ Every failure is written to `BepInEx\stacking.log`, including any item that coul
 - A Shift or Ctrl right-click with the backpack open alone asks the game which item is under the mouse through its drop key. That never drops anything. If you press the drop key yourself right after a right-click on an empty cell (within about half a second, longer at a low frame rate), that one press may do nothing; press it again. The first Shift or Ctrl right-click after one on an empty cell may do nothing too; click again.
 - Holding Ctrl changes how the bag looks. That is the game's own Ctrl highlight and has no effect on the split.
 - A very short drag (a few pixels) is a click to the game, so Shift or Ctrl held on it does the game's own quick transfer or quick use, not a split. On an item with no quick use, a Ctrl one does nothing.
-- Dragging a whole stack onto another without a key held is the game's own merge and is not checked by the mod.
+- A plain drop into a cooking or crafting station, a compost bin, a material rack or a robot mold never joins stacks; it is the game's own move.
 - A cook started with whole stacks counted and finished after you turn `CountWholeStacks` off, or after you remove the mod, is settled the game's way: that one cook takes only one item from each stack, so its extra dishes come free.
 - The game keeps freshness to the hour, so two items up to an hour apart in freshness can share a stack.
 - Carry weight is not part of this mod. Keep SurvivalLog CapacityMod installed if you use it for carry weight, furniture weight and batteries.

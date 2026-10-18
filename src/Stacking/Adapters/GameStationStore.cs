@@ -8,19 +8,22 @@ namespace Stacking.Adapters;
 
 /// <summary>
 /// The game's items as the station steps see them, for one stack: its units are given back the freshness it had
-/// before it moved. Every call goes through the game's own item calls, and every check is the core's.
+/// before it moved. Every call goes through the game's own item calls, and every check is the core's. A move that
+/// takes one unit into a plain container names it as a station for that move alone.
 /// </summary>
 internal sealed class GameStationStore : IStationStore
 {
     private readonly ItemManager _items;
     private readonly StackCopy _stack;
     private readonly Action<string> _log;
+    private readonly long? _oneUnitTarget;
 
-    public GameStationStore(ItemManager items, StackCopy stack, Action<string> log)
+    public GameStationStore(ItemManager items, StackCopy stack, Action<string> log, long? oneUnitTarget = null)
     {
         _items = items;
         _stack = stack;
         _log = log;
+        _oneUnitTarget = oneUnitTarget;
     }
 
     public ItemLookup Find(long itemId) => Find(_items, itemId);
@@ -40,7 +43,7 @@ internal sealed class GameStationStore : IStationStore
         }
     }
 
-    public bool IsStation(long ownerId) => Stations.IsStation(_items, ownerId);
+    public bool IsStation(long ownerId) => ownerId == _oneUnitTarget || Stations.IsStation(_items, ownerId);
 
     public IReadOnlyDictionary<long, int> CountsIn(long ownerId) => StackCounts.In(_items, ownerId);
 

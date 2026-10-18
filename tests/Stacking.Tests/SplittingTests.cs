@@ -283,6 +283,101 @@ public class SplittingTests
     }
 
     [Fact]
+    public void A_plain_drop_on_a_matching_stack_merges_the_two_into_one()
+    {
+        var bag = Bag(Stack(7, 3, 3, count: 4));
+
+        Assert.Equal(new SplitPlan.JoinStack(7, 10), Plan(SplitKind.Join, Drag(10, 3, 3), bag));
+    }
+
+    [Fact]
+    public void A_plain_drop_of_a_single_item_on_a_matching_stack_joins_it()
+    {
+        var bag = Bag(Stack(7, 3, 3, count: 4));
+
+        Assert.Equal(new SplitPlan.JoinStack(7, 1), Plan(SplitKind.Join, Drag(1, 3, 3), bag));
+    }
+
+    [Fact]
+    public void A_plain_drop_fills_the_stack_to_its_limit_and_the_rest_stays_where_it_was()
+    {
+        var bag = Bag(Stack(7, 3, 3, count: Limit - 3));
+
+        Assert.Equal(new SplitPlan.JoinStack(7, 3), Plan(SplitKind.Join, Drag(10, 3, 3), bag));
+    }
+
+    [Fact]
+    public void A_plain_drop_joins_no_more_than_the_bag_can_carry()
+    {
+        var bag = Bag(Stack(7, 3, 3, count: 4));
+
+        Assert.Equal(new SplitPlan.JoinStack(7, 2), Plan(SplitKind.Join, Drag(10, 3, 3), bag, unitsWeightAllows: 2));
+    }
+
+    [Fact]
+    public void A_plain_drop_joins_the_stack_under_the_cursor_even_where_the_dragged_item_would_hang_off_the_bag()
+    {
+        var bag = Bag(Stack(7, 5, 0, count: 4));
+
+        Assert.Equal(new SplitPlan.JoinStack(7, 10), Plan(SplitKind.Join, Drag(10, 5, 0, cursor: new Cell(5, 0), width: 2), bag));
+    }
+
+    [Fact]
+    public void A_plain_drop_on_a_free_spot_is_the_game_s_own_move()
+    {
+        Assert.IsType<SplitPlan.Vanilla>(Plan(SplitKind.Join, Drag(10, 3, 3), Bag(Stack(7, 0, 0))));
+    }
+
+    [Theory]
+    [InlineData(StackMatch.OtherItem)]
+    [InlineData(StackMatch.OtherCondition)]
+    public void A_plain_drop_on_a_stack_it_cannot_join_is_the_game_s_own_drop_with_no_refusal(StackMatch match)
+    {
+        var bag = Bag(Stack(7, 3, 3, match: match));
+
+        Assert.IsType<SplitPlan.Vanilla>(Plan(SplitKind.Join, Drag(10, 3, 3), bag));
+    }
+
+    [Fact]
+    public void A_plain_drop_on_a_full_stack_is_the_game_s_own_drop()
+    {
+        Assert.IsType<SplitPlan.Vanilla>(Plan(SplitKind.Join, Drag(10, 3, 3), Bag(Stack(7, 3, 3, count: Limit))));
+    }
+
+    [Fact]
+    public void A_plain_drop_onto_its_own_cells_moves_nothing_of_its_own()
+    {
+        Assert.IsType<SplitPlan.Vanilla>(Plan(SplitKind.Join, Drag(10, 3, 3), Bag(Stack(Source, 3, 3, count: 10))));
+    }
+
+    [Fact]
+    public void A_plain_drop_into_a_station_or_a_container_with_its_own_rules_is_left_to_the_game()
+    {
+        var onStack = Drag(10, 3, 3);
+
+        Assert.IsType<SplitPlan.Vanilla>(Plan(SplitKind.Join, onStack, new BagGrid(6, 4, [Stack(7, 3, 3)], IsStation: true)));
+        Assert.IsType<SplitPlan.Vanilla>(Plan(SplitKind.Join, onStack, new BagGrid(6, 4, [Stack(7, 3, 3)], HasOwnRules: true)));
+        Assert.IsType<SplitPlan.Vanilla>(Plan(SplitKind.Join, onStack, new BagGrid(6, 4, [Stack(7, 3, 3)], TakesOneUnit: true)));
+    }
+
+    [Theory]
+    [InlineData(SplitKind.None, SplitKind.Join)]
+    [InlineData(SplitKind.Half, SplitKind.Half)]
+    [InlineData(SplitKind.One, SplitKind.One)]
+    [InlineData(SplitKind.Choose, SplitKind.Choose)]
+    public void A_drop_with_no_key_held_joins_and_a_held_key_still_splits(SplitKind held, SplitKind expected)
+    {
+        Assert.Equal(expected, Splitting.ForDrop(held));
+    }
+
+    [Fact]
+    public void A_join_can_take_a_single_item_but_a_split_needs_two()
+    {
+        Assert.Equal(1, Splitting.SmallestStack(SplitKind.Join));
+        Assert.Equal(2, Splitting.SmallestStack(SplitKind.Half));
+    }
+
+    [Fact]
     public void Topping_up_the_stack_being_dragged_is_not_a_split()
     {
         var bag = Bag(Stack(Source, 3, 3, count: 10));

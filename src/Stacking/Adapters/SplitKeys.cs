@@ -37,6 +37,9 @@ internal static class SplitKeys
     /// <summary>The keys held for a drop or a right-click split.</summary>
     public static SplitKind Current() => HeldWithin(DropGraceMs);
 
+    /// <summary>What a drop asks for: a split with Shift or Ctrl held, a join onto a matching stack without.</summary>
+    public static SplitKind ForDrop() => Splitting.ForDrop(Current());
+
     /// <summary>The keys held for a click on an item.</summary>
     public static SplitKind ForClick() => HeldWithin(ClickGraceMs);
 

@@ -68,13 +68,13 @@ internal sealed class StationMover
     /// For the game's quick move, whose callers must learn at once whether the item moved: true when it left its bag,
     /// false when it stayed, null when the stack was not the core's to move and the game's own move should run.
     /// </summary>
-    public bool? TakeOneNow(ItemManager items, StationWork.TakeOne move)
+    public bool? TakeOneNow(ItemManager items, StationWork.TakeOne move, long? oneUnitTarget = null)
     {
         StationReport report;
 
         try
         {
-            report = TakeOne(items, move);
+            report = TakeOne(items, move, oneUnitTarget);
         }
         catch (Exception ex)
         {
@@ -118,7 +118,11 @@ internal sealed class StationMover
         }
     }
 
-    private StationReport TakeOne(ItemManager items, StationWork.TakeOne move)
+    /// <summary>One unit off a stack into any container, by the game's quick move, as a station takes it; see UnitMoves.</summary>
+    public bool? MoveOneNow(ItemManager items, long itemId, long fromOwnerId, long toOwnerId) =>
+        TakeOneNow(items, new StationWork.TakeOne(itemId, fromOwnerId, toOwnerId, StationPath.Quick, default, IsSilent: true, AvoidsMold: false), oneUnitTarget: toOwnerId);
+
+    private StationReport TakeOne(ItemManager items, StationWork.TakeOne move, long? oneUnitTarget = null)
     {
         if (items.GetItemData(move.ItemId) is not { } item)
         {
@@ -128,7 +132,7 @@ internal sealed class StationMover
         }
 
         var stack = StackCopy.Of(item);
-        var store = new GameStationStore(items, stack, _log);
+        var store = new GameStationStore(items, stack, _log, oneUnitTarget);
         var report = StationMoves.TakeOne(store, move.ItemId, move.FromOwnerId, move.ToOwnerId, () => Replay(items, move));
 
         Report(report, $"a stack of {item.ItemCount} (item {stack.ConfigId}) moved into station {move.ToOwnerId}");

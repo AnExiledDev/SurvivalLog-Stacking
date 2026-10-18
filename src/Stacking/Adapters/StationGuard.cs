@@ -98,6 +98,10 @@ internal static class StationGuard
 
     public static bool TryTake(out StationWork? work) => Work.TryDequeue(out work);
 
+    /// <summary>Null when the rule is not running or no game is loaded; see UnitMoves.</summary>
+    public static bool? MoveOne(long itemId, long fromOwnerId, long toOwnerId) =>
+        _mover != null && SplitScene.LiveItems() is { } items ? _mover.MoveOneNow(items, itemId, fromOwnerId, toOwnerId) : null;
+
     /// <summary>Once per frame: a stack that left a container and landed nowhere by now was used up or dropped.</summary>
     public static void ForgetLeaving()
     {

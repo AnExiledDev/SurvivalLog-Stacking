@@ -4,13 +4,17 @@ using System.Linq;
 
 namespace Stacking.Core;
 
-/// <summary>What the held modifier keys ask of a drag: Shift half, Ctrl one, Ctrl+Shift a chosen amount.</summary>
+/// <summary>
+/// What the held modifier keys ask of a drag: Shift half, Ctrl one, Ctrl+Shift a chosen amount. A drop with no key
+/// held is a Join: dropped on a matching stack it tops that stack up, which the game never does for a stackable item.
+/// </summary>
 public enum SplitKind
 {
     None,
     Half,
     One,
     Choose,
+    Join,
 }
 
 public readonly record struct Cell(int X, int Y);
@@ -111,6 +115,12 @@ public static class Splitting
         _ => SplitKind.None,
     };
 
+    /// <summary>A drop with no key held joins a matching stack it lands on.</summary>
+    public static SplitKind ForDrop(SplitKind heldKeys) => heldKeys == SplitKind.None ? SplitKind.Join : heldKeys;
+
+    /// <summary>A split leaves at least one unit behind; a join can take a single item.</summary>
+    public static int SmallestStack(SplitKind kind) => kind == SplitKind.Join ? 1 : 2;
+
     /// <summary>
     /// A drop that touches nothing starts a new stack, which must leave at least one unit behind; a drop on a matching
     /// stack tops it up, up to the stack limit. Anything else is refused rather than handed to the game, because the
@@ -118,7 +128,11 @@ public static class Splitting
     /// </summary>
     public static SplitPlan Plan(SplitKind kind, StackDrag drag, BagGrid? destination, int stackLimit, int unitsWeightAllows, int? chosenUnits = null)
     {
-        if (kind == SplitKind.None || drag.Count < 2 || destination == null) return new SplitPlan.Vanilla();
+        if (kind == SplitKind.None || destination == null) return new SplitPlan.Vanilla();
+
+        if (kind == SplitKind.Join) return PlanJoin(drag, destination, stackLimit, unitsWeightAllows);
+
+        if (drag.Count < 2) return new SplitPlan.Vanilla();
 
         // The game's move into a station is cut to one unit by the station rule, which is what every split kind asks for at most.
         if (destination.TakesOneUnit) return new SplitPlan.Vanilla();
@@ -144,6 +158,25 @@ public static class Splitting
             var target => Units(kind, drag.Count, Math.Min(Math.Min(drag.Count, stackLimit - target.Count), unitsWeightAllows), chosenUnits,
                 units => new SplitPlan.JoinStack(target.Id, units)),
         };
+    }
+
+    /// <summary>
+    /// A plain drop onto a matching stack tops it up with as many units as it and the bag's weight limit take, and the
+    /// rest stays where it was. Any other plain drop is the game's own, so it never shows a refusal. The stack under
+    /// the cursor counts even when the dragged item's cells would not fit there.
+    /// </summary>
+    private static SplitPlan PlanJoin(StackDrag drag, BagGrid destination, int stackLimit, int unitsWeightAllows)
+    {
+        if (destination.IsStation || destination.HasOwnRules || destination.TakesOneUnit) return new SplitPlan.Vanilla();
+
+        var dropCells = new Footprint(drag.DropAt.X, drag.DropAt.Y, drag.Width, drag.Height);
+        var touched = destination.Items.Where(item => item.Cells.Overlaps(dropCells) || (drag.Cursor is { } cursor && item.Cells.Contains(cursor))).ToList();
+
+        if (Target(drag, touched) is not { Match: StackMatch.Same } target) return new SplitPlan.Vanilla();
+
+        var units = Math.Min(Math.Min(drag.Count, stackLimit - target.Count), unitsWeightAllows);
+
+        return units > 0 ? new SplitPlan.JoinStack(target.Id, units) : new SplitPlan.Vanilla();
     }
 
     /// <summary>

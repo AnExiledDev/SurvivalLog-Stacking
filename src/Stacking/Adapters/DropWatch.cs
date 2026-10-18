@@ -8,7 +8,7 @@ namespace Stacking.Adapters;
 /// <summary>
 /// Hears a stack let go over another item in a station view, which the page puts back without telling the game:
 /// drops.js, in the game's web UI, says which item was dropped onto which, and with Shift or Ctrl held that drop is
-/// a split onto the item under it. The web UI can reload and lose the script at any time, so it is sent again every
+/// a split onto the item under it, and without them a join when it is the same item. The web UI can reload and lose the script at any time, so it is sent again every
 /// few seconds; it installs itself once.
 /// </summary>
 internal sealed class DropWatch
@@ -38,15 +38,12 @@ internal sealed class DropWatch
     /// <summary>The page put the stack back, so a drop the core hands to the game leaves it where it was.</summary>
     public static void DroppedOnto(PickerAnswer.Onto drop)
     {
-        var kind = SplitKeys.Current();
-
-        if (kind == SplitKind.None) return;
-
+        var kind = SplitKeys.ForDrop();
         var items = SplitScene.LiveItems();
         var dragged = items?.GetItemData(drop.ItemId);
         var target = items?.GetItemData(drop.TargetId);
 
-        if (dragged == null || target == null || dragged.ItemCount < 2 || dragged.InstanceWeight != 0) return;
+        if (dragged == null || target == null || dragged.ItemCount < Splitting.SmallestStack(kind) || dragged.InstanceWeight != 0) return;
 
         var at = new Cell(target.BagPos.x, target.BagPos.y);
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+Dropping a stack on a stack of the same item now joins them into one stack, as far as the stack limit allows, and the rest stays where it was. The game only ever swapped the two. A drop on anything else is the game's own move, as before.
+
+Shift, Ctrl and Ctrl+Shift drags now split a stack while a crafting table, cooking bench, compressor, dye station or drone hub is open. Those windows moved the whole stack before.
+
+Other mods can now move one item off a stack, so Storage Hub's Home tab takes one item per click from a stack. No setting changed.
+
 ## 0.4.9
 
 The crafting table's recipe list updates faster when your storages hold a lot of items. The mod counted the stacks in every linked storage again for each recipe, and now it reads them once for the whole list. No setting changed.

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
 using HarmonyLib;
@@ -114,6 +115,13 @@ internal static class SplitHooks
             splitsIn.Add("cooking");
         }
 
+        // Dobby rule: ExecuteSmartDrop (rva 0x26cb360) opens with two register saves and seven pushes, no jump or call.
+        if (TryPatch(harmony, "a smart drop in a station view", () => AccessTools.Method(typeof(ItemManager), "ExecuteSmartDrop"),
+                prefix: nameof(SplitInsteadOfSmartDrop)))
+        {
+            splitsIn.Add("smart drops");
+        }
+
         log(splitsIn.Count == 0 ? "a drag in a view other than the bag moves the whole stack this session" : "a drag also splits in the views of " + string.Join(", ", splitsIn));
         log("a drag with Shift or Ctrl onto a free spot does not split in the heater, fuel generator or material rack views: the game never moves an item within the bag there");
     }
@@ -140,13 +148,13 @@ internal static class SplitHooks
 
         try
         {
-            var kind = SplitKeys.Current();
+            var kind = SplitKeys.ForDrop();
 
-            if (kind == SplitKind.None || ac == null || ac.DstOwnerId == 0) return;
+            if (ac == null || ac.DstOwnerId == 0) return;
 
             var item = SplitScene.LiveItems()?.GetItemData(ac.ItemId);
 
-            if (item == null || item.ItemCount < 2 || item.InstanceWeight != 0 || item.OwnerId != ac.SrcOwnerId) return;
+            if (item == null || item.ItemCount < Splitting.SmallestStack(kind) || item.InstanceWeight != 0 || item.OwnerId != ac.SrcOwnerId) return;
 
             var request = new SplitRequest(ac.ItemId, ac.SrcOwnerId, ac.DstOwnerId, kind, new Cell(ac.NewX, ac.NewY), CellOrNone(ac.CursorX, ac.CursorY));
 
@@ -173,27 +181,45 @@ internal static class SplitHooks
     {
         if (TakePending(request => request.ItemId == ItemId && request.SrcOwnerId == FromOwnerId && request.DstOwnerId == ToOwnerId) is { } request) return RunsOriginal(request);
 
-        return !_isInViewDrag || ViewDragRequest(ItemId, FromOwnerId, ToOwnerId, BagPos) is not { } viewDrag || RunsOriginal(viewDrag);
+        return !_isInViewDrag || ViewDragRequest(ItemId, FromOwnerId, ToOwnerId, BagPos, cursor: null) is not { } viewDrag || RunsOriginal(viewDrag);
+    }
+
+    /// <summary>
+    /// The crafting table, cooking, compressor, dyeing and drone hub views hand a drop to the game's smart drop, which
+    /// places, swaps or pushes items itself and never sends the bag's move. A split or join replaces the whole drop;
+    /// the view is told the units merged, which it takes as done.
+    /// </summary>
+    private static bool SplitInsteadOfSmartDrop(ItemManager __instance, SmartDropRequest __0, ref SmartDropResult __result)
+    {
+        if (__0 == null || !SplitScene.IsLive(__instance)) return true;
+
+        var request = ViewDragRequest(__0.ItemId, __0.FromOwnerId, __0.ToOwnerId, __0.Pos, CellOrNone(__0.Cursor.x, __0.Cursor.y));
+
+        if (request is null || RunsOriginal(request)) return true;
+
+        __result = new SmartDropResult { Kind = SmartDropKind.Merge, ActualItemId = __0.ItemId };
+
+        return false;
     }
 
     /// <summary>A move into a station the station rule holds the stack to is planned as the game's own, which that rule cuts to one unit.</summary>
     private static bool SplitInsteadOfCookingMove(ItemManager __instance, long itemId, long fromOwnerId, long toOwnerId, Vector2Int bagPos) =>
-        !SplitScene.IsLive(__instance) || ViewDragRequest(itemId, fromOwnerId, toOwnerId, bagPos) is not { } request || RunsOriginal(request);
+        !SplitScene.IsLive(__instance) || ViewDragRequest(itemId, fromOwnerId, toOwnerId, bagPos, cursor: null) is not { } request || RunsOriginal(request);
 
-    /// <summary>Views other than the bag never say where the cursor was, so the split lands where the stack was dropped.</summary>
-    private static SplitRequest? ViewDragRequest(long itemId, long fromOwnerId, long toOwnerId, Vector2Int bagPos)
+    /// <summary>Only the smart drop says where the cursor was; elsewhere the split lands where the stack was dropped.</summary>
+    private static SplitRequest? ViewDragRequest(long itemId, long fromOwnerId, long toOwnerId, Vector2Int bagPos, Cell? cursor)
     {
         try
         {
-            var kind = SplitKeys.Current();
+            var kind = SplitKeys.ForDrop();
 
-            if (kind == SplitKind.None || toOwnerId == 0) return null;
+            if (toOwnerId == 0) return null;
 
             var item = SplitScene.LiveItems()?.GetItemData(itemId);
 
-            if (item == null || item.ItemCount < 2 || item.InstanceWeight != 0 || item.OwnerId != fromOwnerId) return null;
+            if (item == null || item.ItemCount < Splitting.SmallestStack(kind) || item.InstanceWeight != 0 || item.OwnerId != fromOwnerId) return null;
 
-            return new SplitRequest(itemId, fromOwnerId, toOwnerId, kind, new Cell(bagPos.x, bagPos.y), Cursor: null);
+            return new SplitRequest(itemId, fromOwnerId, toOwnerId, kind, new Cell(bagPos.x, bagPos.y), cursor);
         }
         catch (Exception ex)
         {
