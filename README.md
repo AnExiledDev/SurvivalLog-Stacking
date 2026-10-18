@@ -87,8 +87,10 @@ Moving items around is finicky. This mod moves, splits and merges real items in 
 ## Install
 
 1. Install the [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12) (if no other mods were installed before, start the game once so BepInEx finishes setup, then quit).
-2. Download `Stacking.dll` from the [latest release](https://github.com/AnExiledDev/SurvivalLog-Stacking/releases/latest) and put it in the `BepInEx\plugins` folder inside the game folder (the folder with the game .exe). Full path example: `C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\Stacking.dll`
-3. If you use BaseButler, delete its DLL from `BepInEx\plugins`.
+2. Download `Stacking-x.y.z.zip` from the [latest release](https://github.com/AnExiledDev/SurvivalLog-Stacking/releases/latest) or from Nexus Mods.
+3. Extract the zip into the game folder (the folder with `SurvivalLog.exe`). It holds a `BepInEx` folder, so the DLL lands in the right place. When asked, merge the folders. The result should be:
+   `C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\Stacking.dll`
+4. If you use BaseButler, delete its DLL from `BepInEx\plugins`.
 
 ## Uninstall
 
