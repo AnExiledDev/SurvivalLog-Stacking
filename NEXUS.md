@@ -63,10 +63,10 @@ Works in English and Chinese.
 Delete [font=Courier New]Stacking.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder. Stacks already bigger than the game's limit stay in your save as they are.
 
 [size=5]Configuration[/size]
-To change the stack limit of any item category, or turn off the cooking count or splitting, edit [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font] while the game is closed, or do it in game on the Mod Manager's Mods screen, where changes take effect at once (see [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url] for every setting; the cfg file explains each setting in English and Chinese). Cooking CountWholeStacks and Splitting Enabled take effect at the next game start.
+To change the stack limit of any item category, or turn off the cooking count or splitting, edit [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font] while the game is closed, or do it in game on the Mod Manager's Mods screen, where changes take effect at once (see [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url] for every setting; the cfg file explains each setting in English and Chinese). Cooking CountWholeStacks and Splitting Enabled take effect at the next game start. Without Exiled's Toolkit installed, changes made on the Mods screen take effect at the next game start instead.
 
 [size=5]Feedback[/size]
-Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or leave a comment here. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\stacking.log[/font].
+Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or post in this page's Posts tab. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\stacking.log[/font].
 To reach me directly, message [b]exiled.dev[/b] on Discord; you can find me in the [url=https://discord.gg/MZGg4gQAUe]official Survival Log Discord[/url]. I'm also on X as [url=https://x.com/AnExiledDev]@AnExiledDev[/url].
 Coming soon: a Survival Log wiki with detailed documentation for all of my mods.
 
@@ -135,10 +135,10 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]Stacking.dll[/font]。
 
 [size=5]配置[/size]
-如需修改各类别的堆叠上限，或关闭整堆计数和拆分，可以在游戏内 Mod Manager 的「模组」界面修改（改动立即生效），也可以在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。Cooking CountWholeStacks 和 Splitting Enabled 会在下次启动游戏时生效。
+如需修改各类别的堆叠上限，或关闭整堆计数和拆分，可以在游戏内 Mod Manager 的「模组」界面修改（改动立即生效），也可以在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。Cooking CountWholeStacks 和 Splitting Enabled 会在下次启动游戏时生效。没装 Exiled's Toolkit 的话，在「模组」界面的改动改为在下次启动游戏时生效。
 
 [size=5]反馈[/size]
-发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在这里留言。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\stacking.log[/font]。
+发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在本页的「Posts」标签里发帖。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\stacking.log[/font]。
 想直接联系我，可以在 Discord 上给 [b]exiled.dev[/b] 发消息，我在 [url=https://discord.gg/MZGg4gQAUe]Survival Log 官方 Discord[/url] 里。也可以在 X 上找我：[url=https://x.com/AnExiledDev]@AnExiledDev[/url]。
 即将推出：Survival Log 维基，收录我所有模组的详细说明。
 
