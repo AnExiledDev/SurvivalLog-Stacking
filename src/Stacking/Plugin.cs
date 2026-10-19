@@ -5,7 +5,6 @@ using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
-using ExiledToolkit;
 using GameCore.HotUpdate;
 using HarmonyLib;
 using Stacking.Adapters;
@@ -14,7 +13,7 @@ using Stacking.Core;
 namespace Stacking;
 
 [BepInPlugin(Guid, "Stacking", Version)]
-[BepInDependency(ExiledToolkit.Plugin.Guid, ">=0.4.0")]
+[BepInDependency(OptionalLive.ToolkitGuid, BepInDependency.DependencyFlags.SoftDependency)]
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
@@ -22,6 +21,8 @@ public sealed class Plugin : BasePlugin
 
     public override void Load()
     {
+        if (!OptionalLive.IsToolkitInstalled) Log.LogInfo(OptionalLive.MissingNote);
+
         var limitEntries = BindLimits();
 
         // A cook already counted one way has to finish the same way, so the cooking rule waits for the next start.
@@ -54,7 +55,7 @@ public sealed class Plugin : BasePlugin
         StackTicker.Log = log.Write;
         var writer = new LimitWriter(canGuardFreshness, log.Write, log.WriteFileOnly);
 
-        LiveSettings.Watch(() =>
+        OptionalLive.Watch(() =>
         {
             var wantedByCategory = WantedLimits(limitEntries);
 
