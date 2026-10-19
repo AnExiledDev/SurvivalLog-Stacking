@@ -237,6 +237,33 @@ public class StackLimitsTests
     }
 
     [Fact]
+    public void A_raised_item_carries_the_planned_limit()
+    {
+        var row = new ItemRow(7, Food, 1, 1);
+        var plan = StackLimits.Plan(new[] { row }, FoodTo20, canGuardFreshness: true);
+
+        Assert.Equal(20, StackLimits.LimitFor(plan, row));
+    }
+
+    [Fact]
+    public void A_category_turned_off_gives_its_items_the_games_limit_again()
+    {
+        var row = new ItemRow(7, Food, 5, 0);
+        var plan = StackLimits.Plan(new[] { row }, new Dictionary<int, int>(), canGuardFreshness: true);
+
+        Assert.Equal(5, StackLimits.LimitFor(plan, row));
+    }
+
+    [Fact]
+    public void A_category_turned_below_the_games_limit_gives_its_items_the_games_limit()
+    {
+        var row = new ItemRow(7, Food, 30, 0);
+        var plan = StackLimits.Plan(new[] { row }, FoodTo20, canGuardFreshness: true);
+
+        Assert.Equal(30, StackLimits.LimitFor(plan, row));
+    }
+
+    [Fact]
     public void A_cooked_dish_the_game_already_stacks_is_not_raised_either()
     {
         var plan = StackLimits.Plan(new[] { new ItemRow(7, Food, 10, 0, IsCooked: true) }, FoodTo20, canGuardFreshness: true);

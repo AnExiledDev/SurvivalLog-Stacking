@@ -58,6 +58,13 @@ public static class StackLimits
         return new StackPlan(limits, newlyStackable);
     }
 
+    /// <summary>
+    /// The limit an item should carry now. One the plan does not raise goes back to the game's own limit, so a category
+    /// turned down or off during play gives its items the game's limit again.
+    /// </summary>
+    public static int LimitFor(StackPlan plan, ItemRow gameRow) =>
+        plan.Limits.TryGetValue(gameRow.Id, out var limit) ? limit : gameRow.StackLimit;
+
     /// <summary>One line per category, so a player can see the game's own limits before choosing theirs.</summary>
     public static IEnumerable<string> Describe(IEnumerable<ItemRow> gameRows, StackPlan plan, Func<int, string> categoryName)
     {

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
+using ExiledToolkit;
 using GameCore.HotUpdate;
 using HarmonyLib;
 using Stacking.Adapters;
@@ -12,25 +14,30 @@ using Stacking.Core;
 namespace Stacking;
 
 [BepInPlugin(Guid, "Stacking", Version)]
+[BepInDependency(ExiledToolkit.Plugin.Guid, ">=0.4.0")]
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.5.0";
+    private const string Version = "0.6.0";
 
     public override void Load()
     {
-        var wantedByCategory = BindLimits();
-        var isCountingWholeStacks = Config.Bind("Cooking", "CountWholeStacks", true,
-            "On: a cooking bench counts every item in a stack as an ingredient, like loose items, and the finished cook uses up the items its dishes took. Off: a stack counts as one ingredient, as in the base game.\n"
-            + "开启：烹饪家具把堆叠里的每一件都算作食材，和散放的物品一样，烹饪完成时扣除菜品用掉的数量。关闭：一个堆叠只算一份食材，与原版游戏相同。").Value;
-        var isSplitting = Config.Bind("Splitting", "Enabled", true,
-            "Hold Shift while you drop a stack to move half, Ctrl to move one, or Ctrl+Shift to choose how many; a right-click with the same keys splits the stack onto the nearest free spot in the same bag or storage. Off: drags and right-clicks work as in the base game.\n"
-            + "拖拽放下堆叠时按住 Shift 移动一半，按住 Ctrl 移动 1 件，按住 Ctrl+Shift 自选数量；按住同样的键右键点击，会把堆叠拆分到同一背包或储物空间里最近的空位。关闭：拖拽和右键与原版游戏相同。").Value;
+        var limitEntries = BindLimits();
+
+        // A cook already counted one way has to finish the same way, so the cooking rule waits for the next start.
+        var isCountingWholeStacks = Config.Bind("Cooking", "CountWholeStacks", true, new ConfigDescription(
+            "On: a cooking bench counts every item in a stack as an ingredient, like loose items, and the finished cook uses up the items its dishes took. Off: a stack counts as one ingredient, as in the base game. Takes effect at the next game start.\n"
+            + "开启：烹饪家具把堆叠里的每一件都算作食材，和散放的物品一样，烹饪完成时扣除菜品用掉的数量。关闭：一个堆叠只算一份食材，与原版游戏相同。下次启动游戏时生效。", null, "ModManager.Restart")).Value;
+
+        // Off means the game's own drags and right-clicks, which only an unpatched game gives, so this waits for the next start.
+        var isSplitting = Config.Bind("Splitting", "Enabled", true, new ConfigDescription(
+            "Hold Shift while you drop a stack to move half, Ctrl to move one, or Ctrl+Shift to choose how many; a right-click with the same keys splits the stack onto the nearest free spot in the same bag or storage. Off: drags and right-clicks work as in the base game. Takes effect at the next game start.\n"
+            + "拖拽放下堆叠时按住 Shift 移动一半，按住 Ctrl 移动 1 件，按住 Ctrl+Shift 自选数量；按住同样的键右键点击，会把堆叠拆分到同一背包或储物空间里最近的空位。关闭：拖拽和右键与原版游戏相同。下次启动游戏时生效。", null, "ModManager.Restart")).Value;
         var harmony = new Harmony(Guid);
         var log = new StackLog(Log, Path.Combine(Paths.BepInExRootPath, "stacking.log"));
 
         log.TrimIfLarge();
-        log.Write($"===== Stacking {Version} started: {Describe(wantedByCategory)}");
+        log.Write($"===== Stacking {Version} started");
 
         var canGuardFreshness = StackGuard.Apply(harmony, log.Write, log.WriteFileOnly);
 
@@ -45,7 +52,16 @@ public sealed class Plugin : BasePlugin
         ShredderStacks.Apply(harmony, log.Write, log.WriteFileOnly);
 
         StackTicker.Log = log.Write;
-        StackTicker.Writer = new LimitWriter(wantedByCategory, canGuardFreshness, log.Write, log.WriteFileOnly);
+        var writer = new LimitWriter(canGuardFreshness, log.Write, log.WriteFileOnly);
+
+        LiveSettings.Watch(() =>
+        {
+            var wantedByCategory = WantedLimits(limitEntries);
+
+            writer.UseLimits(wantedByCategory);
+            log.Write($"stack limits: {Describe(wantedByCategory)}");
+        }, limitEntries.Values.ToArray<ConfigEntryBase>());
+        StackTicker.Writer = writer;
         AddComponent<StackTicker>();
 
         if (ItemDetailHooks.Apply(harmony, log.Write)) log.Write("a Ctrl-click on an item opens no item details");
@@ -76,16 +92,29 @@ public sealed class Plugin : BasePlugin
         CraftingFill.Apply(harmony, mover, log.Write, log.WriteFileOnly);
     }
 
-    private Dictionary<int, int> BindLimits()
+    private Dictionary<int, ConfigEntry<int>> BindLimits()
     {
-        var wanted = new Dictionary<int, int>();
+        var entries = new Dictionary<int, ConfigEntry<int>>();
 
         foreach (var category in Enum.GetValues(typeof(ItemCategory)).Cast<ItemCategory>().Where(c => c != ItemCategory.None))
         {
             var shown = StackCategories.For((int)category, category.ToString());
-            var limit = StackLimits.Clamp(Config.Bind("StackLimits", category.ToString(), shown.Default, StackCategories.Describe(shown)).Value);
 
-            if (limit > 0) wanted[(int)category] = limit;
+            entries[(int)category] = Config.Bind("StackLimits", category.ToString(), shown.Default, StackCategories.Describe(shown));
+        }
+
+        return entries;
+    }
+
+    private static Dictionary<int, int> WantedLimits(Dictionary<int, ConfigEntry<int>> entries)
+    {
+        var wanted = new Dictionary<int, int>();
+
+        foreach (var (category, entry) in entries)
+        {
+            var limit = StackLimits.Clamp(entry.Value);
+
+            if (limit > 0) wanted[category] = limit;
         }
 
         return wanted;

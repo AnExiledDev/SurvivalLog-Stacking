@@ -81,12 +81,14 @@ Every failure is written to `BepInEx\stacking.log`, including any item that coul
 - Survival Log 1.1.18902. Built for this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game.
 - Not together with BaseButler. Both change stack limits and they will fight; remove BaseButler before installing this.
+- [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer, which applies changed settings at once. Stacking does not load without it.
 
 ## Install
 
 1. Install the [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12) (if no other mods were installed before, start the game once so BepInEx finishes setup, then quit).
-2. Download `Stacking-x.y.z.zip` from the [latest release](https://github.com/AnExiledDev/SurvivalLog-Stacking/releases/latest) or from Nexus Mods.
-3. Extract the zip into the game folder (the folder with `SurvivalLog.exe`). It holds a `BepInEx` folder, so the DLL lands in the right place. When asked, merge the folders. The result should be:
+2. Install Exiled's Toolkit: download `ExiledToolkit-x.y.z.zip` from [its latest release](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit/releases/latest) or from Nexus Mods, and extract it into the game folder (the folder with `SurvivalLog.exe`).
+3. Download `Stacking-x.y.z.zip` from the [latest release](https://github.com/AnExiledDev/SurvivalLog-Stacking/releases/latest) or from Nexus Mods.
+4. Extract the zip into the game folder (the folder with `SurvivalLog.exe`). It holds a `BepInEx` folder, so the DLL lands in the right place. When asked, merge the folders. The result should be:
    `C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\Stacking.dll`
 4. If you use BaseButler, delete its DLL from `BepInEx\plugins`.
 
@@ -96,7 +98,7 @@ Delete `Stacking.dll` from the `BepInEx\plugins` folder. For a clean slate, also
 
 ## Configuration
 
-Settings live in `BepInEx\config\com.dev.survivallog.stacking.cfg`, created the first time the game starts with the mod. Edit it while the game is closed; changes apply at the next game start. Each setting in the cfg file is explained in English and Simplified Chinese. See [CONFIG.md](CONFIG.md) for every setting.
+Settings live in `BepInEx\config\com.dev.survivallog.stacking.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, where they take effect at once, or edit the file while the game is closed. Cooking CountWholeStacks and Splitting Enabled take effect at the next game start. Each setting in the cfg file is explained in English and Simplified Chinese. See [CONFIG.md](CONFIG.md) for every setting.
 
 The split panel and the messages a split shows follow the game's language, English or Simplified Chinese.
 
@@ -106,7 +108,7 @@ A config file you already have keeps its saved numbers. To get the new default s
 
 Built against BepInEx `6.0.0-be.788`.
 
-Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.4.9 started`. It lists the stack limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`. The lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
+Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.6.0 started`. A line starting `stack limits:` lists the limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`, and comes again each time you change one. The other lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
 
 The same lines, plus every split, every station move and every failure, are in `BepInEx\stacking.log`, which survives restarts. When that file passes 1 MB, it is cut down to its newest part at the next game start.
 

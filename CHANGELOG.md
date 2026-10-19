@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- Stack limits changed on the Mod Manager's Mods screen take effect within a few seconds. A category turned down or off gives its items the game's own limit again. Cooking and splitting still need a game restart.
+- The Mods screen shows the mod's name, description, category and links.
+- Needs Exiled's Toolkit 0.4.0 or newer.
+
 ## 0.5.0
 
 Dropping a stack on a stack of the same item now joins them into one stack, as far as the stack limit allows, and the rest stays where it was. The game only ever swapped the two. A drop on anything else is the game's own move, as before.

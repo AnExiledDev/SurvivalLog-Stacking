@@ -9,10 +9,11 @@ namespace Stacking.Adapters;
 /// <summary>
 /// Writes the chosen stack limits onto the game's item table. The table only exists once the game has loaded it,
 /// and a reload would bring back the game's limits, so this runs again on every sweep and rewrites what changed.
+/// New limits from the settings land at the next sweep, and an item no longer raised gets the game's limit back.
 /// </summary>
 internal sealed class LimitWriter
 {
-    private readonly IReadOnlyDictionary<int, int> _wantedByCategory;
+    private IReadOnlyDictionary<int, int> _wantedByCategory = new Dictionary<int, int>();
     private readonly bool _canGuardFreshness;
     private readonly Action<string> _log;
     private readonly Action<string> _logFileOnly;
@@ -23,12 +24,18 @@ internal sealed class LimitWriter
     private bool _hasApplied;
     private bool _hasReportedWaiting;
 
-    public LimitWriter(IReadOnlyDictionary<int, int> wantedByCategory, bool canGuardFreshness, Action<string> log, Action<string> logFileOnly)
+    public LimitWriter(bool canGuardFreshness, Action<string> log, Action<string> logFileOnly)
     {
-        _wantedByCategory = wantedByCategory;
         _canGuardFreshness = canGuardFreshness;
         _log = log;
         _logFileOnly = logFileOnly;
+    }
+
+    /// <summary>Set on the main thread, where the sweep runs. The next sweep writes them and reports them in full.</summary>
+    public void UseLimits(IReadOnlyDictionary<int, int> wantedByCategory)
+    {
+        _wantedByCategory = wantedByCategory;
+        _hasApplied = false;
     }
 
     public void Sweep()
@@ -56,7 +63,7 @@ internal sealed class LimitWriter
 
         var rows = items.Select(item => GameRow(item, cookedItems)).ToList();
         var plan = StackLimits.Plan(rows, _wantedByCategory, _canGuardFreshness);
-        var written = items.Count(item => Write(item, plan));
+        var written = items.Where((item, index) => Write(item, StackLimits.LimitFor(plan, rows[index]))).Count();
 
         StackGuard.NewlyStackable = plan.NewlyStackable;
         StackGuard.NeverSpoils = StackLimits.NeverSpoiling(rows);
@@ -65,7 +72,7 @@ internal sealed class LimitWriter
 
     /// <summary>
     /// The dishes the recipe table can make, or null until the game has loaded it: writing before then would raise
-    /// every dish, and a later sweep never lowers a limit it wrote.
+    /// every dish.
     /// </summary>
     private static IReadOnlySet<int>? CookedItems(ConfigManager config)
     {
@@ -90,9 +97,9 @@ internal sealed class LimitWriter
         return new ItemRow(item.ID, item.Category, gameLimit, item.UseTimes, item.Life, cookedItems.Contains(item.ID), !item.CantUse);
     }
 
-    private static bool Write(Config_Item item, StackPlan plan)
+    private static bool Write(Config_Item item, int limit)
     {
-        if (!plan.Limits.TryGetValue(item.ID, out var limit) || item.StackLimit == limit) return false;
+        if (item.StackLimit == limit) return false;
 
         item.StackLimit = limit;
 
@@ -117,7 +124,7 @@ internal sealed class LimitWriter
         }
 
         _hasApplied = true;
-        _log($"stack limits written for {written} items, {plan.NewlyStackable.Count} of which the game never stacked");
+        _log($"stack limits written for {written} items, {plan.Limits.Count} raised, {plan.NewlyStackable.Count} of which the game never stacked");
         _log($"{plan.NewlyStackable.Count(neverSpoils.Contains)} of the newly stackable items never spoil, so when they were picked up does not keep them apart");
 
         foreach (var line in StackLimits.Describe(rows, plan, CategoryName)) _logFileOnly(line);

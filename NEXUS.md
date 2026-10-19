@@ -45,12 +45,14 @@ Works in English and Chinese.
 [list]
 [*]Survival Log 1.1.18902. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
+[*][url=https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit]Exiled's Toolkit[/url] 0.4.0 or newer, which applies changed settings at once. Stacking does not load without it.[/*]
 [*]Not together with BaseButler.[/*]
 [/list]
 
 [size=5]Installation[/size]
 [list=1]
 [*]Install [url=https://www.nexusmods.com/survivallog/mods/12]BepInEx[/url] [i](if no other mods were installed before, start the game once so BepInEx finishes setup, then quit)[/i].[/*]
+[*]Install Exiled's Toolkit the same way: download its zip and extract it into the game folder.[/*]
 [*]Download the zip from the Files tab.[/*]
 [*]Extract it into the game folder (the folder with [font=Courier New]SurvivalLog.exe[/font]). The zip holds a BepInEx folder, so the DLL lands in the right place. When asked, merge the folders. The result should be:
 [code]C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\Stacking.dll[/code][/*]
@@ -61,7 +63,7 @@ Works in English and Chinese.
 Delete [font=Courier New]Stacking.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder. Stacks already bigger than the game's limit stay in your save as they are.
 
 [size=5]Configuration[/size]
-To change the stack limit of any item category, or turn off the cooking count or splitting, edit [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font] while the game is closed (see [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url] for every setting; the cfg file explains each setting in English and Chinese). Changes apply at the next game start.
+To change the stack limit of any item category, or turn off the cooking count or splitting, edit [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font] while the game is closed, or do it in game on the Mod Manager's Mods screen, where changes take effect at once (see [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url] for every setting; the cfg file explains each setting in English and Chinese). Cooking CountWholeStacks and Splitting Enabled take effect at the next game start.
 
 [size=5]Feedback[/size]
 Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or leave a comment here. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\stacking.log[/font].
@@ -115,11 +117,13 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 [list]
 [*]Survival Log 1.1.18902。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]，请先安装。[/*]
+[*][url=https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit]Exiled's Toolkit[/url] 0.4.0 或更新版本，用于立即应用改动过的设置。没有它，Stacking 无法加载。[/*]
 [/list]
 
 [size=5]安装[/size]
 [list=1]
 [*]安装 [url=https://www.nexusmods.com/survivallog/mods/12]BepInEx[/url] [i]（如果之前没有装过其他模组，先启动一次游戏，让 BepInEx 完成初始化，然后退出）[/i]。[/*]
+[*]用同样的方式安装 Exiled's Toolkit：下载它的压缩包并解压到游戏目录。[/*]
 [*]在「文件」页下载压缩包。[/*]
 [*]把压缩包解压到游戏目录（[font=Courier New]SurvivalLog.exe[/font] 所在的文件夹）。压缩包里带有 BepInEx 文件夹，DLL 会自动放到正确位置。如果提示合并文件夹，选择合并。解压后应为：
 [code]C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\Stacking.dll[/code][/*]
@@ -129,7 +133,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]Stacking.dll[/font]。
 
 [size=5]配置[/size]
-如需修改各类别的堆叠上限，或关闭整堆计数和拆分，请在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。修改会在下次启动游戏时生效。
+如需修改各类别的堆叠上限，或关闭整堆计数和拆分，可以在游戏内 Mod Manager 的「模组」界面修改（改动立即生效），也可以在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。Cooking CountWholeStacks 和 Splitting Enabled 会在下次启动游戏时生效。
 
 [size=5]反馈[/size]
 发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在这里留言。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\stacking.log[/font]。
