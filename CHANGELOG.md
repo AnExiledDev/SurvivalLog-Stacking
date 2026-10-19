@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0
+
+- The merchant's trade window now offers part of a stack. Drag a stack from your bag onto the drone, or right-click it, with Shift (half), Ctrl (one) or Ctrl+Shift (choose how many). The rest stays in your bag. An offer the merchant refuses goes back on its stack.
+- Fixed: the Ctrl+Shift panel moved nothing when Split or Enter was pressed.
+
 ## 0.6.0
 
 - The Mods screen links this changelog.

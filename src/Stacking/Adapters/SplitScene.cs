@@ -8,9 +8,11 @@ namespace Stacking.Adapters;
 
 /// <summary>
 /// A split the player asked for: which stack, from which bag to which, the cell it landed on and the cell under the
-/// cursor. A right-click split stays in the stack's own bag and lands at the free spot nearest it.
+/// cursor. A right-click split stays in the stack's own bag and lands at the free spot nearest it. OnNewStack hears
+/// the id of a new stack that landed in the bag it was meant for.
 /// </summary>
-internal sealed record SplitRequest(long ItemId, long SrcOwnerId, long DstOwnerId, SplitKind Kind, Cell DropAt, Cell? Cursor, bool IsRightClick = false);
+internal sealed record SplitRequest(long ItemId, long SrcOwnerId, long DstOwnerId, SplitKind Kind, Cell DropAt, Cell? Cursor, bool IsRightClick = false,
+    Action<long>? OnNewStack = null);
 
 /// <summary>Reads the live bags into the core's terms and asks it what a split drop should do.</summary>
 internal static class SplitScene

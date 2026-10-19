@@ -17,7 +17,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.6.0";
+    private const string Version = "0.7.0";
 
     public override void Load()
     {

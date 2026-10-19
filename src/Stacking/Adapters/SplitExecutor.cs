@@ -143,6 +143,8 @@ internal sealed class SplitExecutor
 
         items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
         _logFileOnly($"split {plan.Units} of {countBefore} (item {source.ItemConfigId}) into a new stack at {plan.At.X},{plan.At.Y}");
+
+        if (created.OwnerId == request.DstOwnerId) request.OnNewStack?.Invoke(created.InstanceId);
     }
 
     /// <summary>

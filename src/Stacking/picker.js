@@ -185,9 +185,10 @@
       return;
     }
 
-    var token = asked.token;
+    // Clamped before hide(), which forgets the stack's size.
+    var answer = 'split|' + asked.token + '|' + clamp(units);
     hide();
-    send('split|' + token + '|' + clamp(units));
+    send(answer);
   }
 
   function cancel() {

@@ -39,6 +39,7 @@ internal static class StackSplitting
 
         RightClickSplit.Apply(harmony, log);
         ViewClickSplit.Apply(harmony, log);
+        TradeSplit.Apply(harmony, log);
         WatchStationDrops(canAsk, log);
         _picker = new SplitPicker(log);
         _executor = new SplitExecutor(log, logFileOnly, _picker, SplitHooks.CanStartStacks, canAsk);
@@ -65,6 +66,7 @@ internal static class StackSplitting
 
         _picker.Tick(now);
         _drops?.Tick(now);
+        TradeSplit.Tick(now);
 
         while (SplitHooks.TryTakeRequest(out var request))
         {
