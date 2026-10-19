@@ -7,6 +7,7 @@ public class TradeOffersTests
 {
     private static readonly PendingOffer Split = new(StackId: 41, SourceId: 40, new OfferTarget(new Cell(2, 1)), SplitAt: 10f);
     private static readonly PendingOffer Sent = Split with { SentAt = 10.2f };
+    private static readonly PendingTakeBack TakenBack = new(StackId: 42, OfferedId: 40, OfferedAt: new Cell(3, 2), SplitAt: 10f);
 
     /// <summary>The bug report: Shift, Ctrl and Ctrl+Shift did nothing on the trade screen.</summary>
     [Theory]
@@ -49,18 +50,69 @@ public class TradeOffersTests
     }
 
     [Theory]
-    [InlineData("drone", "bag")]
     [InlineData("drone", "drone")]
     [InlineData("bag", "bag")]
-    public void Only_a_drag_from_the_bag_onto_the_drone_splits(string fromGrid, string toGrid)
+    public void A_drag_within_one_side_of_the_window_splits_nothing(string fromGrid, string toGrid)
     {
         Assert.False(TradeOffers.SplitsDrag(fromGrid, toGrid, SplitKind.Half));
     }
 
-    [Fact]
-    public void A_right_click_on_the_drone_takes_the_offer_back_as_the_game_does()
+    /// <summary>The bug report: splitting what is on the drone back into the bag moved the whole stack.</summary>
+    [Theory]
+    [InlineData(SplitKind.Half)]
+    [InlineData(SplitKind.One)]
+    [InlineData(SplitKind.Choose)]
+    public void A_drag_from_the_drone_to_the_bag_with_shift_or_ctrl_takes_part_of_the_offer_back(SplitKind heldKeys)
     {
-        Assert.False(TradeOffers.SplitsClick("drone", isRightClick: true, SplitKind.Half));
+        Assert.True(TradeOffers.SplitsDrag("drone", "bag", heldKeys));
+        Assert.True(TradeOffers.TakesBack("drone"));
+    }
+
+    [Theory]
+    [InlineData(SplitKind.Half)]
+    [InlineData(SplitKind.One)]
+    [InlineData(SplitKind.Choose)]
+    public void A_right_click_on_the_drone_with_shift_or_ctrl_takes_part_of_the_offer_back(SplitKind heldKeys)
+    {
+        Assert.True(TradeOffers.SplitsClick("drone", isRightClick: true, heldKeys));
+    }
+
+    [Fact]
+    public void A_plain_drag_or_right_click_off_the_drone_takes_the_whole_offer_back_as_the_game_does()
+    {
+        Assert.False(TradeOffers.SplitsDrag("drone", "bag", SplitKind.None));
+        Assert.False(TradeOffers.SplitsClick("drone", isRightClick: true, SplitKind.None));
+    }
+
+    [Fact]
+    public void A_split_from_the_bag_offers_rather_than_takes_back()
+    {
+        Assert.False(TradeOffers.TakesBack("bag"));
+    }
+
+    [Fact]
+    public void The_smaller_offer_is_put_down_again_once_the_bag_shows_the_units_taken_back()
+    {
+        Assert.Equal(OfferStep.Send, TradeOffers.Next(TakenBack, now: 10.1f, isInTradeBag: true));
+    }
+
+    [Fact]
+    public void The_offer_is_left_alone_while_the_bag_has_not_caught_up()
+    {
+        Assert.Equal(OfferStep.Wait, TradeOffers.Next(TakenBack, now: 10.5f, isInTradeBag: false));
+    }
+
+    [Fact]
+    public void Units_taken_back_the_bag_never_shows_are_given_up_on()
+    {
+        Assert.Equal(OfferStep.GiveUp, TradeOffers.Next(TakenBack, now: 10f + TradeOffers.ShowWaitSeconds + 0.1f, isInTradeBag: false));
+    }
+
+    /// <summary>The smaller offer goes back down on the drone cell it already holds.</summary>
+    [Fact]
+    public void An_offered_stack_is_found_where_it_lies_on_the_drone()
+    {
+        Assert.Equal(new Cell(3, 2), TradeOffers.OfferedAt("[{\"id\":7,\"x\":0,\"y\":0,\"o\":5},{\"id\":41,\"x\":3,\"y\":2,\"o\":5}]", 41));
     }
 
     [Fact]

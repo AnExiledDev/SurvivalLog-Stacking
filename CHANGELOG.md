@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1
+
+- The trade window takes part of an offer back too. Drag a stack from the drone to your bag, or right-click it on the drone, with Shift (half), Ctrl (one) or Ctrl+Shift (choose how many). Those units go back to your bag; the rest stays offered.
+
 ## 0.7.0
 
 - The merchant's trade window now offers part of a stack. Drag a stack from your bag onto the drone, or right-click it, with Shift (half), Ctrl (one) or Ctrl+Shift (choose how many). The rest stays in your bag. An offer the merchant refuses goes back on its stack.

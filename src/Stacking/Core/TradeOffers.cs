@@ -4,9 +4,11 @@ using System.Text.Json;
 namespace Stacking.Core;
 
 /// <summary>
-/// Offering part of a stack in the trade window. The game only ever offers a whole stack, so the units are split off
-/// into a new stack in the bag first, and that stack is offered the way the player offered the old one: dropped on the
-/// drone's grid where they dropped it, or right-clicked onto the drone's first free spot.
+/// Offering part of a stack in the trade window, and taking part of an offer back. The game only ever offers or takes
+/// back a whole stack, so the units are split off into a new stack in the bag first. To offer, that stack is offered
+/// the way the player offered the old one: dropped on the drone's grid where they dropped it, or right-clicked onto
+/// the drone's first free spot. To take back, the split-off stack stays in the bag, and the smaller offer is put down
+/// again where it lies so the window counts it afresh.
 /// </summary>
 public static class TradeOffers
 {
@@ -20,16 +22,22 @@ public static class TradeOffers
     /// <summary>The game takes or refuses an offer as it is made; past this it was refused.</summary>
     public const float AnswerWaitSeconds = 0.5f;
 
-    /// <summary>A drag from the bag onto the drone with Shift or Ctrl held offers part of the stack. A plain drag is the game's.</summary>
+    /// <summary>
+    /// A drag between the bag and the drone with Shift or Ctrl held offers part of the stack, or takes part of an offer
+    /// back. A plain drag is the game's.
+    /// </summary>
     public static bool SplitsDrag(string? fromGrid, string? toGrid, SplitKind heldKeys) =>
-        fromGrid == BagGrid && toGrid == DroneGrid && IsSplit(heldKeys);
+        ((fromGrid == BagGrid && toGrid == DroneGrid) || (fromGrid == DroneGrid && toGrid == BagGrid)) && IsSplit(heldKeys);
 
     /// <summary>
-    /// A right-click on a stack in the bag with Shift or Ctrl held offers part of it. A plain right-click, and a left
-    /// click with Shift, are the game's quick offer of the whole stack.
+    /// A right-click on a stack in the bag or on the drone with Shift or Ctrl held offers part of it, or takes part of
+    /// it back. A plain right-click, and a left click with Shift, are the game's quick move of the whole stack.
     /// </summary>
     public static bool SplitsClick(string? fromGrid, bool isRightClick, SplitKind heldKeys) =>
-        fromGrid == BagGrid && isRightClick && IsSplit(heldKeys);
+        (fromGrid == BagGrid || fromGrid == DroneGrid) && isRightClick && IsSplit(heldKeys);
+
+    /// <summary>A split that starts on the drone takes units back off an offer; one that starts in the bag offers them.</summary>
+    public static bool TakesBack(string? fromGrid) => fromGrid == DroneGrid;
 
     /// <summary>What to do next with a stack split off to be offered.</summary>
     public static OfferStep Next(PendingOffer offer, float now, bool isInTradeBag, bool isOffered)
@@ -47,33 +55,51 @@ public static class TradeOffers
     }
 
     /// <summary>
-    /// Whether the trade window's list of offered items, [{"id":12,"x":0,"y":0,"o":5}, ...], holds this stack. Ids come
-    /// as numbers or as text. Anything unreadable holds nothing.
+    /// What to do next with units taken back off an offer: once the bag shows them, put the smaller offer down again
+    /// (Send). If the bag never shows them they stay where they are (GiveUp).
     /// </summary>
-    public static bool IsOffered(string? offeredJson, long stackId)
+    public static OfferStep Next(PendingTakeBack takeBack, float now, bool isInTradeBag)
     {
-        if (string.IsNullOrWhiteSpace(offeredJson)) return false;
+        if (isInTradeBag) return OfferStep.Send;
+
+        return now - takeBack.SplitAt > ShowWaitSeconds ? OfferStep.GiveUp : OfferStep.Wait;
+    }
+
+    public static bool IsOffered(string? offeredJson, long stackId) => OfferedAt(offeredJson, stackId) is not null;
+
+    /// <summary>
+    /// Where the trade window's list of offered items, [{"id":12,"x":0,"y":0,"o":5}, ...], has this stack on the drone,
+    /// or null when it is not offered. Ids come as numbers or as text. Anything unreadable holds nothing.
+    /// </summary>
+    public static Cell? OfferedAt(string? offeredJson, long stackId)
+    {
+        if (string.IsNullOrWhiteSpace(offeredJson)) return null;
 
         try
         {
             using var document = JsonDocument.Parse(offeredJson);
 
-            if (document.RootElement.ValueKind != JsonValueKind.Array) return false;
+            if (document.RootElement.ValueKind != JsonValueKind.Array) return null;
 
             foreach (var entry in document.RootElement.EnumerateArray())
             {
-                if (entry.ValueKind == JsonValueKind.Object && entry.TryGetProperty("id", out var id) && IdOf(id) == stackId) return true;
+                if (entry.ValueKind == JsonValueKind.Object && entry.TryGetProperty("id", out var id) && IdOf(id) == stackId) return CellOf(entry);
             }
 
-            return false;
+            return null;
         }
         catch (JsonException)
         {
-            return false;
+            return null;
         }
     }
 
     private static bool IsSplit(SplitKind heldKeys) => heldKeys is SplitKind.Half or SplitKind.One or SplitKind.Choose;
+
+    private static Cell CellOf(JsonElement entry) => new(IntOf(entry, "x"), IntOf(entry, "y"));
+
+    private static int IntOf(JsonElement entry, string name) =>
+        entry.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number) ? number : 0;
 
     private static long? IdOf(JsonElement id)
     {
@@ -90,12 +116,15 @@ public readonly record struct OfferTarget(Cell? At);
 /// <summary>A stack split off to be offered: when it was split, and when it was offered, if it has been.</summary>
 public sealed record PendingOffer(long StackId, long SourceId, OfferTarget Target, float SplitAt, float? SentAt = null);
 
+/// <summary>Units taken back off an offer: the new stack in the bag, and the offered stack they came off with where it lies on the drone.</summary>
+public sealed record PendingTakeBack(long StackId, long OfferedId, Cell OfferedAt, float SplitAt);
+
 public enum OfferStep
 {
     /// <summary>Nothing yet: the bag does not show the stack, or the game has not answered.</summary>
     Wait,
 
-    /// <summary>The bag shows the stack: offer it.</summary>
+    /// <summary>The bag shows the stack: offer it, or, for units taken back, put the smaller offer down again.</summary>
     Send,
 
     /// <summary>The game took the offer.</summary>
