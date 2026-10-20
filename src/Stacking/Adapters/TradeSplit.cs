@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
 using HarmonyLib;
@@ -16,7 +17,8 @@ namespace Stacking.Adapters;
 /// the same kind's offer when there is one. The game offers whole stacks only, so the units are split off into a stack
 /// of their own in the bag, and the ticker offers that stack once the window shows it; a refused offer goes back on
 /// the stack it came from. Whenever units leave or join a stack on offer, that offer is put down again where it lies
-/// so the window counts it afresh. When to do what is the core's call (see TradeOffers). Static because Harmony
+/// so the window counts it afresh. A plain drop of a stack onto another (heard by DropWatch) joins them, and an offered
+/// stack poured whole is taken off its offer first. When to do what is the core's call (see TradeOffers). Static because Harmony
 /// patches are.
 /// </summary>
 internal static class TradeSplit
@@ -25,7 +27,8 @@ internal static class TradeSplit
 
     private static Action<string> _log = _ => { };
     private static PendingOffer? _offer;
-    private static PendingTakeBack? _recount;
+    private static readonly List<PendingTakeBack> Recounts = new();
+    private static (PendingJoin Wait, SplitRequest Request)? _join;
     private static (long StackId, float SentAt)? _recountSent;
     private static int _failures;
 
@@ -50,32 +53,97 @@ internal static class TradeSplit
     /// </summary>
     public static void Tick(float now)
     {
-        if (_offer is null && _recount is null) return;
+        if (_offer is null && Recounts.Count == 0 && _join is null) return;
 
         if (OpenTrade() is not { } trade)
         {
             _offer = null;
-            _recount = null;
+            Recounts.Clear();
+            _join = null;
 
             return;
         }
 
-        if (_recount is { } recount) TickRecount(trade, recount, now);
+        if (_join is { } join) TickJoin(trade, join.Wait, join.Request, now);
+        if (Recounts.Count > 0) TickRecount(trade, Recounts[0], now);
         if (_offer is { } offer) TickOffer(trade, offer, now);
     }
 
+    /// <summary>
+    /// A stack let go over another in the trade window, which the page puts back without telling the game. The units
+    /// join the stack under it, and an offer that gains or loses units is put down again. False when the window is closed.
+    /// </summary>
+    public static bool DroppedOnto(SplitRequest request, int draggedCount)
+    {
+        if (OpenTrade() is not { } trade) return false;
+
+        try
+        {
+            if (SplitHooks.PlanNow(request) is not SplitPlan.JoinStack join)
+            {
+                SplitHooks.RunsOriginal(request);
+
+                return true;
+            }
+
+            var draggedAt = TradeOffers.OfferedAt(trade.GiveJson, request.ItemId);
+            var takesBackFirst = TradeOffers.TakesBackFirst(draggedAt != null, join.Units, draggedCount);
+            var joinedAt = TradeOffers.OfferedAt(trade.GiveJson, join.StackId);
+            var landing = request with { OnLanded = RecountBoth(join.StackId, joinedAt, request.ItemId, takesBackFirst ? null : draggedAt) };
+
+            if (!takesBackFirst)
+            {
+                SplitHooks.RunsOriginal(landing);
+
+                return true;
+            }
+
+            _join = (new PendingJoin(request.ItemId, Time.unscaledTime), landing);
+            Ac_TradeUI_ClickItem.SendAction(request.ItemId.ToString(), TradeOffers.DroneGrid, true);
+        }
+        catch (Exception ex)
+        {
+            _join = null;
+            Fail(ex);
+        }
+
+        return true;
+    }
+
+    private static void TickJoin(State_Web_TradeUI trade, PendingJoin wait, SplitRequest request, float now)
+    {
+        switch (TradeOffers.Next(wait, now, TradeOffers.IsOffered(trade.GiveJson, wait.StackId)))
+        {
+            case OfferStep.Wait:
+                break;
+            case OfferStep.Send:
+                _join = null;
+                SplitHooks.RunsOriginal(request);
+                break;
+            case OfferStep.GiveUp:
+                _join = null;
+                _log("the trade window did not take an offer back, so the stacks dropped onto each other were not joined");
+                break;
+            default:
+                throw new InvalidOperationException("every join step needs carrying out: " + wait);
+        }
+    }
+
+    /// <summary>One offer is put down again at a time, once the last has reached the game, so each is told apart from a player's drag.</summary>
     private static void TickRecount(State_Web_TradeUI trade, PendingTakeBack recount, float now)
     {
+        if (_recountSent is { } sent && now - sent.SentAt <= TradeOffers.ShowWaitSeconds) return;
+
         switch (TradeOffers.Next(recount, now, IsInBag(trade, recount.StackId)))
         {
             case OfferStep.Wait:
                 break;
             case OfferStep.Send:
-                _recount = null;
+                Recounts.RemoveAt(0);
                 Recount(recount, now);
                 break;
             case OfferStep.GiveUp:
-                _recount = null;
+                Recounts.RemoveAt(0);
                 _log("the trade window never showed units split off an offer, so the offer was not counted again");
                 break;
             default:
@@ -165,7 +233,7 @@ internal static class TradeSplit
     /// <summary>The mod's own offer and recount come back through these hooks, perhaps with the keys still held, and must reach the game as they are.</summary>
     private static bool IsOwnMove(long stackId)
     {
-        if (_offer?.StackId == stackId) return true;
+        if (_offer?.StackId == stackId || _join?.Wait.StackId == stackId) return true;
 
         if (_recountSent is not { } sent || sent.StackId != stackId) return false;
 
@@ -253,11 +321,18 @@ internal static class TradeSplit
     {
         _offer = new PendingOffer(landedId, sourceId, target, Time.unscaledTime);
 
-        if (sourceOfferedAt is { } at) _recount = new PendingTakeBack(landedId, sourceId, at, Time.unscaledTime);
+        if (sourceOfferedAt is { } at) Recounts.Add(new PendingTakeBack(landedId, sourceId, at, Time.unscaledTime));
     };
 
     private static Action<long>? RecountThen(long offeredId, Cell? offeredAt) =>
-        offeredAt is { } at ? landedId => _recount = new PendingTakeBack(landedId, offeredId, at, Time.unscaledTime) : null;
+        offeredAt is { } at ? landedId => Recounts.Add(new PendingTakeBack(landedId, offeredId, at, Time.unscaledTime)) : null;
+
+    /// <summary>After a join, the stack joined and the stack the units came from are each counted again when on offer.</summary>
+    private static Action<long> RecountBoth(long joinedId, Cell? joinedAt, long draggedId, Cell? draggedAt) => landedId =>
+    {
+        if (joinedAt is { } joined) Recounts.Add(new PendingTakeBack(landedId, joinedId, joined, Time.unscaledTime));
+        if (draggedAt is { } dragged) Recounts.Add(new PendingTakeBack(draggedId, draggedId, dragged, Time.unscaledTime));
+    };
 
     private static void Send(PendingOffer offer)
     {

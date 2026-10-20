@@ -112,6 +112,20 @@ public static class TradeOffers
         return now - takeBack.SplitAt > ShowWaitSeconds ? OfferStep.GiveUp : OfferStep.Wait;
     }
 
+    /// <summary>
+    /// A drop onto another stack that pours every unit of an offered stack away has its offer taken back first: the
+    /// game takes an offer back only while its stack is there, and an offer whose stack is gone stays listed.
+    /// </summary>
+    public static bool TakesBackFirst(bool isDraggedOffered, int unitsJoined, int draggedCount) => isDraggedOffered && unitsJoined >= draggedCount;
+
+    /// <summary>What to do next with a join waiting on its offer being taken back: join once the offer is gone (Send), or leave both stacks if it never goes (GiveUp).</summary>
+    public static OfferStep Next(PendingJoin join, float now, bool isStillOffered)
+    {
+        if (!isStillOffered) return OfferStep.Send;
+
+        return now - join.TakenBackAt > AnswerWaitSeconds ? OfferStep.GiveUp : OfferStep.Wait;
+    }
+
     public static bool IsOffered(string? offeredJson, long stackId) => OfferedAt(offeredJson, stackId) is not null;
 
     /// <summary>
@@ -185,6 +199,9 @@ public sealed record PendingOffer(long StackId, long SourceId, OfferTarget Targe
 
 /// <summary>Units taken back off an offer: the new stack in the bag, and the offered stack they came off with where it lies on the drone.</summary>
 public sealed record PendingTakeBack(long StackId, long OfferedId, Cell OfferedAt, float SplitAt);
+
+/// <summary>An offered stack about to be poured whole onto another, and when its offer was taken back.</summary>
+public sealed record PendingJoin(long StackId, float TakenBackAt);
 
 public enum OfferStep
 {

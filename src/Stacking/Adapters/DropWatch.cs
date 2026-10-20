@@ -6,7 +6,7 @@ using Stacking.Core;
 namespace Stacking.Adapters;
 
 /// <summary>
-/// Hears a stack let go over another item in a station view, which the page puts back without telling the game:
+/// Hears a stack let go over another item in a station view or the trade window, which the page puts back without telling the game:
 /// drops.js, in the game's web UI, says which item was dropped onto which, and with Shift or Ctrl held that drop is
 /// a split onto the item under it, and without them a join when it is the same item. The web UI can reload and lose the script at any time, so it is sent again every
 /// few seconds; it installs itself once.
@@ -46,8 +46,9 @@ internal sealed class DropWatch
         if (dragged == null || target == null || dragged.ItemCount < Splitting.SmallestStack(kind) || dragged.InstanceWeight != 0) return;
 
         var at = new Cell(target.BagPos.x, target.BagPos.y);
+        var request = new SplitRequest(dragged.InstanceId, dragged.OwnerId, target.OwnerId, kind, at, Cursor: at);
 
-        SplitHooks.RunsOriginal(new SplitRequest(dragged.InstanceId, dragged.OwnerId, target.OwnerId, kind, at, Cursor: at));
+        if (!TradeSplit.DroppedOnto(request, dragged.ItemCount)) SplitHooks.RunsOriginal(request);
     }
 
     private void Install()

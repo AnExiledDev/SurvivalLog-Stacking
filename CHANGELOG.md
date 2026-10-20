@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.3
+
+- Fixed: in the merchant's trade window, dropping a stack on a stack of the same item did not join them, in your bag or on the drone. An offer that gains or loses items is counted again.
+
 ## 0.7.2
 
 - A quick-move click on a stack in a material rack or a storage tab of the shredder, compressor or dye vat window puts one item in, not the whole stack.

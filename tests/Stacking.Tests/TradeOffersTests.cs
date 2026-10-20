@@ -239,4 +239,39 @@ public class TradeOffersTests
     {
         Assert.False(TradeOffers.IsOffered(offeredJson, 41));
     }
+
+    [Fact]
+    public void An_offered_stack_poured_whole_onto_another_is_taken_back_first()
+    {
+        Assert.True(TradeOffers.TakesBackFirst(isDraggedOffered: true, unitsJoined: 5, draggedCount: 5));
+    }
+
+    [Fact]
+    public void An_offered_stack_that_keeps_some_units_stays_offered()
+    {
+        Assert.False(TradeOffers.TakesBackFirst(isDraggedOffered: true, unitsJoined: 3, draggedCount: 5));
+    }
+
+    [Fact]
+    public void A_stack_not_on_offer_is_never_taken_back_for_a_join()
+    {
+        Assert.False(TradeOffers.TakesBackFirst(isDraggedOffered: false, unitsJoined: 5, draggedCount: 5));
+    }
+
+    [Fact]
+    public void A_join_waits_for_the_offer_to_be_taken_back_then_runs()
+    {
+        var join = new PendingJoin(StackId: 40, TakenBackAt: 10f);
+
+        Assert.Equal(OfferStep.Wait, TradeOffers.Next(join, 10.1f, isStillOffered: true));
+        Assert.Equal(OfferStep.Send, TradeOffers.Next(join, 10.1f, isStillOffered: false));
+    }
+
+    [Fact]
+    public void A_join_whose_offer_is_never_taken_back_leaves_both_stacks()
+    {
+        var join = new PendingJoin(StackId: 40, TakenBackAt: 10f);
+
+        Assert.Equal(OfferStep.GiveUp, TradeOffers.Next(join, 10f + TradeOffers.AnswerWaitSeconds + 0.1f, isStillOffered: true));
+    }
 }
