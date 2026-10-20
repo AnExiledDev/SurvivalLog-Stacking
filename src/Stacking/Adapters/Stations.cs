@@ -23,6 +23,13 @@ internal static class Stations
             || ShredderConfig.IsTrayOwner(ownerId)
             || IsOpenCraftingBench(ownerId));
 
+    /// <summary>Containers a station view feeds, one unit per click: the shredder hopper, the compressor bin and the dye vat.</summary>
+    public static bool IsFeeder(long ownerId) =>
+        ownerId != 0
+        && (Furniture.IsShredderHopperOwner(ownerId)
+            || Furniture.IsCompressorBinOwner(ownerId)
+            || Furniture.IsDyeVatOwner(ownerId));
+
     /// <summary>The crafting table has no test of its own; its bench is known only while its screen is open, which is the only time items go in.</summary>
     private static bool IsOpenCraftingBench(long ownerId)
     {

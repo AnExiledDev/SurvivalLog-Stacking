@@ -62,4 +62,28 @@ public class StationRuleTests
     {
         Assert.Equal(0, StationRule.UnitsToSendBack(count, isNewlyStackable, hasOwnWeight));
     }
+
+    private static StationEntry ClickEntry(bool isIntoFeeder = true, bool isWithinOneBag = false, int count = 51, bool hasOwnWeight = false) =>
+        StationRule.ClickEntry(isIntoFeeder, isWithinOneBag, count, hasOwnWeight);
+
+    [Fact]
+    public void A_click_on_a_rack_stack_feeds_the_shredder_one_unit_even_of_an_item_the_game_stacks_itself()
+    {
+        Assert.Equal(StationEntry.OneUnit, ClickEntry());
+    }
+
+    [Fact]
+    public void A_click_moving_a_stack_anywhere_but_a_feeding_container_moves_it_whole()
+    {
+        Assert.Equal(StationEntry.Vanilla, ClickEntry(isIntoFeeder: false));
+    }
+
+    [Theory]
+    [InlineData(1, false, false)]
+    [InlineData(5, true, false)]
+    [InlineData(5, false, true)]
+    public void A_click_on_a_single_a_move_inside_the_feeder_or_a_weighed_item_is_the_game_s_own(int count, bool isWithinOneBag, bool hasOwnWeight)
+    {
+        Assert.Equal(StationEntry.Vanilla, ClickEntry(isWithinOneBag: isWithinOneBag, count: count, hasOwnWeight: hasOwnWeight));
+    }
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.2
+
+- A quick-move click on a stack in a material rack or a storage tab of the shredder, compressor or dye vat window puts one item in, not the whole stack.
+- In the merchant's trade window, a right-click or Shift left-click on a stack on your side offers one item, from a material rack too. Another click adds one more to that offer. The highlight key still offers every stack of the kind.
+- Shift, Ctrl and Ctrl+Shift drags split inside the drone and inside your bag in the trade window, and the split part lands where you dropped it.
+- A split out of a material rack, or inside one, works. A split into a rack from elsewhere is still refused.
+- Fixed: a split drag from the drone to your bag moved the whole stack, or did not land where it was dropped.
+
 ## 0.7.1
 
 - The trade window takes part of an offer back too. Drag a stack from the drone to your bag, or right-click it on the drone, with Shift (half), Ctrl (one) or Ctrl+Shift (choose how many). Those units go back to your bag; the rest stays offered.

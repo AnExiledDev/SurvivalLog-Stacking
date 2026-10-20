@@ -268,6 +268,24 @@ internal static class SplitHooks
         }
     }
 
+    /// <summary>What the core would do with the split now, or null when the stack or the bags cannot be read.</summary>
+    internal static SplitPlan? PlanNow(SplitRequest request)
+    {
+        try
+        {
+            var items = SplitScene.LiveItems();
+            var source = items?.GetItemData(request.ItemId);
+
+            return items == null || source == null ? null : SplitScene.Plan(items, source, request, chosenUnits: null, log: _ => { });
+        }
+        catch (Exception ex)
+        {
+            Fail("planning a split", ex);
+
+            return null;
+        }
+    }
+
     private static Cell? CellOrNone(int x, int y) => x < 0 || y < 0 ? null : new Cell(x, y);
 
     private static void Fail(string what, Exception ex)

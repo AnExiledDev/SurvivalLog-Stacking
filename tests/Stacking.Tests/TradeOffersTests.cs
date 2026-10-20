@@ -16,7 +16,7 @@ public class TradeOffersTests
     [InlineData(SplitKind.Choose)]
     public void A_drag_from_the_bag_to_the_drone_with_shift_or_ctrl_offers_part_of_the_stack(SplitKind heldKeys)
     {
-        Assert.True(TradeOffers.SplitsDrag("bag", "drone", heldKeys));
+        Assert.Equal(TradeDrag.Offer, TradeOffers.DragOf("bag", "drone", heldKeys));
     }
 
     [Theory]
@@ -25,36 +25,72 @@ public class TradeOffersTests
     [InlineData(SplitKind.Choose)]
     public void A_right_click_on_the_bag_with_shift_or_ctrl_offers_part_of_the_stack(SplitKind heldKeys)
     {
-        Assert.True(TradeOffers.SplitsClick("bag", isRightClick: true, heldKeys));
+        Assert.Equal(TradeClick.Split, TradeOffers.ClickOf("bag", isRightClick: true, heldKeys, isHighlightHeld: false));
     }
 
     [Theory]
     [InlineData(SplitKind.None)]
     [InlineData(SplitKind.Join)]
-    public void A_plain_drag_to_the_drone_offers_the_whole_stack_as_the_game_does(SplitKind heldKeys)
+    public void A_plain_drag_is_the_game_s_own_wherever_it_goes(SplitKind heldKeys)
     {
-        Assert.False(TradeOffers.SplitsDrag("bag", "drone", heldKeys));
+        Assert.Equal(TradeDrag.Game, TradeOffers.DragOf("bag", "drone", heldKeys));
+        Assert.Equal(TradeDrag.Game, TradeOffers.DragOf("drone", "bag", heldKeys));
+        Assert.Equal(TradeDrag.Game, TradeOffers.DragOf("drone", "drone", heldKeys));
+        Assert.Equal(TradeDrag.Game, TradeOffers.DragOf("bag", "bag", heldKeys));
     }
 
+    /// <summary>The bug report: a click on a Material Rack stack offered all of it; a transfer click offers one unit, as at a station.</summary>
     [Fact]
-    public void A_plain_right_click_offers_the_whole_stack_as_the_game_does()
+    public void A_plain_right_click_on_the_bag_offers_one_unit()
     {
-        Assert.False(TradeOffers.SplitsClick("bag", isRightClick: true, SplitKind.None));
+        Assert.Equal(TradeClick.OfferOne, TradeOffers.ClickOf("bag", isRightClick: true, SplitKind.None, isHighlightHeld: false));
     }
 
-    /// <summary>Shift with a left click is the game's own quick offer of the whole stack.</summary>
-    [Fact]
-    public void A_shift_left_click_offers_the_whole_stack_as_the_game_does()
+    /// <summary>The window's hint: Shift with a left click is a transfer, the same as a right-click.</summary>
+    [Theory]
+    [InlineData(SplitKind.Half)]
+    [InlineData(SplitKind.Choose)]
+    public void A_shift_left_click_on_the_bag_offers_one_unit(SplitKind heldKeys)
     {
-        Assert.False(TradeOffers.SplitsClick("bag", isRightClick: false, SplitKind.Half));
+        Assert.Equal(TradeClick.OfferOne, TradeOffers.ClickOf("bag", isRightClick: false, heldKeys, isHighlightHeld: false));
     }
 
     [Theory]
-    [InlineData("drone", "drone")]
-    [InlineData("bag", "bag")]
-    public void A_drag_within_one_side_of_the_window_splits_nothing(string fromGrid, string toGrid)
+    [InlineData(SplitKind.None)]
+    [InlineData(SplitKind.One)]
+    public void A_left_click_without_shift_shows_the_item_as_the_game_does(SplitKind heldKeys)
     {
-        Assert.False(TradeOffers.SplitsDrag(fromGrid, toGrid, SplitKind.Half));
+        Assert.Equal(TradeClick.Game, TradeOffers.ClickOf("bag", isRightClick: false, heldKeys, isHighlightHeld: false));
+    }
+
+    /// <summary>The highlight key's click offers every stack of the kind; that is the game's and stays whole.</summary>
+    [Theory]
+    [InlineData(true, SplitKind.None)]
+    [InlineData(true, SplitKind.Half)]
+    [InlineData(false, SplitKind.None)]
+    public void A_click_with_the_highlight_key_held_is_the_game_s_own(bool isRightClick, SplitKind heldKeys)
+    {
+        Assert.Equal(TradeClick.Game, TradeOffers.ClickOf("bag", isRightClick, heldKeys, isHighlightHeld: true));
+    }
+
+    /// <summary>The bug report: a Shift or Ctrl drag inside the drone did not split.</summary>
+    [Theory]
+    [InlineData(SplitKind.Half)]
+    [InlineData(SplitKind.One)]
+    [InlineData(SplitKind.Choose)]
+    public void A_drag_with_shift_or_ctrl_from_one_drone_cell_to_another_splits_the_offer(SplitKind heldKeys)
+    {
+        Assert.Equal(TradeDrag.SplitOffer, TradeOffers.DragOf("drone", "drone", heldKeys));
+    }
+
+    /// <summary>A split works the same in every grid: inside the bag too.</summary>
+    [Theory]
+    [InlineData(SplitKind.Half)]
+    [InlineData(SplitKind.One)]
+    [InlineData(SplitKind.Choose)]
+    public void A_drag_with_shift_or_ctrl_inside_the_bag_splits_the_stack(SplitKind heldKeys)
+    {
+        Assert.Equal(TradeDrag.InBag, TradeOffers.DragOf("bag", "bag", heldKeys));
     }
 
     /// <summary>The bug report: splitting what is on the drone back into the bag moved the whole stack.</summary>
@@ -64,7 +100,7 @@ public class TradeOffersTests
     [InlineData(SplitKind.Choose)]
     public void A_drag_from_the_drone_to_the_bag_with_shift_or_ctrl_takes_part_of_the_offer_back(SplitKind heldKeys)
     {
-        Assert.True(TradeOffers.SplitsDrag("drone", "bag", heldKeys));
+        Assert.Equal(TradeDrag.TakeBack, TradeOffers.DragOf("drone", "bag", heldKeys));
         Assert.True(TradeOffers.TakesBack("drone"));
     }
 
@@ -74,20 +110,46 @@ public class TradeOffersTests
     [InlineData(SplitKind.Choose)]
     public void A_right_click_on_the_drone_with_shift_or_ctrl_takes_part_of_the_offer_back(SplitKind heldKeys)
     {
-        Assert.True(TradeOffers.SplitsClick("drone", isRightClick: true, heldKeys));
+        Assert.Equal(TradeClick.Split, TradeOffers.ClickOf("drone", isRightClick: true, heldKeys, isHighlightHeld: false));
     }
 
     [Fact]
-    public void A_plain_drag_or_right_click_off_the_drone_takes_the_whole_offer_back_as_the_game_does()
+    public void A_plain_right_click_or_shift_click_on_the_drone_takes_the_whole_offer_back_as_the_game_does()
     {
-        Assert.False(TradeOffers.SplitsDrag("drone", "bag", SplitKind.None));
-        Assert.False(TradeOffers.SplitsClick("drone", isRightClick: true, SplitKind.None));
+        Assert.Equal(TradeClick.Game, TradeOffers.ClickOf("drone", isRightClick: true, SplitKind.None, isHighlightHeld: false));
+        Assert.Equal(TradeClick.Game, TradeOffers.ClickOf("drone", isRightClick: false, SplitKind.Half, isHighlightHeld: false));
+    }
+
+    [Theory]
+    [InlineData("ground", "bag")]
+    [InlineData(null, "drone")]
+    public void A_drag_from_outside_the_bag_and_the_drone_is_the_game_s_own(string? fromGrid, string toGrid)
+    {
+        Assert.Equal(TradeDrag.Game, TradeOffers.DragOf(fromGrid, toGrid, SplitKind.Half));
     }
 
     [Fact]
     public void A_split_from_the_bag_offers_rather_than_takes_back()
     {
         Assert.False(TradeOffers.TakesBack("bag"));
+    }
+
+    /// <summary>A transfer click tops up a stack already on offer, so it needs every offered stack and its cell.</summary>
+    [Fact]
+    public void Every_offered_stack_is_read_with_its_drone_cell()
+    {
+        Assert.Equal(new[] { new OfferedStack(7, new Cell(0, 0)), new OfferedStack(41, new Cell(3, 2)) },
+            TradeOffers.Offered("[{\"id\":7,\"x\":0,\"y\":0,\"o\":5},{\"id\":\"41\",\"x\":3,\"y\":2,\"o\":5}]"));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    [InlineData("not json")]
+    [InlineData("{\"id\":41}")]
+    public void An_unreadable_offer_list_offers_nothing(string? offeredJson)
+    {
+        Assert.Empty(TradeOffers.Offered(offeredJson));
     }
 
     [Fact]

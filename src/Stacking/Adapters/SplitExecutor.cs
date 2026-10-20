@@ -144,7 +144,7 @@ internal sealed class SplitExecutor
         items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
         _logFileOnly($"split {plan.Units} of {countBefore} (item {source.ItemConfigId}) into a new stack at {plan.At.X},{plan.At.Y}");
 
-        if (created.OwnerId == request.DstOwnerId) request.OnNewStack?.Invoke(created.InstanceId);
+        if (created.OwnerId == request.DstOwnerId) request.OnLanded?.Invoke(created.InstanceId);
     }
 
     /// <summary>
@@ -327,6 +327,7 @@ internal sealed class SplitExecutor
 
         items.SyncBothBags(request.SrcOwnerId, request.DstOwnerId);
         _logFileOnly($"moved {plan.Units} of {sourceBefore} (item {configId}) onto a stack of {targetBefore}");
+        request.OnLanded?.Invoke(plan.StackId);
     }
 
     private void Undo(string what, Exception cause, Action undo)

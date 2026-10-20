@@ -21,6 +21,14 @@ public static class StationRule
         isIntoStation && !isWithinOneBag && count > 1 && isNewlyStackable && !hasOwnWeight ? StationEntry.OneUnit : StationEntry.Vanilla;
 
     /// <summary>
+    /// A click on a stack in a station view feeds a container one unit at a time: the shredder hopper, the compressor
+    /// bin and the dye vat take one unit per click whatever the item, the game's own stacks too, so the player chooses
+    /// how much goes in. A drag still moves what it carries.
+    /// </summary>
+    public static StationEntry ClickEntry(bool isIntoFeeder, bool isWithinOneBag, int count, bool hasOwnWeight) =>
+        isIntoFeeder && !isWithinOneBag && count > 1 && !hasOwnWeight ? StationEntry.OneUnit : StationEntry.Vanilla;
+
+    /// <summary>
     /// How many units of a stack that arrived whole in a station go back where it came from. Moves that carry a whole
     /// bag at once go around the single-item move, so they are put right after the fact.
     /// </summary>

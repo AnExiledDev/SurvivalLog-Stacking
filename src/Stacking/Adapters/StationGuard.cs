@@ -50,6 +50,12 @@ internal static class StationGuard
     /// <summary>Stacks of items this mod made stackable that just left a container, by id, so one that lands in a station can be sent back. Cleared every frame.</summary>
     private static readonly Dictionary<long, (long OwnerId, StackCopy Before)> Leaving = new();
 
+    /// <summary>
+    /// Set while the game carries out a click's quick move (ItemManager.OnQuickMoveItem, which the station views' item
+    /// clicks send): a feeding container then takes one unit per click. Main thread only.
+    /// </summary>
+    [ThreadStatic] private static int _clickDepth;
+
     private static StationMover? _mover;
     private static Action<string> _log = _ => { };
     private static Action<string> _logFileOnly = _ => { };
@@ -72,6 +78,7 @@ internal static class StationGuard
         {
             TryPatch(harmony, "moving an item", nameof(ItemManager.OnMoveItem), prefix: nameof(OneUnitOnMove)),
             TryPatch(harmony, "quick-moving an item", nameof(ItemManager.TryQuickMoveItem), prefix: nameof(OneUnitOnQuickMove)),
+            TryPatchClickScope(harmony),
             TryPatch(harmony, "dragging an item in a cooking view", nameof(ItemManager.OnCookingDragMove), prefix: nameof(OneUnitOnCookingDrag)),
             TryPatch(harmony, "quick-moving an item in a cooking view", nameof(ItemManager.OnCookingQuickMove), prefix: nameof(OneUnitOnCookingQuick)),
             TryPatch(harmony, "swapping two items", nameof(ItemManager.OnSwapItem), prefix: nameof(OneUnitOnSwap)),
@@ -111,6 +118,18 @@ internal static class StationGuard
     private static bool TryPatch(Harmony harmony, string what, string method, string? prefix = null, string? postfix = null) =>
         Hooks.TryPatch(harmony, typeof(StationGuard), what, () => AccessTools.Method(typeof(ItemManager), method), _log, prefix, postfix);
 
+    /// <summary>
+    /// OnQuickMoveItem opens sub rsp,48h; mov qword [rsp+30h],0; mov byte [rsp+28h],0, 18 bytes before its only call,
+    /// so it has no relative jump or call in its first 14 bytes (Dobby rule). rva 0x26db9b0.
+    /// </summary>
+    private static bool TryPatchClickScope(Harmony harmony) =>
+        Hooks.TryPatchScope(harmony, typeof(StationGuard), "a click moving an item across",
+            () => AccessTools.Method(typeof(ItemManager), "OnQuickMoveItem", new[] { typeof(long), typeof(long), typeof(long) }), _log, nameof(OpenClick), nameof(CloseClick));
+
+    private static void OpenClick() => _clickDepth++;
+
+    private static void CloseClick() => _clickDepth = Math.Max(0, _clickDepth - 1);
+
     private static bool OneUnitOnMove(ItemManager __instance, long fromOwnerId, long itemId, long toOwnerId, Vector2Int bagPos) =>
         !TookOneUnit(__instance, new StationWork.TakeOne(itemId, fromOwnerId, toOwnerId, StationPath.Move, CellOf(bagPos), IsSilent: false, AvoidsMold: false));
 
@@ -127,8 +146,9 @@ internal static class StationGuard
     private static bool OneUnitOnQuickMove(ItemManager __instance, long itemId, long fromOwnerId, long toOwnerId, bool silent, bool avoidMold, ref bool __result)
     {
         var move = new StationWork.TakeOne(itemId, fromOwnerId, toOwnerId, StationPath.Quick, default, silent, avoidMold);
+        var feeder = IsClickIntoFeeder(__instance, move) ? toOwnerId : (long?)null;
 
-        if (_mover == null || !IsOneUnit(__instance, move) || _mover.TakeOneNow(__instance, move) is not { } moved) return true;
+        if (_mover == null || (feeder == null && !IsOneUnit(__instance, move)) || _mover.TakeOneNow(__instance, move, feeder) is not { } moved) return true;
 
         __result = moved;
 
@@ -303,6 +323,25 @@ internal static class StationGuard
         catch (Exception ex)
         {
             Fail("checking a move into a station", ex);
+
+            return false;
+        }
+    }
+
+    /// <summary>True when a click feeds this stack into a feeding container, which then takes one unit (see StationRule.ClickEntry).</summary>
+    private static bool IsClickIntoFeeder(ItemManager items, StationWork.TakeOne move)
+    {
+        if (_clickDepth == 0) return false;
+
+        try
+        {
+            return SplitScene.IsLive(items)
+                   && items.GetItemData(move.ItemId) is { } item
+                   && StationRule.ClickEntry(Stations.IsFeeder(move.ToOwnerId), move.FromOwnerId == move.ToOwnerId, item.ItemCount, item.InstanceWeight != 0) == StationEntry.OneUnit;
+        }
+        catch (Exception ex)
+        {
+            Fail("checking a click into a feeding container", ex);
 
             return false;
         }

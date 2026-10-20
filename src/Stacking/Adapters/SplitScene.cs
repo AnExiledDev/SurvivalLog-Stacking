@@ -8,11 +8,11 @@ namespace Stacking.Adapters;
 
 /// <summary>
 /// A split the player asked for: which stack, from which bag to which, the cell it landed on and the cell under the
-/// cursor. A right-click split stays in the stack's own bag and lands at the free spot nearest it. OnNewStack hears
-/// the id of a new stack that landed in the bag it was meant for.
+/// cursor. A right-click split lands at the free spot nearest the stack. OnLanded hears the id of the stack the units
+/// landed in: a new stack in the bag it was meant for, or the stack they topped up.
 /// </summary>
 internal sealed record SplitRequest(long ItemId, long SrcOwnerId, long DstOwnerId, SplitKind Kind, Cell DropAt, Cell? Cursor, bool IsRightClick = false,
-    Action<long>? OnNewStack = null);
+    Action<long>? OnLanded = null);
 
 /// <summary>Reads the live bags into the core's terms and asks it what a split drop should do.</summary>
 internal static class SplitScene
@@ -80,8 +80,11 @@ internal static class SplitScene
             stacks.Add(new GridItem(item.InstanceId, cells, item.ItemCount, match));
         }
 
-        // The trunk only refuses what goes in, which the executor checks, so a split may take units out of it.
-        var hasOwnRules = (HasOwnRules(items, request.SrcOwnerId) && !VehicleConfig.IsBoxOwner(request.SrcOwnerId)) || HasOwnRules(items, request.DstOwnerId);
+        // The trunk only refuses what goes in, which the executor checks, so a split may take units out of it. A
+        // material rack lays out its own rows, which the game keeps when a stack is added to it, so a split may take
+        // units out of a rack or put them down inside the one they came from, but never brings them in from elsewhere.
+        var hasOwnRules = (HasOwnRules(items, request.SrcOwnerId) && !VehicleConfig.IsBoxOwner(request.SrcOwnerId) && !ItemManager.IsMaterialRackOwner(request.SrcOwnerId))
+            || (HasOwnRules(items, request.DstOwnerId) && !(ItemManager.IsMaterialRackOwner(request.DstOwnerId) && request.SrcOwnerId == request.DstOwnerId));
         var isStation = Stations.IsStation(items, request.DstOwnerId);
 
         // Only while the station rule is in does the game's move put one unit in; without it a stack would go in whole.

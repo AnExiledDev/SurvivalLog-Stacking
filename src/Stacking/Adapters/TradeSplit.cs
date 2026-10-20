@@ -1,4 +1,5 @@
 using System;
+using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
 using HarmonyLib;
 using Il2CppInterop.Runtime;
@@ -8,13 +9,15 @@ using UnityEngine;
 namespace Stacking.Adapters;
 
 /// <summary>
-/// Offering part of a stack in the trade window: a drag from the bag onto the drone, or a right-click on a stack in
-/// the bag, with Shift (half), Ctrl (one) or Ctrl+Shift (choose) held. The game offers whole stacks only, so the hooks
-/// take the drag or click, the split makes a new stack beside the old one in the bag, and the ticker offers that stack
-/// the way the player offered the old one once the trade window shows it. A refused offer goes back on the stack it
-/// came from. The same gestures from the drone back to the bag take part of an offer back: the units split off into
-/// the bag, and the smaller offer is put down again. When to do what is the core's call (see TradeOffers). Static
-/// because Harmony patches are.
+/// Splitting stacks in the trade window. A drag with Shift (half), Ctrl (one) or Ctrl+Shift (choose) held splits the
+/// stack wherever it goes and the units land where they were dropped: offered on the drone, taken back into the bag,
+/// moved to another drone cell as an offer of their own, or put down elsewhere in the bag. A right-click with those
+/// keys offers part of a stack or takes part of an offer back. A transfer click on the bag offers one unit, topping up
+/// the same kind's offer when there is one. The game offers whole stacks only, so the units are split off into a stack
+/// of their own in the bag, and the ticker offers that stack once the window shows it; a refused offer goes back on
+/// the stack it came from. Whenever units leave or join a stack on offer, that offer is put down again where it lies
+/// so the window counts it afresh. When to do what is the core's call (see TradeOffers). Static because Harmony
+/// patches are.
 /// </summary>
 internal static class TradeSplit
 {
@@ -22,7 +25,8 @@ internal static class TradeSplit
 
     private static Action<string> _log = _ => { };
     private static PendingOffer? _offer;
-    private static PendingTakeBack? _takeBack;
+    private static PendingTakeBack? _recount;
+    private static (long StackId, float SentAt)? _recountSent;
     private static int _failures;
 
     public static void Apply(Harmony harmony, Action<string> log)
@@ -36,45 +40,46 @@ internal static class TradeSplit
         var clicks = Hooks.TryPatch(harmony, typeof(TradeSplit), "clicking an item in the trade window", // rva 0x2c562e0
             () => AccessTools.Method(typeof(Reducer_Web_TradeUI), "ClickItemCore"), log, prefix: nameof(SplitInsteadOfClick));
 
-        if (drags || clicks) log("a drag or a right-click with Shift or Ctrl offers part of a stack in the trade window, or takes part of an offer back");
+        if (drags) log("a drag with Shift or Ctrl splits a stack anywhere in the trade window, and the units land where they are dropped");
+        if (clicks) log("a transfer click offers one unit in the trade window, and a right-click with Shift or Ctrl offers or takes back part of a stack");
     }
 
     /// <summary>
-    /// Once per frame: offers a split-off stack once the trade window shows it, and takes it back if refused; once units
-    /// taken back off an offer show in the bag, puts the smaller offer down again.
+    /// Once per frame: once the window shows the units that left or joined an offer, puts that offer down again; offers
+    /// a split-off stack once the window shows it, and takes it back if refused.
     /// </summary>
     public static void Tick(float now)
     {
-        if (_offer is null && _takeBack is null) return;
+        if (_offer is null && _recount is null) return;
 
         if (OpenTrade() is not { } trade)
         {
             _offer = null;
-            _takeBack = null;
+            _recount = null;
 
             return;
         }
 
+        if (_recount is { } recount) TickRecount(trade, recount, now);
         if (_offer is { } offer) TickOffer(trade, offer, now);
-        if (_takeBack is { } takeBack) TickTakeBack(trade, takeBack, now);
     }
 
-    private static void TickTakeBack(State_Web_TradeUI trade, PendingTakeBack takeBack, float now)
+    private static void TickRecount(State_Web_TradeUI trade, PendingTakeBack recount, float now)
     {
-        switch (TradeOffers.Next(takeBack, now, IsInBag(trade, takeBack.StackId)))
+        switch (TradeOffers.Next(recount, now, IsInBag(trade, recount.StackId)))
         {
             case OfferStep.Wait:
                 break;
             case OfferStep.Send:
-                _takeBack = null;
-                Recount(takeBack);
+                _recount = null;
+                Recount(recount, now);
                 break;
             case OfferStep.GiveUp:
-                _takeBack = null;
-                _log("the trade window never showed units taken back off an offer; they stay in the bag");
+                _recount = null;
+                _log("the trade window never showed units split off an offer, so the offer was not counted again");
                 break;
             default:
-                throw new InvalidOperationException("every take-back step needs carrying out: " + takeBack);
+                throw new InvalidOperationException("every recount step needs carrying out: " + recount);
         }
     }
 
@@ -93,7 +98,7 @@ internal static class TradeSplit
                 break;
             case OfferStep.Rejoin:
                 _offer = null;
-                Rejoin(offer);
+                Rejoin(offer, trade.GiveJson);
                 break;
             case OfferStep.GiveUp:
                 _offer = null;
@@ -109,9 +114,12 @@ internal static class TradeSplit
     {
         try
         {
-            var kind = SplitKeys.ForDrop();
+            if (!long.TryParse(itemKey, out var stackId) || IsOwnMove(stackId)) return true;
 
-            if (!TradeOffers.SplitsDrag(fromGrid, toGrid, kind) || !Split(itemKey, kind, fromGrid, state, new OfferTarget(new Cell(x, y)))) return true;
+            var kind = SplitKeys.ForDrop();
+            var drag = TradeOffers.DragOf(fromGrid, toGrid, kind);
+
+            if (drag == TradeDrag.Game || DragRequest(drag, stackId, kind, new Cell(x, y), state) is not { } request || SplitHooks.RunsOriginal(request)) return true;
 
             __result = state;
 
@@ -130,9 +138,17 @@ internal static class TradeSplit
     {
         try
         {
-            var kind = SplitKeys.ForClick();
+            if (!long.TryParse(itemKey, out var stackId) || IsOwnMove(stackId)) return true;
 
-            if (!TradeOffers.SplitsClick(fromGrid, rightClick, kind) || !Split(itemKey, kind, fromGrid, state, new OfferTarget(At: null))) return true;
+            var kind = SplitKeys.ForClick();
+            var request = TradeOffers.ClickOf(fromGrid, rightClick, kind, state.IsHighlightKeyHeld?.Value == true) switch
+            {
+                TradeClick.Split => SplitClickRequest(stackId, kind, fromGrid, state),
+                TradeClick.OfferOne => OfferOneRequest(stackId, state),
+                _ => null,
+            };
+
+            if (request == null || SplitHooks.RunsOriginal(request)) return true;
 
             __result = state;
 
@@ -146,35 +162,102 @@ internal static class TradeSplit
         }
     }
 
-    /// <summary>
-    /// True when the split is under way. The offer of a split-off stack comes back through these hooks with the keys
-    /// perhaps still held, and must reach the game as it is. An offered stack stays in its bag, so units taken back are
-    /// split off there too.
-    /// </summary>
-    private static bool Split(string itemKey, SplitKind kind, string fromGrid, State_Web_TradeUI state, OfferTarget target)
+    /// <summary>The mod's own offer and recount come back through these hooks, perhaps with the keys still held, and must reach the game as they are.</summary>
+    private static bool IsOwnMove(long stackId)
     {
-        if (!long.TryParse(itemKey, out var stackId) || _offer?.StackId == stackId) return false;
+        if (_offer?.StackId == stackId) return true;
 
-        if (SplitScene.LiveItems()?.GetItemData(stackId) is not { } stack) return false;
+        if (_recountSent is not { } sent || sent.StackId != stackId) return false;
 
-        Action<long> onNewStack;
+        _recountSent = null;
 
-        if (TradeOffers.TakesBack(fromGrid))
-        {
-            if (TradeOffers.OfferedAt(state.GiveJson, stackId) is not { } offeredAt) return false;
-
-            onNewStack = newStackId => _takeBack = new PendingTakeBack(newStackId, stackId, offeredAt, Time.unscaledTime);
-        }
-        else
-        {
-            onNewStack = newStackId => _offer = new PendingOffer(newStackId, stackId, target, Time.unscaledTime);
-        }
-
-        var at = new Cell(stack.BagPos.x, stack.BagPos.y);
-        var request = new SplitRequest(stackId, stack.OwnerId, stack.OwnerId, kind, at, Cursor: null, IsRightClick: true, OnNewStack: onNewStack);
-
-        return !SplitHooks.RunsOriginal(request);
+        return Time.unscaledTime - sent.SentAt <= TradeOffers.ShowWaitSeconds;
     }
+
+    /// <summary>An offered stack stays in its bag, so units split off it go into the bag too, and leave the offer smaller.</summary>
+    private static SplitRequest? DragRequest(TradeDrag drag, long stackId, SplitKind kind, Cell droppedAt, State_Web_TradeUI state)
+    {
+        if (SplitScene.LiveItems()?.GetItemData(stackId) is not { } stack) return null;
+
+        var offeredAt = TradeOffers.OfferedAt(state.GiveJson, stackId);
+        var bag = ShownBag(state, stack);
+
+        return drag switch
+        {
+            TradeDrag.Offer => Beside(stack, bag, kind, OfferThen(stackId, new OfferTarget(droppedAt), offeredAt)),
+            TradeDrag.SplitOffer when offeredAt != null => Beside(stack, bag, kind, OfferThen(stackId, new OfferTarget(droppedAt), offeredAt)),
+            TradeDrag.TakeBack when offeredAt != null => DroppedIn(stack, bag, kind, droppedAt, RecountThen(stackId, offeredAt)),
+            TradeDrag.InBag => DroppedIn(stack, bag, kind, droppedAt, RecountThen(stackId, offeredAt)),
+            _ => null,
+        };
+    }
+
+    private static SplitRequest? SplitClickRequest(long stackId, SplitKind kind, string fromGrid, State_Web_TradeUI state)
+    {
+        if (SplitScene.LiveItems()?.GetItemData(stackId) is not { } stack) return null;
+
+        var offeredAt = TradeOffers.OfferedAt(state.GiveJson, stackId);
+
+        if (!TradeOffers.TakesBack(fromGrid)) return Beside(stack, stack.OwnerId, kind, OfferThen(stackId, new OfferTarget(At: null), offeredAt));
+
+        return offeredAt == null ? null : Beside(stack, stack.OwnerId, kind, RecountThen(stackId, offeredAt));
+    }
+
+    /// <summary>
+    /// One unit offered: added to an offer of the same kind from the same bag when the two would stack, so clicks
+    /// build one offer, or else split off and offered on its own. A single unit, or a stack already on offer, is the
+    /// game's to move.
+    /// </summary>
+    private static SplitRequest? OfferOneRequest(long stackId, State_Web_TradeUI state)
+    {
+        var items = SplitScene.LiveItems();
+
+        if (items?.GetItemData(stackId) is not { } stack || TradeOffers.IsOffered(state.GiveJson, stackId)) return null;
+
+        if (TopUp(items, stack, state.GiveJson) is { } topUp) return topUp;
+
+        return stack.ItemCount < 2 ? null : Beside(stack, stack.OwnerId, SplitKind.One, OfferThen(stackId, new OfferTarget(At: null), sourceOfferedAt: null));
+    }
+
+    private static SplitRequest? TopUp(ItemManager items, ItemData stack, string? offeredJson)
+    {
+        var kind = stack.ItemCount > 1 ? SplitKind.One : SplitKind.Join;
+
+        foreach (var offered in TradeOffers.Offered(offeredJson))
+        {
+            if (items.GetItemData(offered.Id) is not { } target || target.OwnerId != stack.OwnerId || target.ItemConfigId != stack.ItemConfigId) continue;
+
+            var at = new Cell(target.BagPos.x, target.BagPos.y);
+            var request = new SplitRequest(stack.InstanceId, stack.OwnerId, stack.OwnerId, kind, at, Cursor: at, OnLanded: RecountThen(offered.Id, offered.At));
+
+            if (SplitHooks.PlanNow(request) is SplitPlan.JoinStack join && join.StackId == offered.Id) return request;
+        }
+
+        return null;
+    }
+
+    /// <summary>A split that lands at the free spot nearest the stack, in the bag given.</summary>
+    private static SplitRequest Beside(ItemData stack, long bag, SplitKind kind, Action<long>? onLanded) =>
+        new(stack.InstanceId, stack.OwnerId, bag, kind, new Cell(stack.BagPos.x, stack.BagPos.y), Cursor: null, IsRightClick: true, OnLanded: onLanded);
+
+    /// <summary>A split that lands on the cell it was dropped on. A material rack is drawn without cells, so there the units go beside the stack.</summary>
+    private static SplitRequest DroppedIn(ItemData stack, long bag, SplitKind kind, Cell droppedAt, Action<long>? onLanded) =>
+        ItemManager.IsMaterialRackOwner(bag)
+            ? Beside(stack, bag, kind, onLanded)
+            : new SplitRequest(stack.InstanceId, stack.OwnerId, bag, kind, droppedAt, Cursor: null, OnLanded: onLanded);
+
+    /// <summary>The bag the window shows, which is where the player dropped the units.</summary>
+    private static long ShownBag(State_Web_TradeUI state, ItemData stack) => state.BagOwnerId != 0 ? state.BagOwnerId : stack.OwnerId;
+
+    private static Action<long> OfferThen(long sourceId, OfferTarget target, Cell? sourceOfferedAt) => landedId =>
+    {
+        _offer = new PendingOffer(landedId, sourceId, target, Time.unscaledTime);
+
+        if (sourceOfferedAt is { } at) _recount = new PendingTakeBack(landedId, sourceId, at, Time.unscaledTime);
+    };
+
+    private static Action<long>? RecountThen(long offeredId, Cell? offeredAt) =>
+        offeredAt is { } at ? landedId => _recount = new PendingTakeBack(landedId, offeredId, at, Time.unscaledTime) : null;
 
     private static void Send(PendingOffer offer)
     {
@@ -190,8 +273,12 @@ internal static class TradeSplit
         SendDrag(TradeOffers.BagGrid, key, cell);
     }
 
-    /// <summary>The smaller offer put down where it lies, so the window counts what is left of it.</summary>
-    private static void Recount(PendingTakeBack takeBack) => SendDrag(TradeOffers.DroneGrid, takeBack.OfferedId.ToString(), takeBack.OfferedAt);
+    /// <summary>The offer put down where it lies, so the window counts what is in it now.</summary>
+    private static void Recount(PendingTakeBack recount, float now)
+    {
+        _recountSent = (recount.OfferedId, now);
+        SendDrag(TradeOffers.DroneGrid, recount.OfferedId.ToString(), recount.OfferedAt);
+    }
 
     private static void SendDrag(string fromGrid, string itemKey, Cell toDroneCell)
     {
@@ -209,16 +296,17 @@ internal static class TradeSplit
         GameSingleton.Existing<ReduxUISystem>()?.SendAction(drag);
     }
 
-    /// <summary>A plain drop of the split-off stack on the one it came from, which joins them.</summary>
-    private static void Rejoin(PendingOffer offer)
+    /// <summary>A plain drop of the split-off stack on the one it came from, which joins them; an offer it joins is counted again.</summary>
+    private static void Rejoin(PendingOffer offer, string? offeredJson)
     {
         var items = SplitScene.LiveItems();
 
         if (items?.GetItemData(offer.SourceId) is not { } source || items.GetItemData(offer.StackId) is not { } split) return;
 
         var at = new Cell(source.BagPos.x, source.BagPos.y);
+        var onLanded = RecountThen(offer.SourceId, TradeOffers.OfferedAt(offeredJson, offer.SourceId));
 
-        SplitHooks.RunsOriginal(new SplitRequest(split.InstanceId, split.OwnerId, source.OwnerId, SplitKind.Join, at, Cursor: at));
+        SplitHooks.RunsOriginal(new SplitRequest(split.InstanceId, split.OwnerId, source.OwnerId, SplitKind.Join, at, Cursor: at, OnLanded: onLanded));
     }
 
     private static State_Web_TradeUI? OpenTrade()
