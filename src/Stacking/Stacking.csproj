@@ -47,6 +47,7 @@
     <AssemblyMetadata Include="ModManager.GameVersion" Value="1.1.19131" />
     <AssemblyMetadata Include="ModManager.Settings" Value="Restart" />
     <AssemblyMetadata Include="ModManager.GitHub" Value="AnExiledDev/SurvivalLog-Stacking" />
+    <AssemblyMetadata Include="ModManager.NexusId" Value="74" />
     <AssemblyMetadata Include="ModManager.Changelog" Value="https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CHANGELOG.md" />
   </ItemGroup>
 
