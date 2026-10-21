@@ -1,0 +1,4 @@
+# Game versions each version of Stacking is known to work on.
+# mod version = game versions, separated by commas
+0.7.3 = 1.1.18902, 1.1.19131
+0.7.4 = 1.1.19131

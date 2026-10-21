@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.4
+
+- After a game update, a hook that can no longer be placed is logged as an error, so the Mod Manager can mark the mod as maybe needing an update.
+- Made for Survival Log 1.1.19131.
+
 ## 0.7.3
 
 - Fixed: in the merchant's trade window, dropping a stack on a stack of the same item did not join them, in your bag or on the drone. An offer that gains or loses items is counted again.
