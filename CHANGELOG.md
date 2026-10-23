@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.5
+
+- Crafting table: a recipe you can make only by taking single items off stacks shows as ready again.
+- Made for Survival Log 1.1.19611.
+
 ## 0.7.4
 
 - After a game update, a hook that can no longer be placed is logged as an error, so the Mod Manager can mark the mod as maybe needing an update.

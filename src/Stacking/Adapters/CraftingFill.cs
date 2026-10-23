@@ -28,6 +28,8 @@ internal static class CraftingFill
     private static int _failures;
     private static bool _isRebuildingList;
     private static Shelves? _shelves;
+    private static State_Web_ToolTable? _listState;
+    private static State_Data_Item? _listItems;
 
     /// <summary>
     /// What the bench and its linked storages hold, read once per recipe list rebuild. The list checks every recipe
@@ -49,14 +51,15 @@ internal static class CraftingFill
             return;
         }
 
-        // The recipe list asks only this check; the game never calls the bag-only one on its own.
-        if (TryPatch(harmony, "the crafting table's material check", nameof(Reducer_Web_ToolTable.CheckMaterialSufficiencyAcrossLinked), nameof(CountUnits)))
+        // The recipe list asks the pool of everything the bench and its storages hold whether it fits each recipe
+        // exactly; the pool knows neither the table nor its storages, so the list rebuild hands them over.
+        var isListScoped = Hooks.TryPatchScope(harmony, typeof(CraftingFill), "the crafting table's recipe list",
+            () => AccessTools.Method(typeof(Reducer_Web_ToolTable), nameof(Reducer_Web_ToolTable.RefreshRecipeList)), log, nameof(OpenRebuild), nameof(CloseRebuild));
+
+        if (isListScoped && Hooks.TryPatch(harmony, typeof(CraftingFill), "the crafting table's material check",
+                () => AccessTools.Method(typeof(Reducer_Web_ToolTable.MaterialPoolIndex), nameof(Reducer_Web_ToolTable.MaterialPoolIndex.CanExactFill)), log, postfix: nameof(CountPooledUnits)))
         {
             log("the crafting table counts every item in a stack, and its fill takes single items off stacks");
-
-            // Without it each recipe reads the storages itself, as slow as before but just as right.
-            Hooks.TryPatchScope(harmony, typeof(CraftingFill), "the crafting table's recipe list",
-                () => AccessTools.Method(typeof(Reducer_Web_ToolTable), nameof(Reducer_Web_ToolTable.RefreshRecipeList)), log, nameof(OpenRebuild), nameof(CloseRebuild));
         }
         else
         {
@@ -67,7 +70,7 @@ internal static class CraftingFill
     private static bool TryPatch(Harmony harmony, string what, string method, string postfix) =>
         Hooks.TryPatch(harmony, typeof(CraftingFill), what, () => AccessTools.Method(typeof(Reducer_Web_ToolTable), method), _log, postfix: postfix);
 
-    /// <summary>The recipe list's check, over the bench and every storage linked to the table. It turns only a no into a yes, and only when the fill would step in.</summary>
+    /// <summary>A recipe's material check, over the bench and every storage linked to the table. It turns only a no into a yes, and only when the fill would step in.</summary>
     private static void CountUnits(State_Web_ToolTable state, State_Data_Item itemState, GameNeeds materialNeeded, ref bool __result)
     {
         if (__result) return;
@@ -87,15 +90,27 @@ internal static class CraftingFill
         }
     }
 
-    private static void OpenRebuild()
+    /// <summary>The pool's check during a recipe list rebuild, asked again over units for the table being rebuilt.</summary>
+    private static void CountPooledUnits(GameNeeds materialNeeded, ref bool __result)
+    {
+        if (!_isRebuildingList || _listState is not { } state || _listItems is not { } itemState) return;
+
+        CountUnits(state, itemState, materialNeeded, ref __result);
+    }
+
+    private static void OpenRebuild(State_Web_ToolTable state, State_Data_Item itemState)
     {
         _isRebuildingList = true;
+        _listState = state;
+        _listItems = itemState;
         _shelves = null;
     }
 
     private static void CloseRebuild()
     {
         _isRebuildingList = false;
+        _listState = null;
+        _listItems = null;
         _shelves = null;
     }
 

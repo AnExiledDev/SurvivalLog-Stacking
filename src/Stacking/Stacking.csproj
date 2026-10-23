@@ -44,7 +44,7 @@
     <AssemblyMetadata Include="ModManager.Description" Value="Bigger stacks per item category that keep fresh food apart from old food, cooking and crafting that count every item in a stack, no whole stacks in cooking stations, and splitting stacks with Shift, Ctrl or a how-many panel.&#10;按物品类别提高堆叠上限，新鲜食物不会和旧食物混堆；烹饪和制作按堆叠里的每一件计数；烹饪和制作家具里不放整堆；按住 Shift、Ctrl 或用数量面板拆分堆叠。" />
     <AssemblyMetadata Include="ModManager.Author" Value="AnExiledDev" />
     <AssemblyMetadata Include="ModManager.Category" Value="QualityOfLife" />
-    <AssemblyMetadata Include="ModManager.GameVersion" Value="1.1.19131" />
+    <AssemblyMetadata Include="ModManager.GameVersion" Value="1.1.19611" />
     <AssemblyMetadata Include="ModManager.Settings" Value="Restart" />
     <AssemblyMetadata Include="ModManager.GitHub" Value="AnExiledDev/SurvivalLog-Stacking" />
     <AssemblyMetadata Include="ModManager.NexusId" Value="74" />
