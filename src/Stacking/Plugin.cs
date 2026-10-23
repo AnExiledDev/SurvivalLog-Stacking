@@ -17,7 +17,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.7.5";
+    private const string Version = "0.7.6";
 
     public override void Load()
     {
@@ -41,6 +41,8 @@ public sealed class Plugin : BasePlugin
         log.Write($"===== Stacking {Version} started");
 
         var canGuardFreshness = StackGuard.Apply(harmony, log.Write, log.WriteFileOnly);
+
+        BagAddFreshness.Apply(harmony, log.Write, log.WriteFileOnly);
 
         if (isCountingWholeStacks) Cooking.Apply(harmony, log.Write);
         else log.Write("cooking counts a stack as one ingredient: Cooking/CountWholeStacks is off");

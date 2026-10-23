@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.6
+
+- With the refrigerated backpack upgrade, harvested crops and other food that join a stack in the backpack keep their full shelf life instead of losing part of it.
+- Made for Survival Log 1.1.19611.
+
 ## 0.7.5
 
 - Crafting table: a recipe you can make only by taking single items off stacks shows as ready again.
