@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading.Tasks;
 using GameCore.HotUpdate;
 using Stacking.Core;
 using ItemTable = Il2CppSystem.Collections.Generic.Dictionary<int, GameCore.HotUpdate.Config_Item>;
@@ -171,7 +172,12 @@ internal sealed class LimitWriter
         }
 
         var plan = StackLimits.Plan(rows, _wantedByCategory, _canGuardFreshness);
+
+        yield return true;
+
         var neverSpoils = StackLimits.NeverSpoiling(rows);
+
+        yield return true;
 
         StackGuard.NewlyStackable = StackLimits.GuardedWhileWriting(StackGuard.NewlyStackable, plan.NewlyStackable);
         StackGuard.NeverSpoils = neverSpoils;
@@ -254,7 +260,19 @@ internal sealed class LimitWriter
         _log($"stack limits written for {written} items, {plan.Limits.Count} raised, {plan.NewlyStackable.Count} of which the game never stacked");
         _log($"{plan.NewlyStackable.Count(neverSpoils.Contains)} of the newly stackable items never spoil, so when they were picked up does not keep them apart");
 
-        foreach (var line in StackLimits.Describe(rows, plan, CategoryName)) _logFileOnly(line);
+        // Grouping every item by category is the costliest part of the report and only feeds the log file, so it runs
+        // off the main thread; the rows and the plan are not changed after the write.
+        Task.Run(() =>
+        {
+            try
+            {
+                foreach (var line in StackLimits.Describe(rows, plan, CategoryName)) _logFileOnly(line);
+            }
+            catch (Exception)
+            {
+                // The per-category lines are only for the log file; the limits are already written.
+            }
+        });
     }
 
     private static string CategoryName(int category) =>

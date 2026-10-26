@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using UnityEngine;
 
 namespace Stacking.Adapters;
@@ -10,13 +11,16 @@ namespace Stacking.Adapters;
 public sealed class StackTicker : MonoBehaviour
 {
     private const float SweepSeconds = 5f;
+    private const long SweepMilliseconds = 5000;
     private const int MaxLoggedFailures = 3;
 
     internal static LimitWriter? Writer;
     internal static StationMover? Mover;
     internal static Action<string> Log = _ => { };
 
-    private float _nextSweepAt;
+    /// <summary>The sweep's own clock, so a frame with no sweep due reads no game time.</summary>
+    private readonly Stopwatch _clock = Stopwatch.StartNew();
+    private long _nextSweepAtMs;
     private int _failures;
     private int _moveFailures;
     private int _keyFailures;
@@ -37,9 +41,9 @@ public sealed class StackTicker : MonoBehaviour
 
         if (!isWriting)
         {
-            if (Time.unscaledTime < _nextSweepAt) return;
+            if (_clock.ElapsedMilliseconds < _nextSweepAtMs) return;
 
-            _nextSweepAt = Time.unscaledTime + SweepSeconds;
+            _nextSweepAtMs = _clock.ElapsedMilliseconds + SweepMilliseconds;
         }
 
         try

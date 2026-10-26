@@ -189,8 +189,24 @@ internal static class CraftingFill
     /// The fill button and batch crafting pick here and then move the picks onto the bench. When the game found nothing,
     /// or picked a stack the station rule would cut to one unit on the way, units are taken off stacks here and now and
     /// the pick is made again around them; the game's move then finds them on the bench already and moves the rest.
+    /// Every move redraws the table's recipe list, so the redraws are held and at most one goes out at the end; none
+    /// when a pick is returned, since the game's fill redraws the list itself once it has moved its picks.
     /// </summary>
     private static void TakeUnitsFromStacks(State_Web_ToolTable state, State_Data_Item itemState, GameNeeds materialNeeded, long leftOwnerId, ref GameIds? __result, ref GameSources? sourceOf)
+    {
+        ScreenRefresh.Hold();
+
+        try
+        {
+            FillWithUnits(state, itemState, materialNeeded, leftOwnerId, ref __result, ref sourceOf);
+        }
+        finally
+        {
+            ScreenRefresh.Release(isToolTableSentNext: __result != null);
+        }
+    }
+
+    private static void FillWithUnits(State_Web_ToolTable state, State_Data_Item itemState, GameNeeds materialNeeded, long leftOwnerId, ref GameIds? __result, ref GameSources? sourceOf)
     {
         var landed = new List<BenchUnit>();
         ItemManager? items = null;
@@ -265,9 +281,9 @@ internal static class CraftingFill
 
         foreach (var item in HeldBy(itemState, bench))
         {
-            var itemId = item.LogicId;
+            var itemId = item._LogicId_k__BackingField;
 
-            if (item.OwnerId == bench && !kept.Contains(itemId)) others.Add(itemId);
+            if (item._OwnerId_k__BackingField == bench && !kept.Contains(itemId)) others.Add(itemId);
         }
 
         if (others.Count > 0) Reducer_Web_ToolTable.ReturnBenchItemsToOrigins(state, itemState, others, bench, leftOwnerId, null);
@@ -348,14 +364,14 @@ internal static class CraftingFill
 
             foreach (var item in HeldBy(itemState, owner))
             {
-                var configId = item.ItemConfigId;
+                var configId = item._ItemConfigId_k__BackingField;
 
                 // The cache can keep stale entries whose owner moved on; the game's moves would refuse those.
-                if (!isWanted(configId) || item.OwnerId != owner) continue;
+                if (!isWanted(configId) || item._OwnerId_k__BackingField != owner) continue;
 
-                var count = item.ItemCount;
+                var count = item._ItemCount_k__BackingField;
 
-                inOwner.Add(new PickCandidate(item.LogicId, owner, configId, count, IsCut: canCut && owner != bench && IsCut(count, configId, item.InstanceWeight != 0)));
+                inOwner.Add(new PickCandidate(item._LogicId_k__BackingField, owner, configId, count, IsCut: canCut && owner != bench && IsCut(count, configId, item._InstanceWeight_k__BackingField != 0)));
             }
 
             held.Add(inOwner);
@@ -366,7 +382,7 @@ internal static class CraftingFill
 
     private static IEnumerable<Data_Item> HeldBy(State_Data_Item itemState, long owner)
     {
-        if (owner == 0 || itemState.OwnerCache is not { } cache || !cache.TryGetValue(owner, out var held) || held == null) yield break;
+        if (owner == 0 || itemState._OwnerCache_k__BackingField is not { } cache || !cache.TryGetValue(owner, out var held) || held == null) yield break;
 
         foreach (var item in held.Values)
         {

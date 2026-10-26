@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.9
+
+- Fixed: a stutter when you pick a recipe at the crafting table and the mod takes single items off stacks for it.
+- Fixed: a stutter when the mod moves items into or out of a crafting or cooking station while its screen is open.
+- Fixed: short stutters while the mod writes its log file.
+- Made for Survival Log 1.1.19611.
+
 ## 0.7.8
 
 - Fixed: a stutter when the crafting table's recipe list updates while stacks of the same item sit in its storages.

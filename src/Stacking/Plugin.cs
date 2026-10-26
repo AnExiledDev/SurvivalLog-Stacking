@@ -17,7 +17,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.7.8";
+    private const string Version = "0.7.9";
 
     public override void Load()
     {
@@ -38,6 +38,7 @@ public sealed class Plugin : BasePlugin
         var log = new StackLog(Log, Path.Combine(Paths.BepInExRootPath, "stacking.log"));
 
         log.TrimIfLarge();
+        log.Start();
         log.Write($"===== Stacking {Version} started");
 
         var canGuardFreshness = StackGuard.Apply(harmony, log.Write, log.WriteFileOnly);
@@ -92,6 +93,8 @@ public sealed class Plugin : BasePlugin
 
         StackTicker.Mover = mover;
 
+        // Station moves and the crafting fill hold the station screens' redraws to one per run of moves.
+        ScreenRefresh.Apply(harmony, log.Write);
         CraftingFill.Apply(harmony, mover, log.Write, log.WriteFileOnly);
     }
 

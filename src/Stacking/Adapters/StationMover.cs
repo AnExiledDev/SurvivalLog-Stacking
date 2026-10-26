@@ -25,11 +25,23 @@ internal sealed class StationMover
         _logFileOnly = logFileOnly;
     }
 
-    /// <summary>Once per frame, on the main thread.</summary>
+    /// <summary>
+    /// Once per frame, on the main thread. Each move redraws an open station screen, the crafting table's whole recipe
+    /// list with it, so the redraws are held and one goes out once this frame's moves are done.
+    /// </summary>
     public void Run()
     {
         StationGuard.ForgetLeaving();
 
+        using (ScreenRefresh.Hold())
+        {
+            CarryOutWork();
+            RedrawQueued();
+        }
+    }
+
+    private void CarryOutWork()
+    {
         while (StationGuard.TryTake(out var work))
         {
             var items = SplitScene.LiveItems();
@@ -57,7 +69,10 @@ internal sealed class StationMover
                     throw new InvalidOperationException("every station move needs carrying out: " + work);
             }
         }
+    }
 
+    private void RedrawQueued()
+    {
         while (_redraws.TryDequeue(out var bags))
         {
             if (SplitScene.LiveItems() is { } items) Redraw(items, bags.From, bags.To);
