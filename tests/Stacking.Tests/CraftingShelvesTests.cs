@@ -143,6 +143,19 @@ public class CraftingShelvesTests
     }
 
     [Fact]
+    public void Reading_the_same_stacks_again_does_not_count_their_units_twice()
+    {
+        var shelves = Shelve(new[] { new Held(Bag, Glass, 3, true) });
+
+        shelves.Start(Table, Items);
+        shelves.Add(Glass, 3, isCut: true);
+        shelves.EndOwner();
+
+        Assert.True(shelves.CanFill(Needs((Glass, 3))));
+        Assert.False(shelves.CanFill(Needs((Glass, 4))));
+    }
+
+    [Fact]
     public void Every_recipe_in_one_rebuild_is_answered_from_one_read()
     {
         var shelves = Shelve(new[] { new Held(Bag, Glass, 8, true) });
