@@ -12,7 +12,7 @@
 
 ## 0.7.4
 
-- After a game update, a hook that can no longer be placed is logged as an error, so the Mod Manager can mark the mod as maybe needing an update.
+- After a game update, Mod Manager can tell you if this mod may need an update.
 - Made for Survival Log 1.1.19131.
 
 ## 0.7.3
@@ -38,31 +38,35 @@
 
 ## 0.6.0
 
-- The Mods screen links this changelog.
+- Mod Manager's Mods screen links to this changelog.
 - Stack limits changed on the Mod Manager's Mods screen take effect within a few seconds. A category turned down or off gives its items the game's own limit again. Cooking and splitting still need a game restart.
-- The Mods screen shows the mod's name, description, category and links.
-- Exiled's Toolkit 0.4.0 or newer is optional. With it, settings changed on the Mods screen take effect without a restart; without it, at the next game start.
+- Mod Manager's Mods screen shows the mod's name, description, category and links.
+- Exiled's Toolkit 0.4.0 or newer is optional. With it, settings you change on the Mods screen take effect right away. Without it, they take effect the next time you start the game.
 
 ## 0.5.0
 
-Dropping a stack on a stack of the same item now joins them into one stack, as far as the stack limit allows, and the rest stays where it was. The game only ever swapped the two. A drop on anything else is the game's own move, as before.
-
-Shift, Ctrl and Ctrl+Shift drags now split a stack while a crafting table, cooking bench, compressor, dye station or drone hub is open. Those windows moved the whole stack before.
-
-Other mods can now move one item off a stack, so Storage Hub's Home tab takes one item per click from a stack. No setting changed.
+- Dropping a stack on a stack of the same item joins them into one stack, as far as the stack limit allows, and the rest stays where it was. The game only ever swapped the two. A drop on anything else is the game's own move, as before.
+- Shift, Ctrl and Ctrl+Shift drags split a stack while a crafting table, cooking bench, compressor, dye station or drone hub is open. Those windows moved the whole stack before.
+- Storage Hub's Home tab takes one item per click from a stack, because other mods can now move one item off a stack.
 
 ## 0.4.9
 
-The crafting table's recipe list updates faster when your storages hold a lot of items. The mod counted the stacks in every linked storage again for each recipe, and now it reads them once for the whole list. No setting changed.
+- The crafting table's recipe list updates faster when your storages hold a lot of items.
 
 ## 0.4.8
 
-Reusable materials, such as Electrical Wire, Integrated Circuits, Iron Rods and sheet metal, now stack. The game marks them as never used up, and the mod used to treat that like items with uses. Reusable items you use directly, such as dyes, the comb and dumbbells, keep the game's limit, because the game takes one from a stack each time you use one. Items that never spoil also stack whether you found them on the map or made or bought them; the game kept those apart only because found food spoils at its own rate.
+- Reusable materials, such as Electrical Wire, Integrated Circuits, Iron Rods and sheet metal, now stack.
+- Reusable items you use directly, such as dyes, the comb and dumbbells, keep the game's limit, because the game takes one from a stack each time you use one.
+- Items that never spoil stack whether you found them on the map or made or bought them.
 
 ## 0.4.7
 
-Items that never spoil, such as diesel, gas canisters and materials, now stack no matter when you picked them up. Before, only seeds did, so these items started a new stack for every pickup and Auto Organize could not merge them.
+- Items that never spoil, such as diesel, gas canisters and materials, stack no matter when you picked them up. Before, only seeds did, so these items started a new stack for every pickup and Auto Organize could not merge them.
 
 ## 0.4.6
 
-First public release. Bigger stacks per item category that keep fresh food apart from old food, cooking and crafting that count every item in a stack, no whole stacks in cooking stations, and splitting stacks with Shift, Ctrl or a how-many panel.
+- First release.
+- Bigger stacks for each item category, with fresh food kept apart from old food.
+- Cooking and crafting count every item in a stack.
+- Cooking stations no longer take whole stacks.
+- Split stacks with Shift, Ctrl or a panel that asks how many.
