@@ -6,11 +6,14 @@ namespace Stacking.Adapters;
 /// <summary>The bag screen as the game draws it: which containers it shows and how big it draws their grids.</summary>
 internal static class BackpackScreen
 {
+    /// <summary>The game's type for the screen, looked up once: each lookup makes a new object.</summary>
+    private static Il2CppSystem.Type? _screen;
+
     /// <summary>The bag screen's state while it is open; null when it is closed.</summary>
     public static State_Web_BackpackUI? Open()
     {
         var ui = GameSingleton.Existing<ReduxUISystem>();
-        var screen = Il2CppType.Of<WebUI_BackpackUI>();
+        var screen = _screen ??= Il2CppType.Of<WebUI_BackpackUI>();
 
         if (ui == null || !ui.IsUIActive(screen)) return null;
 

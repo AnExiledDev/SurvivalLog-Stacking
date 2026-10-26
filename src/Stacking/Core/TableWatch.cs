@@ -20,9 +20,18 @@ public static class TableWatch
 {
     public const int CanaryCount = 8;
 
-    /// <summary>True when nothing about the tables has changed since the last full write.</summary>
-    public static bool IsUnchanged(TableStamp? last, TableStamp now, IEnumerable<Canary> canaries) =>
-        last == now && canaries.All(canary => canary.Written == canary.Now);
+    /// <summary>True when nothing about the tables has changed since the last full write. Runs every few seconds, so it makes nothing.</summary>
+    public static bool IsUnchanged(TableStamp? last, TableStamp now, IReadOnlyList<Canary> canaries)
+    {
+        if (last != now) return false;
+
+        for (var i = 0; i < canaries.Count; i++)
+        {
+            if (canaries[i].Written != canaries[i].Now) return false;
+        }
+
+        return true;
+    }
 
     /// <summary>
     /// Up to <see cref="CanaryCount"/> raised items, spread across the id range, to check between full writes.

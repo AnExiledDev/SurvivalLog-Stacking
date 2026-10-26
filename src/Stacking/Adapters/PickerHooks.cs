@@ -63,7 +63,19 @@ internal static class PickerHooks
         return false;
     }
 
-    private static bool SkipWhileOpen() => !(_isPickerOpen || Time.frameCount <= _blockedThroughFrame);
+    /// <summary>Every frame. The game's frame count is read only in the frame or two after the picker closed.</summary>
+    private static bool SkipWhileOpen()
+    {
+        if (_isPickerOpen) return false;
+
+        if (_blockedThroughFrame < 0) return true;
+
+        if (Time.frameCount <= _blockedThroughFrame) return false;
+
+        _blockedThroughFrame = -1;
+
+        return true;
+    }
 
     private static void RouteClicksToPicker(ref bool __result)
     {

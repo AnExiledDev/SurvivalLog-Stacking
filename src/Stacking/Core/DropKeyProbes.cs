@@ -70,6 +70,9 @@ public sealed record DropKeyProbes(
             ? this with { OursUnseen = OursUnseen - 1 }
             : this with { Outstanding = 0, ToSwallow = ToSwallow + Outstanding, Late = 0, MaybeAnswered = 0 };
 
+    /// <summary>Some press or answer is still waited for; while nothing is, <see cref="Expired"/> has nothing to do.</summary>
+    public bool IsOwed => Outstanding > 0 || OursUnseen > 0 || ToSwallow > 0;
+
     /// <summary>
     /// Once a frame. When this mod's newest press has gone unanswered for more than <see cref="AnswerWithinFrames"/>
     /// frames and at least <see cref="AnswerWithinMs"/> ms, nothing is owed to any press any more; an answer still on
@@ -78,10 +81,9 @@ public sealed record DropKeyProbes(
     /// </summary>
     public DropKeyProbes Expired(long frame, long ms)
     {
-        var isOwed = Outstanding > 0 || OursUnseen > 0 || ToSwallow > 0;
         var isWithinBound = frame - LastPressFrame <= AnswerWithinFrames || ms - LastPressMs < AnswerWithinMs;
 
-        if (!isOwed || isWithinBound) return this;
+        if (!IsOwed || isWithinBound) return this;
 
         return this with { Outstanding = 0, OursUnseen = 0, ToSwallow = 0, Late = Late + Outstanding - MaybeAnswered + ToSwallow, MaybeAnswered = 0 };
     }

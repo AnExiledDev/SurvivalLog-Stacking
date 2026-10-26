@@ -109,6 +109,29 @@ public class StackLimitsTests
 
     private static readonly Dictionary<int, int> FoodTo20 = new() { [Food] = 20 };
 
+    /// <summary>
+    /// The limits are now written a few at a time over several frames. Through that time the freshness guard must know
+    /// both the items still raised from before and those about to be raised, or a stack could merge foods of different
+    /// ages mid-write.
+    /// </summary>
+    [Fact]
+    public void While_limits_are_written_the_guard_watches_old_and_new_items_alike()
+    {
+        var guarded = StackLimits.GuardedWhileWriting(new HashSet<int> { 1, 2 }, new HashSet<int> { 2, 3 });
+
+        Assert.Equal(new[] { 1, 2, 3 }, guarded.OrderBy(id => id));
+    }
+
+    [Fact]
+    public void Watching_through_a_write_leaves_the_guard_s_own_set_as_it_was()
+    {
+        var now = new HashSet<int> { 1 };
+
+        StackLimits.GuardedWhileWriting(now, new HashSet<int> { 5 });
+
+        Assert.Equal(new[] { 1 }, now);
+    }
+
     [Fact]
     public void A_category_limit_lets_an_unstackable_item_stack_and_marks_it_for_the_freshness_guard()
     {

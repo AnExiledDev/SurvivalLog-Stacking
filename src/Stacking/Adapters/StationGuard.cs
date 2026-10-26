@@ -351,8 +351,16 @@ internal static class StationGuard
         StationRule.Entry(Stations.IsStation(items, toOwnerId), fromOwnerId == toOwnerId, item.ItemCount,
             StackGuard.NewlyStackable.Contains(item.ItemConfigId), item.InstanceWeight != 0);
 
-    internal static int UnitsToSendBack(ItemData item) =>
-        StationRule.UnitsToSendBack(item.ItemCount, StackGuard.NewlyStackable.Contains(item.ItemConfigId), item.InstanceWeight != 0);
+    /// <summary>
+    /// Runs as every item enters or leaves a container, so it reads the item's fields directly (a property read is a
+    /// call into the game) and stops at the item kind, which rules out most items.
+    /// </summary>
+    internal static int UnitsToSendBack(ItemData item)
+    {
+        if (!StackGuard.NewlyStackable.Contains(item._ItemConfigId_k__BackingField)) return 0;
+
+        return StationRule.UnitsToSendBack(item._ItemCount_k__BackingField, true, item._InstanceWeight_k__BackingField != 0);
+    }
 
     private static Cell CellOf(Vector2Int bagPos) => new(bagPos.x, bagPos.y);
 

@@ -110,6 +110,9 @@ internal static class StackSplitting
             case PickerAnswer.Onto onto:
                 DropWatch.DroppedOnto(onto);
                 break;
+            case PickerAnswer.DropsMissing:
+                _drops?.Missing();
+                break;
             case PickerAnswer.Unknown unknown:
                 _unknownAnswers++;
 

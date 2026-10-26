@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.8
+
+- Fixed: a stutter when the crafting table's recipe list updates while stacks of the same item sit in its storages.
+- Fixed: a stutter when a save loads, while the mod sets the stack limits.
+- Fixed: the mod did extra work in the game's menus every 3 seconds, even when nothing had changed.
+- Made for Survival Log 1.1.19611.
+
 ## 0.7.7
 
 - Fixed: a short stutter every 5 seconds. The mod now checks the item table only when the game loads it again or a stack limit changes.

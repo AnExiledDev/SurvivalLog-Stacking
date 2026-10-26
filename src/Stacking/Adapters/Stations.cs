@@ -13,6 +13,9 @@ namespace Stacking.Adapters;
 /// </summary>
 internal static class Stations
 {
+    /// <summary>The game's type for the crafting table's screen, looked up once: each lookup makes a new object.</summary>
+    private static Il2CppSystem.Type? _toolTable;
+
     public static bool IsStation(ItemManager items, long ownerId) =>
         ownerId != 0
         && (ItemManager.IsCookingFurniture(ownerId)
@@ -34,7 +37,7 @@ internal static class Stations
     private static bool IsOpenCraftingBench(long ownerId)
     {
         var ui = GameSingleton.Existing<ReduxUISystem>();
-        var screen = Il2CppType.Of<WebUI_ToolTable>();
+        var screen = _toolTable ??= Il2CppType.Of<WebUI_ToolTable>();
 
         if (ui == null || !ui.IsUIActive(screen)) return false;
 

@@ -42,6 +42,13 @@ public class PickerAnswerTests
         Assert.Equal(new PickerAnswer.Onto(9000000001, 9000000002), PickerAnswer.Parse("slmod|stacking|onto|9000000001|9000000002"));
     }
 
+    /// <summary>The drop watcher's check says this only when a reload of the web UI lost drops.js, which then goes again.</summary>
+    [Fact]
+    public void The_page_saying_it_lost_the_drop_watcher_asks_for_it_again()
+    {
+        Assert.Equal(new PickerAnswer.DropsMissing(), PickerAnswer.Parse("slmod|stacking|drops"));
+    }
+
     [Fact]
     public void Another_mod_s_page_message_is_not_ours_to_swallow()
     {
@@ -65,6 +72,7 @@ public class PickerAnswerTests
     [InlineData("slmod|stacking|onto|7|-8")]
     [InlineData("slmod|stacking|onto|7|x")]
     [InlineData("slmod|stacking|onto|7|8|9")]
+    [InlineData("slmod|stacking|drops|1")]
     public void A_malformed_answer_moves_nothing(string message)
     {
         Assert.IsType<PickerAnswer.Unknown>(PickerAnswer.Parse(message));

@@ -267,6 +267,31 @@ public class DropKeyProbesTests
         Assert.Equal(DropKeyReply.Drop, reply);
     }
 
+    /// <summary>
+    /// The plugin skips the expiry, and its read of the game's frame count, on every frame where nothing is owed. That
+    /// is only safe while expiring such a state changes nothing, however long it has waited.
+    /// </summary>
+    [Fact]
+    public void With_nothing_owed_expiring_changes_nothing()
+    {
+        var answered = Answer(DropKeyProbes.None.Probed(0, 0).KeySeen()).Next;
+        var lateThenAnswered = Answer(DropKeyProbes.None.Probed(0, 0).KeySeen().Expired(TooLong, TooLongMs)).Next;
+
+        foreach (var idle in new[] { DropKeyProbes.None, answered, lateThenAnswered, DropKeyProbes.None.KeySeen() })
+        {
+            Assert.False(idle.IsOwed);
+            Assert.Equal(idle, idle.Expired(100 * TooLong, 100 * TooLongMs));
+        }
+    }
+
+    [Fact]
+    public void A_press_waiting_for_its_answer_or_one_still_to_swallow_is_owed()
+    {
+        Assert.True(DropKeyProbes.None.Probed(0, 0).IsOwed);
+        Assert.True(DropKeyProbes.None.Probed(0, 0).KeySeen().IsOwed);
+        Assert.True(DropKeyProbes.None.Probed(0, 0).KeySeen().KeySeen().IsOwed);
+    }
+
     [Fact]
     public void A_press_is_kept_for_the_whole_bound_counted_from_the_newest_press()
     {

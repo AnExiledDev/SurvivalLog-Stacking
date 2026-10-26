@@ -3,8 +3,9 @@
 // so a drop onto a matching stack never reached the plugin there. This hears each station page's mouse-up before
 // that script does and, when a dragged item is let go over another item in a bag grid, says
 // "slmod|stacking|onto|<dragged id>|<id under it>" through vuplex.postMessage. It changes nothing on the page; the
-// plugin checks the keys held and decides whether anything splits. The plugin sends this script again every few
-// seconds, in case the web UI reloaded, so it installs itself once. The trade page puts a stack let go over another
+// plugin checks the keys held and decides whether anything splits. Every few seconds the plugin checks for
+// window.__slstackingDrops and sends this script again when a reload of the web UI lost it; it installs itself once.
+// The trade page puts a stack let go over another
 // back the same way; there the held stack and the stacks in each grid are read from the page's own drag state.
 (function () {
   if (window.__slstackingDrops) return;
@@ -157,9 +158,10 @@
     } catch (err) {}
   }
 
-  function scan() {
-    var frames = document.querySelectorAll('iframe');
+  // A live list the browser keeps current, so the poll searches the document for frames only once.
+  var frames = document.getElementsByTagName('iframe');
 
+  function scan() {
     for (var i = 0; i < frames.length; i++) watch(frames[i]);
   }
 

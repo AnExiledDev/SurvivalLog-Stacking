@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using GameCore.HotUpdate;
 using Stacking.Core;
 using ItemTable = Il2CppSystem.Collections.Generic.Dictionary<int, GameCore.HotUpdate.Config_Item>;
+using RecipeTable = Il2CppSystem.Collections.Generic.Dictionary<int, GameCore.HotUpdate.Config_CookingRecipe>;
 
 namespace Stacking.Adapters;
 
@@ -11,9 +14,12 @@ namespace Stacking.Adapters;
 /// Writes the chosen stack limits onto the game's item table. The table only exists once the game has loaded it,
 /// and a reload would bring back the game's limits, so each sweep checks whether a table was replaced or a few raised items lost their limit, and only then rewrites the table.
 /// New limits from the settings land at the next sweep, and an item no longer raised gets the game's limit back.
+/// A full write reads and writes every item, so it runs a slice of about two milliseconds a frame until it is done.
 /// </summary>
 internal sealed class LimitWriter
 {
+    private const double SliceMilliseconds = 2;
+
     private IReadOnlyDictionary<int, int> _wantedByCategory = new Dictionary<int, int>();
     private readonly bool _canGuardFreshness;
     private readonly Action<string> _log;
@@ -25,6 +31,13 @@ internal sealed class LimitWriter
     /// <summary>The tables the last full write went to, and a few raised items to check between full writes.</summary>
     private TableStamp? _lastStamp;
     private Dictionary<int, int> _canaries = new();
+    private readonly List<Canary> _canariesNow = new();
+
+    /// <summary>The full write in progress, and the tables it reads.</summary>
+    private SlicedJob? _job;
+    private TableStamp _jobStamp;
+    private readonly Stopwatch _slice = new();
+    private readonly Func<bool> _isSliceSpent;
 
     private bool _hasApplied;
     private bool _hasReportedWaiting;
@@ -34,51 +47,89 @@ internal sealed class LimitWriter
         _canGuardFreshness = canGuardFreshness;
         _log = log;
         _logFileOnly = logFileOnly;
+        _isSliceSpent = () => _slice.Elapsed.TotalMilliseconds >= SliceMilliseconds;
     }
 
-    /// <summary>Set on the main thread, where the sweep runs. The next sweep writes them and reports them in full.</summary>
+    /// <summary>True while a full write is spread over frames; the ticker then calls <see cref="Continue"/> every frame.</summary>
+    public bool IsWriting => _job != null;
+
+    /// <summary>
+    /// Set on the main thread, where the sweep runs. The next sweep writes them and reports them in full; a write in
+    /// progress stops, since it was planned for the old limits.
+    /// </summary>
     public void UseLimits(IReadOnlyDictionary<int, int> wantedByCategory)
     {
         _wantedByCategory = wantedByCategory;
         _hasApplied = false;
         _lastStamp = null;
+        _job = null;
     }
 
+    /// <summary>Starts a full write when a table was replaced or a watched item lost its limit, and runs its first slice.</summary>
     public void Sweep()
     {
-        var config = BaseSingleton<ConfigManager>.IsInstanceCreated ? BaseSingleton<ConfigManager>.Instance : null;
-        var table = config?._Config_Item_Dict;
-
-        if (config == null || table == null || table.Count == 0) return;
+        if (!TryTables(out var config, out var table)) return;
 
         var stamp = Stamp(config, table);
 
-        if (TableWatch.IsUnchanged(_lastStamp, stamp, Canaries(table))) return;
+        if (_lastStamp == stamp && TableWatch.IsUnchanged(_lastStamp, stamp, Canaries(table))) return;
 
-        var cookedItems = CookedItems(config);
-
-        if (cookedItems == null)
+        if (config._Config_CookingRecipe_Dict is not { Count: > 0 } recipes)
         {
+            // Writing before then would raise every dish.
             ReportWaitingForRecipes();
 
             return;
         }
 
-        var items = new List<Config_Item>(table.Count);
+        _jobStamp = stamp;
+        _job = new SlicedJob(Steps(table, recipes, stamp));
+        Continue();
+    }
 
-        foreach (var item in table.Values)
+    /// <summary>
+    /// The next slice of the full write. A table replaced since the write began starts it over on the new one, so no
+    /// write lands on a table the game no longer reads.
+    /// </summary>
+    public void Continue()
+    {
+        if (_job is not { } job) return;
+
+        if (!TryTables(out var config, out var table))
         {
-            if (item != null) items.Add(item);
+            _job = null;
+
+            return;
         }
 
-        var rows = items.Select(item => GameRow(item, cookedItems)).ToList();
-        var plan = StackLimits.Plan(rows, _wantedByCategory, _canGuardFreshness);
-        var written = items.Where((item, index) => Write(item, StackLimits.LimitFor(plan, rows[index]))).Count();
+        if (Stamp(config, table) != _jobStamp)
+        {
+            _job = null;
+            Sweep();
 
-        StackGuard.NewlyStackable = plan.NewlyStackable;
-        StackGuard.NeverSpoils = StackLimits.NeverSpoiling(rows);
-        Report(rows, plan, written, StackGuard.NeverSpoils);
-        Remember(stamp, plan);
+            return;
+        }
+
+        _slice.Restart();
+
+        try
+        {
+            if (job.Advance(_isSliceSpent)) _job = null;
+        }
+        catch
+        {
+            _job = null;
+
+            throw;
+        }
+    }
+
+    private static bool TryTables([NotNullWhen(true)] out ConfigManager? config, [NotNullWhen(true)] out ItemTable? table)
+    {
+        config = BaseSingleton<ConfigManager>.IsInstanceCreated ? BaseSingleton<ConfigManager>.Instance : null;
+        table = config?._Config_Item_Dict;
+
+        return config != null && table != null && table.Count > 0;
     }
 
     private static TableStamp Stamp(ConfigManager config, ItemTable table)
@@ -88,9 +139,74 @@ internal sealed class LimitWriter
         return new TableStamp(table.Pointer.ToInt64(), table.Count, recipes?.Pointer.ToInt64() ?? 0, recipes?.Count ?? 0);
     }
 
-    /// <summary>The watched items as they are now; a missing one reads as limit 0, so it counts as changed.</summary>
-    private IEnumerable<Canary> Canaries(ItemTable table) =>
-        _canaries.Select(canary => new Canary(canary.Value, table.TryGetValue(canary.Key, out var item) && item != null ? item.StackLimit : 0));
+    /// <summary>
+    /// The full write, one item a step: the dishes the recipes make, every item's row, the plan, then each limit. The
+    /// guard learns of every item about to be raised before the first limit is written.
+    /// </summary>
+    private IEnumerable<bool> Steps(ItemTable table, RecipeTable recipes, TableStamp stamp)
+    {
+        var outputs = new List<RecipeOutputs>(recipes.Count);
+
+        foreach (var recipe in recipes.Values)
+        {
+            if (recipe == null) continue;
+
+            outputs.Add(new RecipeOutputs(recipe._PerfectItemID_k__BackingField, recipe._GoodItemID_k__BackingField, recipe._NormalItemID_k__BackingField, recipe._FailItemID_k__BackingField));
+
+            yield return true;
+        }
+
+        var cookedItems = StackLimits.CookedItems(outputs);
+        var items = new List<Config_Item>(table.Count);
+        var rows = new List<ItemRow>(table.Count);
+
+        foreach (var item in table.Values)
+        {
+            if (item == null) continue;
+
+            items.Add(item);
+            rows.Add(GameRow(item, cookedItems));
+
+            yield return true;
+        }
+
+        var plan = StackLimits.Plan(rows, _wantedByCategory, _canGuardFreshness);
+        var neverSpoils = StackLimits.NeverSpoiling(rows);
+
+        StackGuard.NewlyStackable = StackLimits.GuardedWhileWriting(StackGuard.NewlyStackable, plan.NewlyStackable);
+        StackGuard.NeverSpoils = neverSpoils;
+
+        yield return true;
+
+        var written = 0;
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (Write(items[i], StackLimits.LimitFor(plan, rows[i]))) written++;
+
+            yield return true;
+        }
+
+        StackGuard.NewlyStackable = plan.NewlyStackable;
+
+        yield return true;
+
+        Report(rows, plan, written, neverSpoils);
+        Remember(stamp, plan);
+    }
+
+    /// <summary>The watched items as they are now; a missing one reads as limit 0, so it counts as changed. Fills one reused list.</summary>
+    private List<Canary> Canaries(ItemTable table)
+    {
+        _canariesNow.Clear();
+
+        foreach (var (id, written) in _canaries)
+        {
+            _canariesNow.Add(new Canary(written, table.TryGetValue(id, out var item) && item != null ? item._StackLimit_k__BackingField : 0));
+        }
+
+        return _canariesNow;
+    }
 
     private void Remember(TableStamp stamp, StackPlan plan)
     {
@@ -98,38 +214,21 @@ internal sealed class LimitWriter
         _canaries = TableWatch.PickCanaries(plan.Limits.Keys).ToDictionary(id => id, id => plan.Limits[id]);
     }
 
-    /// <summary>
-    /// The dishes the recipe table can make, or null until the game has loaded it: writing before then would raise
-    /// every dish.
-    /// </summary>
-    private static IReadOnlySet<int>? CookedItems(ConfigManager config)
-    {
-        var recipes = config._Config_CookingRecipe_Dict;
-
-        if (recipes == null || recipes.Count == 0) return null;
-
-        var outputs = new List<RecipeOutputs>(recipes.Count);
-
-        foreach (var recipe in recipes.Values)
-        {
-            if (recipe != null) outputs.Add(new RecipeOutputs(recipe.PerfectItemID, recipe.GoodItemID, recipe.NormalItemID, recipe.FailItemID));
-        }
-
-        return StackLimits.CookedItems(outputs);
-    }
-
+    /// <summary>Each value read straight from the row's fields, which is what its properties return.</summary>
     private ItemRow GameRow(Config_Item item, IReadOnlySet<int> cookedItems)
     {
-        if (!_gameLimits.TryGetValue(item.ID, out var gameLimit)) _gameLimits[item.ID] = gameLimit = item.StackLimit;
+        var id = item._ID_k__BackingField;
 
-        return new ItemRow(item.ID, item.Category, gameLimit, item.UseTimes, item.Life, cookedItems.Contains(item.ID), !item.CantUse);
+        if (!_gameLimits.TryGetValue(id, out var gameLimit)) _gameLimits[id] = gameLimit = item._StackLimit_k__BackingField;
+
+        return new ItemRow(id, item._Category_k__BackingField, gameLimit, item._UseTimes_k__BackingField, item._Life_k__BackingField, cookedItems.Contains(id), !item._CantUse_k__BackingField);
     }
 
     private static bool Write(Config_Item item, int limit)
     {
-        if (item.StackLimit == limit) return false;
+        if (item._StackLimit_k__BackingField == limit) return false;
 
-        item.StackLimit = limit;
+        item._StackLimit_k__BackingField = limit;
 
         return true;
     }

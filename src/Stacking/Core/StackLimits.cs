@@ -59,6 +59,20 @@ public static class StackLimits
     }
 
     /// <summary>
+    /// The items the freshness guard watches while a new plan's limits are being written, a few at a time: those raised
+    /// before and those about to be, so no item ever carries a raised limit the guard does not know about. The plan's
+    /// own set replaces this once every limit is written.
+    /// </summary>
+    public static IReadOnlySet<int> GuardedWhileWriting(IReadOnlySet<int> guardedNow, IReadOnlySet<int> planned)
+    {
+        var guarded = new HashSet<int>(guardedNow);
+
+        guarded.UnionWith(planned);
+
+        return guarded;
+    }
+
+    /// <summary>
     /// The limit an item should carry now. One the plan does not raise goes back to the game's own limit, so a category
     /// turned down or off during play gives its items the game's limit again.
     /// </summary>

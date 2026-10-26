@@ -32,6 +32,9 @@ internal static class TradeSplit
     private static (long StackId, float SentAt)? _recountSent;
     private static int _failures;
 
+    /// <summary>The game's type for the trade window, looked up once: each lookup makes a new object.</summary>
+    private static Il2CppSystem.Type? _tradeScreen;
+
     public static void Apply(Harmony harmony, Action<string> log)
     {
         _log = log;
@@ -387,7 +390,7 @@ internal static class TradeSplit
     private static State_Web_TradeUI? OpenTrade()
     {
         var ui = GameSingleton.Existing<ReduxUISystem>();
-        var screen = Il2CppType.Of<WebUI_TradeUI>();
+        var screen = _tradeScreen ??= Il2CppType.Of<WebUI_TradeUI>();
 
         if (ui == null || !ui.IsUIActive(screen)) return null;
 

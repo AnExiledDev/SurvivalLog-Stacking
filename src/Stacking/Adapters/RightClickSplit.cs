@@ -84,6 +84,9 @@ internal static class RightClickSplit
     {
         lock (Gate)
         {
+            // Most frames nothing is owed, and then reading the game's frame count would be wasted.
+            if (!_probes.IsOwed && Asked.Count == 0) return;
+
             _probes = _probes.Expired(Time.frameCount, Clock.ElapsedMilliseconds);
 
             Forget();

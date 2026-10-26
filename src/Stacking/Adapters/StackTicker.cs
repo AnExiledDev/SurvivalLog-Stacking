@@ -5,7 +5,7 @@ namespace Stacking.Adapters;
 
 /// <summary>
 /// Every frame, notes the modifier keys and carries out the station rule's moves; every few real seconds, makes sure
-/// the item table carries the chosen limits.
+/// the item table carries the chosen limits, and while it writes them, writes a slice each frame.
 /// </summary>
 public sealed class StackTicker : MonoBehaviour
 {
@@ -30,13 +30,22 @@ public sealed class StackTicker : MonoBehaviour
         SampleKeys();
         MoveIntoStations();
 
-        if (Writer == null || Time.unscaledTime < _nextSweepAt) return;
+        if (Writer == null) return;
 
-        _nextSweepAt = Time.unscaledTime + SweepSeconds;
+        // A full write runs a slice every frame until it is done; otherwise the tables are checked every few seconds.
+        var isWriting = Writer.IsWriting;
+
+        if (!isWriting)
+        {
+            if (Time.unscaledTime < _nextSweepAt) return;
+
+            _nextSweepAt = Time.unscaledTime + SweepSeconds;
+        }
 
         try
         {
-            Writer.Sweep();
+            if (isWriting) Writer.Continue();
+            else Writer.Sweep();
         }
         catch (Exception ex)
         {

@@ -8,6 +8,7 @@ using Stacking.Core;
 using GameIds = Il2CppSystem.Collections.Generic.List<long>;
 using GameNeeds = Il2CppSystem.Collections.Generic.Dictionary<int, int>;
 using GameSources = Il2CppSystem.Collections.Generic.Dictionary<long, long>;
+using OwnerCache = Il2CppSystem.Collections.Generic.Dictionary<long, Il2CppSystem.Collections.Generic.Dictionary<long, GameCore.HotUpdate.ReduxUI.Data_Item>>;
 
 namespace Stacking.Adapters;
 
@@ -27,15 +28,18 @@ internal static class CraftingFill
     private static Action<string> _logFileOnly = _ => { };
     private static int _failures;
     private static bool _isRebuildingList;
-    private static Shelves? _shelves;
     private static State_Web_ToolTable? _listState;
     private static State_Data_Item? _listItems;
 
     /// <summary>
     /// What the bench and its linked storages hold, read once per recipe list rebuild. The list checks every recipe
-    /// against the same storages, and reading them through the game is the slow part.
+    /// against the same storages, and reading them through the game is the slow part. These and the buffers below
+    /// are reused, and only touched on the game's main thread.
     /// </summary>
-    private sealed record Shelves(IntPtr State, IntPtr Items, List<List<PickCandidate>> Held);
+    private static readonly CraftingShelves Shelves = new();
+
+    private static readonly HashSet<long> OwnersRead = new();
+    private static readonly List<KeyValuePair<int, int>> NeedsRead = new();
 
     /// <summary>The material check is only hooked once the fill is, so a recipe never reads as ready that its fill cannot take.</summary>
     public static void Apply(Harmony harmony, StationMover mover, Action<string> log, Action<string> logFileOnly)
@@ -70,32 +74,28 @@ internal static class CraftingFill
     private static bool TryPatch(Harmony harmony, string what, string method, string postfix) =>
         Hooks.TryPatch(harmony, typeof(CraftingFill), what, () => AccessTools.Method(typeof(Reducer_Web_ToolTable), method), _log, postfix: postfix);
 
-    /// <summary>A recipe's material check, over the bench and every storage linked to the table. It turns only a no into a yes, and only when the fill would step in.</summary>
-    private static void CountUnits(State_Web_ToolTable state, State_Data_Item itemState, GameNeeds materialNeeded, ref bool __result)
+    /// <summary>
+    /// The pool's check during a recipe list rebuild, asked again over units for the table being rebuilt, over the
+    /// bench and every storage linked to the table. It turns only a no into a yes, and only when the fill would step
+    /// in: when no stack at hand is one the rule cuts, or the recipe needs none of them, it returns before reading the
+    /// recipe, and nothing is made for any recipe.
+    /// </summary>
+    private static void CountPooledUnits(GameNeeds materialNeeded, ref bool __result)
     {
-        if (__result) return;
+        if (__result || !_isRebuildingList || _listState is not { } state || _listItems is not { } itemState || materialNeeded == null) return;
 
         try
         {
-            if (Live() is not { } items || BenchOf(state) is not { } bench || itemState == null || materialNeeded == null) return;
+            if (!ShelvesFor(state, itemState).HasAnyCut || !NeedsAnyCut(materialNeeded)) return;
 
-            var needs = Needs(materialNeeded);
-            var candidates = Needed(HeldForList(items, state, itemState, bench), needs);
-
-            __result = candidates.Any(candidate => candidate.IsCut) && CraftingPick.Plan(needs, candidates) is PickPlan.Filled;
+            __result = Shelves.CanFill(ReadNeeds(materialNeeded));
         }
         catch (Exception ex)
         {
+            // A read cut short holds only part of the shelves, so the next recipe reads them again, as before.
+            Shelves.Forget();
             Fail($"counting a recipe's materials by unit failed: {ex}");
         }
-    }
-
-    /// <summary>The pool's check during a recipe list rebuild, asked again over units for the table being rebuilt.</summary>
-    private static void CountPooledUnits(GameNeeds materialNeeded, ref bool __result)
-    {
-        if (!_isRebuildingList || _listState is not { } state || _listItems is not { } itemState) return;
-
-        CountUnits(state, itemState, materialNeeded, ref __result);
     }
 
     private static void OpenRebuild(State_Web_ToolTable state, State_Data_Item itemState)
@@ -103,7 +103,7 @@ internal static class CraftingFill
         _isRebuildingList = true;
         _listState = state;
         _listItems = itemState;
-        _shelves = null;
+        Shelves.Forget();
     }
 
     private static void CloseRebuild()
@@ -111,23 +111,78 @@ internal static class CraftingFill
         _isRebuildingList = false;
         _listState = null;
         _listItems = null;
-        _shelves = null;
+        Shelves.Forget();
     }
 
-    /// <summary>Storages do not change while the list rebuilds, so one read serves every recipe in it.</summary>
-    private static List<List<PickCandidate>> HeldForList(ItemManager items, State_Web_ToolTable state, State_Data_Item itemState, long bench)
+    /// <summary>
+    /// Storages do not change while the list rebuilds, so one read serves every recipe in it. With no item made
+    /// stackable, no table open or no bench, nothing is cut, so nothing is read and every check returns at once.
+    /// </summary>
+    private static CraftingShelves ShelvesFor(State_Web_ToolTable state, State_Data_Item itemState)
     {
-        if (_isRebuildingList && _shelves is { } shelves && shelves.State == state.Pointer && shelves.Items == itemState.Pointer) return shelves.Held;
+        if (Shelves.IsBuiltFor(state.Pointer, itemState.Pointer)) return Shelves;
 
-        var owners = new List<long> { bench };
+        Shelves.Start(state.Pointer, itemState.Pointer);
 
-        owners.AddRange(Managed(Reducer_Web_ToolTable.GetAllLinkedOwnerIds(state)));
+        // The bench holds one unit a slot only while the table's screen is open; with it closed nothing is cut and the game's own check stands.
+        if (StackGuard.NewlyStackable.Count == 0 || Live() is not { } items || BenchOf(state) is not { } bench || !Stations.IsStation(items, bench)) return Shelves;
 
-        var held = Held(items, itemState, owners, bench, _ => true);
+        if (itemState._OwnerCache_k__BackingField is not { } cache) return Shelves;
 
-        if (_isRebuildingList) _shelves = new Shelves(state.Pointer, itemState.Pointer, held);
+        OwnersRead.Clear();
+        Shelve(cache, bench, bench);
 
-        return held;
+        var linked = Reducer_Web_ToolTable.GetAllLinkedOwnerIds(state);
+
+        for (var i = 0; linked != null && i < linked.Count; i++) Shelve(cache, linked[i], bench);
+
+        return Shelves;
+    }
+
+    /// <summary>
+    /// One container's items onto the shelves, in the cache's own order, read straight from the items' fields. Only an
+    /// item made stackable has its weight read, since only those can be cut.
+    /// </summary>
+    private static void Shelve(OwnerCache cache, long owner, long bench)
+    {
+        if (owner == 0 || !OwnersRead.Add(owner) || !cache.TryGetValue(owner, out var held) || held == null) return;
+
+        var newlyStackable = StackGuard.NewlyStackable;
+
+        foreach (var item in held.Values)
+        {
+            // The cache can keep stale entries whose owner moved on; the game's moves would refuse those.
+            if (item == null || item._OwnerId_k__BackingField != owner) continue;
+
+            var configId = item._ItemConfigId_k__BackingField;
+            var count = item._ItemCount_k__BackingField;
+
+            Shelves.Add(configId, count, isCut: owner != bench && newlyStackable.Contains(configId) && StationRule.UnitsToSendBack(count, true, item._InstanceWeight_k__BackingField != 0) > 0);
+        }
+
+        Shelves.EndOwner();
+    }
+
+    /// <summary>Whether the recipe needs an item a cut stack holds; asked item by item, so a recipe that needs none is never read whole.</summary>
+    private static bool NeedsAnyCut(GameNeeds materialNeeded)
+    {
+        var cut = Shelves.CutConfigs;
+
+        for (var i = 0; i < cut.Count; i++)
+        {
+            if (materialNeeded.ContainsKey(cut[i])) return true;
+        }
+
+        return false;
+    }
+
+    private static List<KeyValuePair<int, int>> ReadNeeds(GameNeeds materialNeeded)
+    {
+        NeedsRead.Clear();
+
+        foreach (var pair in materialNeeded) NeedsRead.Add(new KeyValuePair<int, int>(pair.Key, pair.Value));
+
+        return NeedsRead;
     }
 
     /// <summary>
