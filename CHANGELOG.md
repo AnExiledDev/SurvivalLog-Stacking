@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.7
+
+- Fixed: a short stutter every 5 seconds. The mod now checks the item table only when the game loads it again or a stack limit changes.
+- Made for Survival Log 1.1.19611.
+
 ## 0.7.6
 
 - With the refrigerated backpack upgrade, harvested crops and other food that join a stack in the backpack keep their full shelf life instead of losing part of it.

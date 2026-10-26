@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using GameCore.HotUpdate;
 using Stacking.Core;
+using ItemTable = Il2CppSystem.Collections.Generic.Dictionary<int, GameCore.HotUpdate.Config_Item>;
 
 namespace Stacking.Adapters;
 
 /// <summary>
 /// Writes the chosen stack limits onto the game's item table. The table only exists once the game has loaded it,
-/// and a reload would bring back the game's limits, so this runs again on every sweep and rewrites what changed.
+/// and a reload would bring back the game's limits, so each sweep checks whether a table was replaced or a few raised items lost their limit, and only then rewrites the table.
 /// New limits from the settings land at the next sweep, and an item no longer raised gets the game's limit back.
 /// </summary>
 internal sealed class LimitWriter
@@ -20,6 +21,10 @@ internal sealed class LimitWriter
 
     /// <summary>Each item's limit as the game first defined it, before this mod wrote over it.</summary>
     private readonly Dictionary<int, int> _gameLimits = new();
+
+    /// <summary>The tables the last full write went to, and a few raised items to check between full writes.</summary>
+    private TableStamp? _lastStamp;
+    private Dictionary<int, int> _canaries = new();
 
     private bool _hasApplied;
     private bool _hasReportedWaiting;
@@ -36,6 +41,7 @@ internal sealed class LimitWriter
     {
         _wantedByCategory = wantedByCategory;
         _hasApplied = false;
+        _lastStamp = null;
     }
 
     public void Sweep()
@@ -44,6 +50,10 @@ internal sealed class LimitWriter
         var table = config?._Config_Item_Dict;
 
         if (config == null || table == null || table.Count == 0) return;
+
+        var stamp = Stamp(config, table);
+
+        if (TableWatch.IsUnchanged(_lastStamp, stamp, Canaries(table))) return;
 
         var cookedItems = CookedItems(config);
 
@@ -68,6 +78,24 @@ internal sealed class LimitWriter
         StackGuard.NewlyStackable = plan.NewlyStackable;
         StackGuard.NeverSpoils = StackLimits.NeverSpoiling(rows);
         Report(rows, plan, written, StackGuard.NeverSpoils);
+        Remember(stamp, plan);
+    }
+
+    private static TableStamp Stamp(ConfigManager config, ItemTable table)
+    {
+        var recipes = config._Config_CookingRecipe_Dict;
+
+        return new TableStamp(table.Pointer.ToInt64(), table.Count, recipes?.Pointer.ToInt64() ?? 0, recipes?.Count ?? 0);
+    }
+
+    /// <summary>The watched items as they are now; a missing one reads as limit 0, so it counts as changed.</summary>
+    private IEnumerable<Canary> Canaries(ItemTable table) =>
+        _canaries.Select(canary => new Canary(canary.Value, table.TryGetValue(canary.Key, out var item) && item != null ? item.StackLimit : 0));
+
+    private void Remember(TableStamp stamp, StackPlan plan)
+    {
+        _lastStamp = stamp;
+        _canaries = TableWatch.PickCanaries(plan.Limits.Keys).ToDictionary(id => id, id => plan.Limits[id]);
     }
 
     /// <summary>
