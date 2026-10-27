@@ -13,7 +13,14 @@
     <Compile Include="..\..\src\Stacking\Core\*.cs" Link="Core\%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- The split picker's script, as the plugin ships it, run in Jint against a fake root page. -->
   <ItemGroup>
+    <EmbeddedResource Include="..\..\src\Stacking\picker.js" LogicalName="Stacking.picker.js" Link="picker.js" />
+    <EmbeddedResource Include="PickerFake.js" LogicalName="Stacking.Tests.PickerFake.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jint" Version="4.17.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />

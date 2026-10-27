@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.10
+
+- The panel that asks how many to split, and the mod's short messages, can be drawn bigger or smaller with the UI size setting of Exiled's Toolkit 0.10.0 or newer. A change shows at once.
+- Made for Survival Log 1.1.19611.
+
 ## 0.7.9
 
 - Fixed: a stutter when you pick a recipe at the crafting table and the mod takes single items off stacks for it.

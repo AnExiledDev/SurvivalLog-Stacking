@@ -101,6 +101,9 @@
 
     document.body.appendChild(root);
     document.body.appendChild(toast);
+    // The backdrop fills the screen at any size, so the plate is what has to fit. A one-line message is never shrunk.
+    uiSize(root, { fit: plate });
+    uiSize(toast, { fit: false });
 
     // Nothing under the picker may see its clicks; a press on the dimmed area around it cancels. A press on the plate
     // itself keeps the focus in the number box, so typing and Enter still reach it.
@@ -249,6 +252,21 @@
     ui.toast.style.display = 'block';
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { ui.toast.style.display = 'none'; }, TOAST_MS);
+  }
+
+  // Hands a panel to Exiled's Toolkit to be drawn at the player's UI size. Before the Toolkit's script has loaded it
+  // waits in a list the Toolkit reads; without the Toolkit nothing happens.
+  function uiSize(node, options) {
+    var toolkit = window.ExiledUi;
+
+    if (toolkit) {
+      toolkit.size(node, options);
+      return;
+    }
+
+    var waiting = window.__exiledUiWait = window.__exiledUiWait || [];
+    waiting.push([node, options]);
+    if (waiting.length > 32) waiting.shift();
   }
 
   window.__slstacking = { open: open, close: close, toast: toast, check: check };
