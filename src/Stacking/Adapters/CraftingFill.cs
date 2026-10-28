@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
 using HarmonyLib;
@@ -40,6 +43,10 @@ internal static class CraftingFill
 
     private static readonly HashSet<long> OwnersRead = new();
     private static readonly List<KeyValuePair<int, int>> NeedsRead = new();
+    private static readonly List<RawItems.Item> HeldRead = new();
+
+    /// <summary>The item cache read from memory; each read is used up before the next call into the game.</summary>
+    private static readonly RawItems Raw = new(() => _log);
 
     /// <summary>The material check is only hooked once the fill is, so a recipe never reads as ready that its fill cannot take.</summary>
     public static void Apply(Harmony harmony, StationMover mover, Action<string> log, Action<string> logFileOnly)
@@ -55,6 +62,8 @@ internal static class CraftingFill
             return;
         }
 
+        WarmUpInBackground();
+
         // The recipe list asks the pool of everything the bench and its storages hold whether it fits each recipe
         // exactly; the pool knows neither the table nor its storages, so the list rebuild hands them over.
         var isListScoped = Hooks.TryPatchScope(harmony, typeof(CraftingFill), "the crafting table's recipe list",
@@ -68,6 +77,49 @@ internal static class CraftingFill
         else
         {
             log("the crafting table's fill takes single items off stacks, but its recipe list may still show a recipe as short of materials: see the line above");
+        }
+    }
+
+    /// <summary>
+    /// The first fill would otherwise compile the fill, the station moves it makes and the storage reads on the game's
+    /// frame. The plain part runs once on made-up items and the rest is compiled without being run, on a worker at
+    /// load, so nothing here touches the game. A failure only costs the first fill its head start, and is noted in the
+    /// mod's file only: the BepInEx console is left to the game's thread.
+    /// </summary>
+    private static void WarmUpInBackground() =>
+        Task.Run(() =>
+        {
+            try
+            {
+                CraftingWarmUp.Run();
+
+                foreach (var type in Warmed) Prepare(type);
+            }
+            catch (Exception ex)
+            {
+                _logFileOnly("warm-up failed, the first recipe fill may take a moment longer: " + ex.Message);
+            }
+        });
+
+    private static readonly Type[] Warmed =
+    {
+        typeof(CraftingFill), typeof(RawItems), typeof(RawDictionary), typeof(StationMover), typeof(GameStationStore), typeof(StationGuard),
+        typeof(ScreenRefresh), typeof(StackCopy), typeof(StackCounts), typeof(Stations), typeof(GroundDrops), typeof(BagCells),
+    };
+
+    /// <summary>Compiles every method the type declares, its lambdas included, without running any.</summary>
+    private static void Prepare(Type type)
+    {
+        const BindingFlags declared = BindingFlags.DeclaredOnly | BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+        foreach (var method in type.GetMethods(declared))
+        {
+            if (!method.IsAbstract && !method.ContainsGenericParameters) RuntimeHelpers.PrepareMethod(method.MethodHandle);
+        }
+
+        foreach (var nested in type.GetNestedTypes(declared))
+        {
+            if (!nested.ContainsGenericParameters) Prepare(nested);
         }
     }
 
@@ -129,38 +181,58 @@ internal static class CraftingFill
 
         if (itemState._OwnerCache_k__BackingField is not { } cache) return Shelves;
 
+        // The linked storages come from the game before the cache is opened, so the memory read is used up before the next game call.
+        var linked = Managed(Reducer_Web_ToolTable.GetAllLinkedOwnerIds(state));
+        var isRaw = Raw.TryOpen(cache);
+
         OwnersRead.Clear();
-        Shelve(cache, bench, bench);
+        Shelve(cache, isRaw, bench, bench);
 
-        var linked = Reducer_Web_ToolTable.GetAllLinkedOwnerIds(state);
-
-        for (var i = 0; linked != null && i < linked.Count; i++) Shelve(cache, linked[i], bench);
+        foreach (var owner in linked) Shelve(cache, isRaw, owner, bench);
 
         return Shelves;
     }
 
-    /// <summary>
-    /// One container's items onto the shelves, in the cache's own order, read straight from the items' fields. Only an
-    /// item made stackable has its weight read, since only those can be cut.
-    /// </summary>
-    private static void Shelve(OwnerCache cache, long owner, long bench)
+    /// <summary>One container's items onto the shelves, in the cache's own order.</summary>
+    private static void Shelve(OwnerCache cache, bool isRaw, long owner, long bench)
     {
-        if (owner == 0 || !OwnersRead.Add(owner) || !cache.TryGetValue(owner, out var held) || held == null) return;
+        if (owner == 0 || !OwnersRead.Add(owner)) return;
 
         var newlyStackable = StackGuard.NewlyStackable;
 
-        foreach (var item in held.Values)
+        foreach (var item in ReadHeld(cache, isRaw, owner))
         {
             // The cache can keep stale entries whose owner moved on; the game's moves would refuse those.
-            if (item == null || item._OwnerId_k__BackingField != owner) continue;
+            if (item.OwnerId != owner) continue;
 
-            var configId = item._ItemConfigId_k__BackingField;
-            var count = item._ItemCount_k__BackingField;
-
-            Shelves.Add(configId, count, isCut: owner != bench && newlyStackable.Contains(configId) && StationRule.UnitsToSendBack(count, true, item._InstanceWeight_k__BackingField != 0) > 0);
+            Shelves.Add(item.ConfigId, item.Count, isCut: owner != bench && newlyStackable.Contains(item.ConfigId) && StationRule.UnitsToSendBack(item.Count, true, item.HasOwnWeight) > 0);
         }
 
         Shelves.EndOwner();
+    }
+
+    /// <summary>
+    /// Every item the cache files under the owner, ones whose owner moved on included, in the cache's own order, into
+    /// one buffer every read reuses: from memory when the cache was opened for this read, through the game's objects
+    /// otherwise.
+    /// </summary>
+    private static List<RawItems.Item> ReadHeld(OwnerCache cache, bool isRaw, long owner)
+    {
+        HeldRead.Clear();
+
+        if (owner == 0 || (isRaw && Raw.TryAddHeld(owner, HeldRead))) return HeldRead;
+
+        // A memory read given up part way leaves part of the container behind.
+        HeldRead.Clear();
+
+        if (!cache.TryGetValue(owner, out var held) || held == null) return HeldRead;
+
+        foreach (var item in held.Values)
+        {
+            if (item != null) HeldRead.Add(new RawItems.Item(item._LogicId_k__BackingField, item._OwnerId_k__BackingField, item._ItemCount_k__BackingField, item._ItemConfigId_k__BackingField, item._InstanceWeight_k__BackingField != 0));
+        }
+
+        return HeldRead;
     }
 
     /// <summary>Whether the recipe needs an item a cut stack holds; asked item by item, so a recipe that needs none is never read whole.</summary>
@@ -221,7 +293,7 @@ internal static class CraftingFill
             var needs = Needs(materialNeeded);
             var candidates = Candidates(live, itemState, needs, Managed(Reducer_Web_ToolTable.GetLinkedOwnersInFillOrder(state, leftOwnerId)), benchId);
 
-            if (!NeedsUnits(__result, candidates) || CraftingPick.Plan(needs, candidates) is not PickPlan.Filled plan) return;
+            if (!CraftingPick.NeedsUnits(__result == null ? null : Managed(__result), candidates) || CraftingPick.Plan(needs, candidates) is not PickPlan.Filled plan) return;
 
             if (plan.Units.Count > 0) ClearBench(state, itemState, benchId, leftOwnerId, plan.Whole);
 
@@ -252,23 +324,6 @@ internal static class CraftingFill
 
     private static ItemManager? Live() => StationGuard.IsInstalled ? SplitScene.LiveItems() : null;
 
-    /// <summary>The game's pick stands unless it found nothing, or took a stack the rule cuts, which would reach the bench as one unit.</summary>
-    private static bool NeedsUnits(GameIds? picked, IReadOnlyList<PickCandidate> candidates)
-    {
-        var cut = candidates.Where(candidate => candidate.IsCut).Select(candidate => candidate.ItemId).ToHashSet();
-
-        if (cut.Count == 0) return false;
-
-        if (picked == null) return true;
-
-        for (var i = 0; i < picked.Count; i++)
-        {
-            if (cut.Contains(picked[i])) return true;
-        }
-
-        return false;
-    }
-
     /// <summary>
     /// The game sends items a recipe does not use off the bench only as it moves its picks there, after the pick, so
     /// items left from an earlier recipe would hold the cells the units need. They go home first, by the game's own
@@ -276,15 +331,20 @@ internal static class CraftingFill
     /// </summary>
     private static void ClearBench(State_Web_ToolTable state, State_Data_Item itemState, long bench, long leftOwnerId, IEnumerable<WholePick> whole)
     {
-        var kept = whole.Where(pick => pick.OwnerId == bench).Select(pick => pick.ItemId).ToHashSet();
+        if (itemState._OwnerCache_k__BackingField is not { } cache) return;
+
+        var kept = CraftingPick.KeptOnBench(whole, bench);
+        var othersRead = new List<long>();
+
+        foreach (var item in ReadHeld(cache, Raw.TryOpen(cache), bench))
+        {
+            if (item.OwnerId == bench && !kept.Contains(item.LogicId)) othersRead.Add(item.LogicId);
+        }
+
+        // Built only once the memory read is used up, since each add is a call into the game.
         var others = new GameIds();
 
-        foreach (var item in HeldBy(itemState, bench))
-        {
-            var itemId = item._LogicId_k__BackingField;
-
-            if (item._OwnerId_k__BackingField == bench && !kept.Contains(itemId)) others.Add(itemId);
-        }
+        foreach (var itemId in othersRead) others.Add(itemId);
 
         if (others.Count > 0) Reducer_Web_ToolTable.ReturnBenchItemsToOrigins(state, itemState, others, bench, leftOwnerId, null);
     }
@@ -308,7 +368,7 @@ internal static class CraftingFill
     /// </summary>
     private static void Answer(State_Web_ToolTable state, IReadOnlyList<BenchUnit> onBench, IEnumerable<WholePick> whole, ref GameIds? result, ref GameSources? sourceOf)
     {
-        var picks = onBench.Select(unit => (Id: unit.UnitId, OwnerId: unit.FromOwnerId)).Concat(whole.Select(pick => (Id: pick.ItemId, pick.OwnerId))).ToList();
+        var picks = CraftingPick.Picks(onBench, whole);
         var ids = new GameIds();
         var sources = new GameSources();
 
@@ -337,24 +397,19 @@ internal static class CraftingFill
 
     /// <summary>Every needed item in the containers, in fill order; within a container the largest first, as the game sorts them.</summary>
     private static List<PickCandidate> Candidates(ItemManager items, State_Data_Item itemState, IReadOnlyDictionary<int, int> needs, IEnumerable<long> owners, long bench) =>
-        Needed(Held(items, itemState, owners, bench, needs.ContainsKey), needs);
+        CraftingPick.Candidates(Held(items, itemState, owners, bench, needs), needs);
 
-    private static List<PickCandidate> Needed(List<List<PickCandidate>> held, IReadOnlyDictionary<int, int> needs)
+    /// <summary>The needed items of each container once, in fill order and in the cache's own order within a container.</summary>
+    private static List<List<PickCandidate>> Held(ItemManager items, State_Data_Item itemState, IEnumerable<long> owners, long bench, IReadOnlyDictionary<int, int> needs)
     {
-        var candidates = new List<PickCandidate>();
+        var held = new List<List<PickCandidate>>();
 
-        foreach (var inOwner in held) candidates.AddRange(inOwner.Where(candidate => needs.ContainsKey(candidate.ConfigId)).OrderByDescending(candidate => candidate.Count));
+        if (itemState._OwnerCache_k__BackingField is not { } cache) return held;
 
-        return candidates;
-    }
-
-    /// <summary>The items of each container once, in fill order and in the cache's own order within a container.</summary>
-    private static List<List<PickCandidate>> Held(ItemManager items, State_Data_Item itemState, IEnumerable<long> owners, long bench, Predicate<int> isWanted)
-    {
         // The bench holds one unit a slot only while the table's screen is open; with it closed nothing is cut and the game's own pick stands.
         var canCut = Stations.IsStation(items, bench);
-        var held = new List<List<PickCandidate>>();
         var seen = new HashSet<long>();
+        var isRaw = Raw.TryOpen(cache);
 
         foreach (var owner in owners)
         {
@@ -362,32 +417,18 @@ internal static class CraftingFill
 
             var inOwner = new List<PickCandidate>();
 
-            foreach (var item in HeldBy(itemState, owner))
+            foreach (var item in ReadHeld(cache, isRaw, owner))
             {
-                var configId = item._ItemConfigId_k__BackingField;
-
                 // The cache can keep stale entries whose owner moved on; the game's moves would refuse those.
-                if (!isWanted(configId) || item._OwnerId_k__BackingField != owner) continue;
+                if (!needs.ContainsKey(item.ConfigId) || item.OwnerId != owner) continue;
 
-                var count = item._ItemCount_k__BackingField;
-
-                inOwner.Add(new PickCandidate(item._LogicId_k__BackingField, owner, configId, count, IsCut: canCut && owner != bench && IsCut(count, configId, item._InstanceWeight_k__BackingField != 0)));
+                inOwner.Add(new PickCandidate(item.LogicId, owner, item.ConfigId, item.Count, IsCut: canCut && owner != bench && IsCut(item.Count, item.ConfigId, item.HasOwnWeight)));
             }
 
             held.Add(inOwner);
         }
 
         return held;
-    }
-
-    private static IEnumerable<Data_Item> HeldBy(State_Data_Item itemState, long owner)
-    {
-        if (owner == 0 || itemState._OwnerCache_k__BackingField is not { } cache || !cache.TryGetValue(owner, out var held) || held == null) yield break;
-
-        foreach (var item in held.Values)
-        {
-            if (item != null) yield return item;
-        }
     }
 
     private static bool IsCut(int count, int configId, bool hasOwnWeight) =>

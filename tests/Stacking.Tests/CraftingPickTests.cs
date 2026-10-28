@@ -113,4 +113,53 @@ public class CraftingPickTests
 
         Assert.Equal(new[] { new WholePick(11, Bag) }, plan.Whole);
     }
+
+    [Fact]
+    public void Candidates_keep_the_fill_order_and_put_the_largest_first_within_a_container()
+    {
+        var held = new List<List<PickCandidate>>
+        {
+            new() { Whole(30, Bench, Glass), Stack(31, Bench, Glass, 2) },
+            new() { Stack(10, Bag, Glass, 3), Whole(99, Bag, 999), Stack(11, Bag, Metal, 6), Stack(12, Bag, Glass, 3) },
+        };
+
+        var candidates = CraftingPick.Candidates(held, new Dictionary<int, int> { [Glass] = 4, [Metal] = 1 });
+
+        // The bench comes first though the bag holds more; a tie keeps the cache's order; an item no recipe needs drops out.
+        Assert.Equal(new long[] { 31, 30, 11, 10, 12 }, candidates.Select(candidate => candidate.ItemId));
+    }
+
+    [Fact]
+    public void The_games_pick_stands_with_no_stack_the_rule_cuts()
+    {
+        var candidates = new[] { Whole(11, Bag, Glass), Whole(12, Bag, Glass) };
+
+        Assert.False(CraftingPick.NeedsUnits(null, candidates));
+    }
+
+    [Fact]
+    public void Units_are_taken_when_the_game_found_nothing_or_picked_a_stack_the_rule_cuts()
+    {
+        var candidates = new[] { Whole(11, Bag, Glass), Stack(10, Bag, Glass, 5) };
+
+        Assert.True(CraftingPick.NeedsUnits(null, candidates));
+        Assert.True(CraftingPick.NeedsUnits(new long[] { 11, 10 }, candidates));
+        Assert.False(CraftingPick.NeedsUnits(new long[] { 11 }, candidates));
+    }
+
+    [Fact]
+    public void Only_the_plans_items_already_on_the_bench_stay_while_it_is_cleared()
+    {
+        var kept = CraftingPick.KeptOnBench(new[] { new WholePick(30, Bench), new WholePick(11, Bag) }, Bench);
+
+        Assert.Equal(new long[] { 30 }, kept);
+    }
+
+    [Fact]
+    public void The_pick_made_again_lists_the_units_then_the_whole_items_with_where_each_came_from()
+    {
+        var picks = CraftingPick.Picks(new[] { new BenchUnit(40, Shelf) }, new[] { new WholePick(30, Bench), new WholePick(11, Bag) });
+
+        Assert.Equal(new[] { (40L, Shelf), (30L, Bench), (11L, Bag) }, picks);
+    }
 }

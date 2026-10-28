@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Stacking.Core;
 
@@ -89,6 +90,43 @@ public static class CraftingPick
 
         return left;
     }
+
+    /// <summary>Every needed item in the containers, in fill order; within a container the largest first, as the game sorts them, a tie kept in the cache's order.</summary>
+    /// <param name="held">Each container's items in fill order, each in the cache's own order.</param>
+    public static List<PickCandidate> Candidates(List<List<PickCandidate>> held, IReadOnlyDictionary<int, int> needs)
+    {
+        var candidates = new List<PickCandidate>();
+
+        foreach (var inOwner in held) candidates.AddRange(inOwner.Where(candidate => needs.ContainsKey(candidate.ConfigId)).OrderByDescending(candidate => candidate.Count));
+
+        return candidates;
+    }
+
+    /// <summary>The game's pick stands unless it found nothing, or took a stack the rule cuts, which would reach the bench as one unit.</summary>
+    /// <param name="picked">The items the game picked; null when it found nothing.</param>
+    public static bool NeedsUnits(IReadOnlyList<long>? picked, IReadOnlyList<PickCandidate> candidates)
+    {
+        var cut = candidates.Where(candidate => candidate.IsCut).Select(candidate => candidate.ItemId).ToHashSet();
+
+        if (cut.Count == 0) return false;
+
+        if (picked == null) return true;
+
+        for (var i = 0; i < picked.Count; i++)
+        {
+            if (cut.Contains(picked[i])) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>The items already on the bench that the plan uses, which stay there while the bench is cleared.</summary>
+    public static HashSet<long> KeptOnBench(IEnumerable<WholePick> whole, long bench) =>
+        whole.Where(pick => pick.OwnerId == bench).Select(pick => pick.ItemId).ToHashSet();
+
+    /// <summary>The pick made again around the units: the units on the bench first, then the whole items, each with the container it came from.</summary>
+    public static List<(long Id, long OwnerId)> Picks(IReadOnlyList<BenchUnit> onBench, IEnumerable<WholePick> whole) =>
+        onBench.Select(unit => (Id: unit.UnitId, OwnerId: unit.FromOwnerId)).Concat(whole.Select(pick => (Id: pick.ItemId, pick.OwnerId))).ToList();
 
     private static int UnitsOf(PickCandidate item) => Math.Max(item.Count, 1);
 }
