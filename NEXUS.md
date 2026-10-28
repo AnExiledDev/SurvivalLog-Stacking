@@ -2,6 +2,8 @@ Name: Stacking
 Summary: Bigger stacks without fresh food merging into rotting food: materials and seeds stack to 99, food to 20, and any category can go up to 999. Split stacks with Shift, Ctrl or a how-many panel, offer part of a stack in trades, and cooking and crafting count every item in a stack, so three strawberries in one slot still make three smoothies.
 
 Description (BBCode):
+[center][img]https://sldb.core-directive.com/media/save/2-changes-stay.png[/img][/center]
+
 Most seeds and food take one bag slot each, so storage fills up fast. Stacking raises the stack limit per item category without letting a fresh meal merge into a rotting one, and lets you split stacks with a key held.
 
 [size=5]Main features[/size]
