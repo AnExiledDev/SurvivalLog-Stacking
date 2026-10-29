@@ -17,7 +17,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.7.11";
+    private const string Version = "0.8.0";
 
     public override void Load()
     {
@@ -26,6 +26,8 @@ public sealed class Plugin : BasePlugin
         var limitEntries = BindLimits();
 
         // A cook already counted one way has to finish the same way, so the cooking rule waits for the next start.
+        OptionalUiSize.Bind(Config);
+
         var isCountingWholeStacks = Config.Bind("Cooking", "CountWholeStacks", true, new ConfigDescription(
             "On: a cooking bench counts every item in a stack as an ingredient, like loose items, and the finished cook uses up the items its dishes took. Off: a stack counts as one ingredient, as in the base game. Takes effect at the next game start.\n"
             + "开启：烹饪家具把堆叠里的每一件都算作食材，和散放的物品一样，烹饪完成时扣除菜品用掉的数量。关闭：一个堆叠只算一份食材，与原版游戏相同。下次启动游戏时生效。", null, "ModManager.Restart")).Value;

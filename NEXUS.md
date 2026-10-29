@@ -52,7 +52,7 @@ Works in English and Chinese.
 [list]
 [*]Survival Log 1.1.19611. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
-[*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. Without it, they take effect at the next game start. With 0.10.0 or newer, its UI size setting also sizes the panel that asks how many to split.[/*]
+[*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. Without it, they take effect at the next game start. With 0.10.0 or newer, its UI size setting also sizes the panel that asks how many to split. With 0.11.0 or newer, Stacking's own UiScale setting can set a size for this mod alone.[/*]
 [*]Not together with BaseButler.[/*]
 [/list]
 
@@ -129,7 +129,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 [list]
 [*]Survival Log 1.1.19611。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]，请先安装。[/*]
-[*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。装了它，在 Mod Manager 的「模组」界面改动的设置无需重启游戏即可生效；没装的话，改动在下次启动游戏时生效。0.10.0 或更新版本还能用它的界面大小设置调整询问拆分数量的面板的大小。[/*]
+[*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。装了它，在 Mod Manager 的「模组」界面改动的设置无需重启游戏即可生效；没装的话，改动在下次启动游戏时生效。0.10.0 或更新版本还能用它的界面大小设置调整询问拆分数量的面板的大小。0.11.0 或更新版本还可以用 Stacking 自己的 UiScale 设置单独调整本模组的大小。[/*]
 [/list]
 
 [size=5]安装[/size]

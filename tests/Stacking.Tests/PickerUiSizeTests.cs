@@ -18,6 +18,7 @@ public class PickerUiSizeTests
         page.Run("__slstacking.open(1, 20, 10); __slstacking.open(2, 20, 10)");
 
         Assert.Equal(2, page.Number("handed.length"));
+        Assert.Equal(2, page.Number("handed.filter(function (h) { return h.options.mod === 'Stacking'; }).length"));
         Assert.Equal(("sls-root", "sls-plate"), (page.Text("handed[0].el.id"), page.Text("handed[0].options.fit.className")));
         Assert.True(page.Bool("handed[0].options.fit === pickerRoot().children[0]"));
         Assert.Equal(("sls-toast", "false"), (page.Text("handed[1].el.id"), page.Text("handed[1].options.fit")));

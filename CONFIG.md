@@ -50,3 +50,9 @@ A cook that was started with this on and finishes after you turn it off is settl
 | `Enabled` | `true` | Hold Shift while you drop a stack to move half, Ctrl to move one, or Ctrl+Shift to choose how many. A right-click with the same keys splits the stack onto the nearest free spot in the same bag or storage. `false` makes drags and right-clicks work as in the base game. |
 
 Turning splitting off does not change the station rule: a stack moved into a cooking or crafting station still puts in one item. Nor does it bring back the item details on a Ctrl-click: that stays off either way.
+
+## Interface
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `UiScale` | `0` | How big Stacking's own windows, panels and messages are drawn, in percent, from 75 to 200. At `0` they follow the UI size set in Exiled's Toolkit (its `UiScale`). Needs Exiled's Toolkit 0.11.0 or newer. |
