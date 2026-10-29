@@ -9,13 +9,11 @@
   if (window.__slstacking) return;
 
   var PREFIX = 'slmod|stacking|';
-  var TOAST_MS = 2600;
 
   var ui = null;
   // The plugin sends the picker's words in the game's language with every open (Texts.cs); English stands in until then.
   var words = { title: 'Split stack', hint: 'How many to move: 1 to {0}', half: 'Half', max: 'Max', cancel: 'Cancel', split: 'Split' };
   var asked = null;
-  var toastTimer = 0;
 
   function send(message) {
     try {
@@ -55,8 +53,7 @@
     '.sls-foot{justify-content:flex-end}',
     '.sls-btn{font:inherit;font-size:13px;color:#dde2f0;padding:7px 14px;border-radius:7px;border:1px solid rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(58,58,60,.9),rgba(38,38,40,.92));cursor:pointer;white-space:nowrap}',
     '.sls-btn:hover{background:linear-gradient(180deg,rgba(72,66,48,.92),rgba(50,46,32,.95));border-color:rgba(255,193,7,.75)}',
-    '.sls-btn.sls-go{color:#EBA308;border-color:rgba(255,193,7,.75)}',
-    '#sls-toast{position:fixed;left:50%;bottom:170px;transform:translateX(-50%);z-index:2147483003;pointer-events:none;display:none;padding:10px 18px;border-radius:8px;border:1px solid rgba(255,193,7,.75);background:linear-gradient(180deg,rgba(30,30,33,.94),rgba(18,18,20,.96));color:#eee;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.6)}'
+    '.sls-btn.sls-go{color:#EBA308;border-color:rgba(255,193,7,.75)}'
   ].join('\n');
 
   function build() {
@@ -96,14 +93,9 @@
     plate.appendChild(foot);
     root.appendChild(plate);
 
-    var toast = el('div');
-    toast.id = 'sls-toast';
-
     document.body.appendChild(root);
-    document.body.appendChild(toast);
-    // The backdrop fills the screen at any size, so the plate is what has to fit. A one-line message is never shrunk.
+    // The backdrop fills the screen at any size, so the plate is what has to fit.
     uiSize(root, { fit: plate });
-    uiSize(toast, { fit: false });
 
     // Nothing under the picker may see its clicks; a press on the dimmed area around it cancels. A press on the plate
     // itself keeps the focus in the number box, so typing and Enter still reach it.
@@ -121,7 +113,7 @@
     });
     slider.addEventListener('input', function () { number.value = slider.value; });
 
-    ui = { root: root, title: title, hint: hint, number: number, slider: slider, toast: toast };
+    ui = { root: root, title: title, hint: hint, number: number, slider: slider };
   }
 
   // The style outlives a lost root, so a rebuild must not stack another copy of it.
@@ -246,14 +238,6 @@
     return !!asked && asked.token === token && !!ui && document.body.contains(ui.root) && ui.root.style.display === 'flex';
   }
 
-  function toast(text) {
-    build();
-    ui.toast.textContent = text;
-    ui.toast.style.display = 'block';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { ui.toast.style.display = 'none'; }, TOAST_MS);
-  }
-
   // Hands a panel to Exiled's Toolkit to be drawn at the player's UI size. Before the Toolkit's script has loaded it
   // waits in a list the Toolkit reads; without the Toolkit nothing happens.
   function uiSize(node, options) {
@@ -270,7 +254,7 @@
     if (waiting.length > 32) waiting.shift();
   }
 
-  window.__slstacking = { open: open, close: close, toast: toast, check: check };
+  window.__slstacking = { open: open, close: close, check: check };
   window.addEventListener('keydown', onKey, true);
   send('ready');
 })();

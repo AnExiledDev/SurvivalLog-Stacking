@@ -11,6 +11,9 @@ public readonly record struct Phrase(string En, string Zh)
 /// <summary>The words the mod puts on screen: the split picker and the messages a split can end with.</summary>
 public static class Texts
 {
+    /// <summary>Who a toast is from, on its first line.</summary>
+    public static readonly Phrase Source = new("Stacking", "堆叠增强");
+
     public static readonly Phrase PickerTitle = new("Split stack", "拆分堆叠");
 
     /// <summary>{0} is the most units the stack can give.</summary>

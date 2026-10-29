@@ -13,7 +13,6 @@ public static class PickerCalls
     public static string Open(int token, int max, int suggested, bool isChinese) =>
         $"{Page}.open({Number(token)},{Number(max)},{Number(suggested)},{Words(isChinese)})";
 
-    public static string Toast(string text) => $"{Page}.toast({Quote(text)})";
 
     /// <summary>Safe to send when the script never arrived: there is nothing to close then.</summary>
     public static string Close() => $"{Page}&&{Page}.close()";

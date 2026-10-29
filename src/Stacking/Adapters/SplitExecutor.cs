@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ExiledToolkit;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
 using Stacking.Core;
@@ -162,7 +163,7 @@ internal sealed class SplitExecutor
         }
         catch (Exception ex)
         {
-            _picker.Toast(Texts.Failed);
+            _picker.Toast(Texts.Failed, ToastKind.Error);
             _log($"reading container {ownerId} before a split failed, so nothing moved: {ex}");
 
             return null;
@@ -179,7 +180,7 @@ internal sealed class SplitExecutor
         }
         catch (Exception ex)
         {
-            _picker.Toast(Texts.Failed);
+            _picker.Toast(Texts.Failed, ToastKind.Error);
             _log($"container {ownerId} could not be read or put right after {plan.Units} units were added to it; check this bag's counts. The add: {thrown?.ToString() ?? "returned"}. Then: {ex}");
 
             return null;
@@ -246,7 +247,7 @@ internal sealed class SplitExecutor
             { Count: var count } => $"{count} new stacks of {units} lie on the ground, so which is the split's is unknown; check the ground near the player",
         };
 
-        _picker.Toast(Texts.Failed);
+        _picker.Toast(Texts.Failed, ToastKind.Error);
         _log($"starting a new stack failed and {what}: {thrown}");
 
         return null;
@@ -332,7 +333,7 @@ internal sealed class SplitExecutor
 
     private void Undo(string what, Exception cause, Action undo)
     {
-        _picker.Toast(Texts.Failed);
+        _picker.Toast(Texts.Failed, ToastKind.Error);
 
         try
         {

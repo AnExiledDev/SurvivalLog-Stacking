@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using ExiledToolkit;
 using GameCore.HotUpdate.ReduxUI;
 using Stacking.Core;
 using UnityEngine;
@@ -118,12 +119,13 @@ internal sealed class SplitPicker
         if (_session.Close()) Disengage();
     }
 
-    /// <summary>A toast the web UI cannot show goes to the log instead, once per text every few seconds.</summary>
-    public void Toast(Phrase words)
+    /// <summary>Shows a Toolkit toast. One the Toolkit cannot show goes to the log instead, once per text every few seconds.</summary>
+    public void Toast(Phrase words, ToastKind kind = ToastKind.Info)
     {
-        var text = words.Pick(GameLanguage.IsChinese());
+        var isChinese = GameLanguage.IsChinese();
+        var text = words.Pick(isChinese);
 
-        if (Run(PickerCalls.Toast(text))) return;
+        if (!Toasts.Show(new ToastRequest(Texts.Source.Pick(isChinese), text) { Kind = kind }).IsNone) return;
 
         var now = Time.unscaledTime;
 

@@ -4,24 +4,22 @@ using Xunit;
 namespace Stacking.Tests;
 
 /// <summary>
-/// The split picker follows Exiled's Toolkit's UI size: picker.js hands the Toolkit its backdrop and its toast, run in
-/// Jint on a fake root page (PickerFake.js). The backdrop fills the screen at any size, so the plate inside it is what
-/// must fit; a toast is never shrunk.
+/// The split picker follows Exiled's Toolkit's UI size: picker.js hands the Toolkit its backdrop, run in Jint on a fake
+/// root page (PickerFake.js). The backdrop fills the screen at any size, so the plate inside it is what must fit.
 /// </summary>
 public class PickerUiSizeTests
 {
     [Fact]
-    public void The_picker_is_handed_over_once_with_its_plate_to_fit_and_the_toast_never_shrunk()
+    public void The_picker_is_handed_over_once_with_its_plate_to_fit()
     {
         var page = new Page();
 
         page.Run("__slstacking.open(1, 20, 10); __slstacking.open(2, 20, 10)");
 
-        Assert.Equal(2, page.Number("handed.length"));
-        Assert.Equal(2, page.Number("handed.filter(function (h) { return h.options.mod === 'Stacking'; }).length"));
+        Assert.Equal(1, page.Number("handed.length"));
+        Assert.Equal("Stacking", page.Text("handed[0].options.mod"));
         Assert.Equal(("sls-root", "sls-plate"), (page.Text("handed[0].el.id"), page.Text("handed[0].options.fit.className")));
         Assert.True(page.Bool("handed[0].options.fit === pickerRoot().children[0]"));
-        Assert.Equal(("sls-toast", "false"), (page.Text("handed[1].el.id"), page.Text("handed[1].options.fit")));
     }
 
     /// <summary>The Toolkit lets go of a panel taken out of its page, so a picker built again must be handed again.</summary>
@@ -33,19 +31,31 @@ public class PickerUiSizeTests
 
         page.Run("__slstacking.open(2, 20, 10)");
 
-        Assert.Equal(4, page.Number("handed.length"));
-        Assert.True(page.Bool("handed[2].el === pickerRoot() && handed[2].el !== first"));
+        Assert.Equal(2, page.Number("handed.length"));
+        Assert.True(page.Bool("handed[1].el === pickerRoot() && handed[1].el !== first"));
     }
 
     [Fact]
-    public void Before_the_Toolkit_loads_the_picker_and_the_toast_wait_for_it()
+    public void Before_the_Toolkit_loads_the_picker_waits_for_it()
     {
         var page = new Page("delete window.ExiledUi");
 
-        page.Run("__slstacking.toast('That stack is already full')");
+        page.Run("__slstacking.open(1, 20, 10)");
 
-        Assert.Equal(2, page.Number("window.__exiledUiWait.length"));
-        Assert.Equal(("sls-root", "sls-toast"), (page.Text("window.__exiledUiWait[0][0].id"), page.Text("window.__exiledUiWait[1][0].id")));
+        Assert.Equal(1, page.Number("window.__exiledUiWait.length"));
+        Assert.Equal("sls-root", page.Text("window.__exiledUiWait[0][0].id"));
+    }
+
+    /// <summary>Messages go through the Toolkit's toasts now, so the page draws none of its own.</summary>
+    [Fact]
+    public void The_page_has_no_toast_of_its_own()
+    {
+        var page = new Page();
+
+        page.Run("__slstacking.open(1, 20, 10)");
+
+        Assert.False(page.Bool("window.__slstacking.toast"));
+        Assert.Equal(1, page.Number("handed.length"));
     }
 
     /// <summary>picker.js on PickerFake.js; <paramref name="before"/> runs between the two.</summary>

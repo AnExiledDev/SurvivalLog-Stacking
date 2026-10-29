@@ -13,16 +13,14 @@ using Stacking.Core;
 namespace Stacking;
 
 [BepInPlugin(Guid, "Stacking", Version)]
-[BepInDependency(OptionalLive.ToolkitGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(OptionalLive.ToolkitGuid, OptionalLive.ToolkitVersion)]
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.8.0";
+    private const string Version = "0.8.1";
 
     public override void Load()
     {
-        if (!OptionalLive.IsToolkitInstalled) Log.LogInfo(OptionalLive.MissingNote);
-
         var limitEntries = BindLimits();
 
         // A cook already counted one way has to finish the same way, so the cooking rule waits for the next start.
