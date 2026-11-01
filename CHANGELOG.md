@@ -2,6 +2,7 @@
 
 ## 0.8.1
 
+- **Warning:** needs Exiled's Toolkit 0.11.0 or newer. Update the Toolkit first.
 - Stacking's short messages now show as Exiled's Toolkit toasts, so they appear beside the game's HUD and in the Notifications history.
 - Exiled's Toolkit 0.11.0 or newer is now required.
 - Made for Survival Log 1.1.19611.
