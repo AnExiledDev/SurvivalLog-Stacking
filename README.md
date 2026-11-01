@@ -80,7 +80,7 @@ Every failure is written to `BepInEx\stacking.log`, including any item that coul
 
 ## Requirements
 
-- Survival Log 1.1.19611. Built for this version; a game update can break it until the mod is updated.
+- Survival Log 1.1.20151. Built for this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game.
 - Not together with BaseButler. Both change stack limits and they will fight; remove BaseButler before installing this.
 - [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.11.0 or newer. Stacking does not load without it. It shows the mod's short messages as toasts, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the panel that asks how many to split. Stacking's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
@@ -110,7 +110,7 @@ A config file you already have keeps its saved numbers. To get the new default s
 
 Built against BepInEx `6.0.0-be.788`.
 
-Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.7.11 started`. A line starting `stack limits:` lists the limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`, and comes again each time you change one. The other lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
+Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.8.1 started`. A line starting `stack limits:` lists the limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`, and comes again each time you change one. The other lines after it say which game hooks are in place; a hook that could not be put in place is named there, with what falls back to the game's own behavior.
 
 The same lines, plus every split, every station move and every failure, are in `BepInEx\stacking.log`, which survives restarts. When that file passes 1 MB, it is cut down to its newest part at the next game start.
 
