@@ -162,3 +162,44 @@ public class SettleLedgerTests
         Assert.Equal(5, removed);
     }
 }
+
+public class TallyClaimsTests
+{
+    private const long Tally = 0x1000;
+    private const long TallyCopy = 0x2000;
+    private const long Tags = 0x3000;
+    private const long TagsCopy = 0x4000;
+
+    [Fact]
+    public void ACopiedTallyForTheOtherDishModeGetsTheStackedUnitsToo()
+    {
+        var claims = new TallyClaims();
+
+        Assert.True(claims.ClaimItems(Tally));
+        Assert.True(claims.ClaimTags(Tally, Tags));
+        Assert.True(claims.ClaimItems(TallyCopy));
+        Assert.True(claims.ClaimTags(TallyCopy, TagsCopy));
+    }
+
+    [Fact]
+    public void ATallyReadAgainWhileThePlannerDrainsItIsNotCountedTwice()
+    {
+        var claims = new TallyClaims();
+
+        claims.ClaimItems(Tally);
+        claims.ClaimTags(Tally, Tags);
+
+        Assert.False(claims.ClaimItems(Tally));
+        Assert.False(claims.ClaimTags(Tally, Tags));
+    }
+
+    [Fact]
+    public void TagsReadWithATallyThatNeverGotTheUnitsStayAsTheyAre()
+    {
+        var claims = new TallyClaims();
+
+        claims.ClaimItems(Tally);
+
+        Assert.False(claims.ClaimTags(TallyCopy, TagsCopy));
+    }
+}

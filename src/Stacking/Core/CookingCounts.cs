@@ -100,3 +100,20 @@ public sealed class SettleLedger
         return CookingCounts.CountsEveryUnit(use) ? Math.Min(counted, need) - 1 : 0;
     }
 }
+
+/// <summary>
+/// Which of the planner's bench tallies already have the stacked units. The planner may copy its tallies before it first
+/// reads them (it plans the other dish mode from the copy), so every item tally gets the units at its first read, and a
+/// tag tally gets them once, when it is read alongside an item tally that has them.
+/// </summary>
+public sealed class TallyClaims
+{
+    private readonly HashSet<long> _itemTallies = new();
+    private readonly HashSet<long> _tagTallies = new();
+
+    /// <summary>True the first time an item tally is seen: its units are to be added now.</summary>
+    public bool ClaimItems(long itemTally) => _itemTallies.Add(itemTally);
+
+    /// <summary>True the first time a tag tally is seen with a claimed item tally: its units are to be added now.</summary>
+    public bool ClaimTags(long itemTally, long tagTally) => _itemTallies.Contains(itemTally) && _tagTallies.Add(tagTally);
+}

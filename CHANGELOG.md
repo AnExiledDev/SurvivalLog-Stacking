@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.2
+
+- Fixed for the 1.1.20719 game update: the cooking view plans both dish modes from every unit of a stack again, not just the selected one.
+- Made for Survival Log 1.1.20719.
+
 ## 0.8.1
 
 - **Warning:** needs Exiled's Toolkit 0.11.0 or newer. Update the Toolkit first.
