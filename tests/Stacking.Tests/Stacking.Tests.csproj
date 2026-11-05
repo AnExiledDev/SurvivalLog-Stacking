@@ -6,17 +6,25 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <ToolkitDll Condition="'$(ToolkitDll)' == ''">D:\devnew\game-mods\SurvivalLog\mods\sl-exiled-toolkit\src\ExiledToolkit\bin\Release\ExiledToolkit.dll</ToolkitDll>
+    <!-- Exiled's Toolkit's source folder, the one its built DLL sits two folders under (bin\Release). -->
+    <ToolkitSrc>$([System.IO.Path]::GetDirectoryName($([System.IO.Path]::GetDirectoryName($([System.IO.Path]::GetDirectoryName('$(ToolkitDll)'))))))</ToolkitSrc>
   </PropertyGroup>
 
-  <!-- The pure core is compiled straight in, so the tests need none of the game or BepInEx assemblies. -->
+  <!-- The pure core is compiled straight in, with the Toolkit's plain helpers it uses, so the tests need none of the game or BepInEx assemblies. -->
   <ItemGroup>
     <Compile Include="..\..\src\Stacking\Core\*.cs" Link="Core\%(Filename)%(Extension)" />
+    <Compile Include="$(ToolkitSrc)\Core\JsText.cs" Link="Toolkit\JsText.cs" />
+    <Compile Include="$(ToolkitSrc)\Core\Phrase.cs" Link="Toolkit\Phrase.cs" />
   </ItemGroup>
 
-  <!-- The split picker's script, as the plugin ships it, run in Jint against a fake root page. -->
+  <!-- The page scripts, as the plugin ships them, run in Jint with the Toolkit's page API against fake root pages. -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\src\Stacking\picker.js" LogicalName="Stacking.picker.js" Link="picker.js" />
+    <EmbeddedResource Include="..\..\src\Stacking\drops.js" LogicalName="Stacking.drops.js" Link="drops.js" />
+    <EmbeddedResource Include="$(ToolkitSrc)\api.js" LogicalName="ExiledToolkit.api.js" Link="Toolkit\api.js" />
     <EmbeddedResource Include="PickerFake.js" LogicalName="Stacking.Tests.PickerFake.js" />
+    <EmbeddedResource Include="DropsFake.js" LogicalName="Stacking.Tests.DropsFake.js" />
   </ItemGroup>
 
   <ItemGroup>

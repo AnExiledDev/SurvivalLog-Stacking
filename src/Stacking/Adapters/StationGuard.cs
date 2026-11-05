@@ -2,8 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.Battle.Logic;
-using HarmonyLib;
 using Stacking.Core;
 using UnityEngine;
 
@@ -68,7 +68,7 @@ internal static class StationGuard
     /// False when no move into a station could be caught, so stacks go in whole, as in 0.2.0. Needs NewStacks: the
     /// units kept out of a station must start a stack of their own, never top up another.
     /// </summary>
-    public static bool Apply(Harmony harmony, StationMover mover, Action<string> log, Action<string> logFileOnly)
+    public static bool Apply(PatchKit hooks, StationMover mover, Action<string> log, Action<string> logFileOnly)
     {
         _mover = mover;
         _log = log;
@@ -76,16 +76,16 @@ internal static class StationGuard
 
         var hooked = new[]
         {
-            TryPatch(harmony, "moving an item", nameof(ItemManager.OnMoveItem), prefix: nameof(OneUnitOnMove)),
-            TryPatch(harmony, "quick-moving an item", nameof(ItemManager.TryQuickMoveItem), prefix: nameof(OneUnitOnQuickMove)),
-            TryPatchClickScope(harmony),
-            TryPatch(harmony, "dragging an item in a cooking view", nameof(ItemManager.OnCookingDragMove), prefix: nameof(OneUnitOnCookingDrag)),
-            TryPatch(harmony, "quick-moving an item in a cooking view", nameof(ItemManager.OnCookingQuickMove), prefix: nameof(OneUnitOnCookingQuick)),
-            TryPatch(harmony, "swapping two items", nameof(ItemManager.OnSwapItem), prefix: nameof(OneUnitOnSwap)),
-            TryPatch(harmony, "moving a whole bag", nameof(ItemManager.ExecuteMoveBag), prefix: nameof(RememberStacksMoving), postfix: nameof(SendStacksBack)),
-            TryPatch(harmony, "topping up a stack", nameof(ItemManager.FindStackableItem), postfix: nameof(NoStackInStation)),
-            TryPatch(harmony, "noting an item leaving a container", nameof(ItemManager.RemoveItemFromOwnerCache), prefix: nameof(NoteLeaving)),
-            TryPatch(harmony, "noting an item entering a container", nameof(ItemManager.AddItemToOwnerCache), postfix: nameof(SendBackIfStackLanded)),
+            Patch(hooks, "moving an item", nameof(ItemManager.OnMoveItem), prefix: nameof(OneUnitOnMove)),
+            Patch(hooks, "quick-moving an item", nameof(ItemManager.TryQuickMoveItem), prefix: nameof(OneUnitOnQuickMove)),
+            PatchClickScope(hooks),
+            Patch(hooks, "dragging an item in a cooking view", nameof(ItemManager.OnCookingDragMove), prefix: nameof(OneUnitOnCookingDrag)),
+            Patch(hooks, "quick-moving an item in a cooking view", nameof(ItemManager.OnCookingQuickMove), prefix: nameof(OneUnitOnCookingQuick)),
+            Patch(hooks, "swapping two items", nameof(ItemManager.OnSwapItem), prefix: nameof(OneUnitOnSwap)),
+            Patch(hooks, "moving a whole bag", nameof(ItemManager.ExecuteMoveBag), prefix: nameof(RememberStacksMoving), postfix: nameof(SendStacksBack)),
+            Patch(hooks, "topping up a stack", nameof(ItemManager.FindStackableItem), postfix: nameof(NoStackInStation)),
+            Patch(hooks, "noting an item leaving a container", nameof(ItemManager.RemoveItemFromOwnerCache), prefix: nameof(NoteLeaving)),
+            Patch(hooks, "noting an item entering a container", nameof(ItemManager.AddItemToOwnerCache), postfix: nameof(SendBackIfStackLanded)),
         };
 
         if (!hooked.Any(isHooked => isHooked))
@@ -115,16 +115,16 @@ internal static class StationGuard
         lock (Leaving) Leaving.Clear();
     }
 
-    private static bool TryPatch(Harmony harmony, string what, string method, string? prefix = null, string? postfix = null) =>
-        Hooks.TryPatch(harmony, typeof(StationGuard), what, () => AccessTools.Method(typeof(ItemManager), method), _log, prefix, postfix);
+    private static bool Patch(PatchKit hooks, string what, string method, string? prefix = null, string? postfix = null) =>
+        hooks.Patch(typeof(StationGuard), typeof(ItemManager), method, prefix: prefix, postfix: postfix, consequence: what);
 
     /// <summary>
     /// OnQuickMoveItem opens sub rsp,48h; mov qword [rsp+30h],0; mov byte [rsp+28h],0, 18 bytes before its only call,
     /// so it has no relative jump or call in its first 14 bytes (Dobby rule). rva 0x26db9b0.
     /// </summary>
-    private static bool TryPatchClickScope(Harmony harmony) =>
-        Hooks.TryPatchScope(harmony, typeof(StationGuard), "a click moving an item across",
-            () => AccessTools.Method(typeof(ItemManager), "OnQuickMoveItem", new[] { typeof(long), typeof(long), typeof(long) }), _log, nameof(OpenClick), nameof(CloseClick));
+    private static bool PatchClickScope(PatchKit hooks) =>
+        hooks.PatchScope(typeof(StationGuard), typeof(ItemManager), "OnQuickMoveItem", "a click moving an item across", nameof(OpenClick), nameof(CloseClick),
+            new[] { typeof(long), typeof(long), typeof(long) });
 
     private static void OpenClick() => _clickDepth++;
 

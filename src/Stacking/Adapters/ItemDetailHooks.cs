@@ -1,6 +1,6 @@
 using System;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 using Stacking.Core;
 
 namespace Stacking.Adapters;
@@ -13,15 +13,14 @@ namespace Stacking.Adapters;
 /// </summary>
 internal static class ItemDetailHooks
 {
-    private static Action<string> _log = _ => { };
-    private static bool _hasReportedFailure;
+    private static PatchKit? _hooks;
 
-    public static bool Apply(Harmony harmony, Action<string> log)
+    public static bool Apply(PatchKit hooks)
     {
-        _log = log;
+        _hooks = hooks;
 
-        return Hooks.TryPatch(harmony, typeof(ItemDetailHooks), "opening the item details popup",
-            () => AccessTools.Method(typeof(Ac_ItemDetailPopup_OpenUI), nameof(Ac_ItemDetailPopup_OpenUI.SendAction)), log, prefix: nameof(OpenOnlyWithoutCtrl));
+        return hooks.Patch(typeof(ItemDetailHooks), typeof(Ac_ItemDetailPopup_OpenUI), nameof(Ac_ItemDetailPopup_OpenUI.SendAction), prefix: nameof(OpenOnlyWithoutCtrl),
+            consequence: "opening the item details popup");
     }
 
     private static bool OpenOnlyWithoutCtrl()
@@ -32,9 +31,7 @@ internal static class ItemDetailHooks
         }
         catch (Exception ex)
         {
-            if (!_hasReportedFailure) _log($"reading the keys for an item click failed, so the item details open as in the base game: {ex}");
-
-            _hasReportedFailure = true;
+            _hooks?.Fail("reading the keys for an item click, so the item details open as in the base game", ex);
 
             return true;
         }

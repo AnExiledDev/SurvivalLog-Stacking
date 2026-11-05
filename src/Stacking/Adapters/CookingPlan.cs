@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 using Stacking.Core;
 using UnityEngine;
 using GameTally = Il2CppSystem.Collections.Generic.Dictionary<int, int>;
@@ -20,13 +20,12 @@ internal static class CookingPlan
 {
     [ThreadStatic] private static Plan? _plan;
 
-    public static bool Apply(Harmony harmony, Action<string> log) =>
-        Hooks.TryPatchScope(harmony, typeof(CookingPlan), "the recipe planner",
-            () => AccessTools.Method(typeof(Reducer_Web_Cooking), nameof(Reducer_Web_Cooking.PreMatchRecipes)), log, nameof(OpenPlan), nameof(ClosePlan))
-        && Hooks.TryPatch(harmony, typeof(CookingPlan), "the planner's item tally",
-            () => AccessTools.Method(typeof(Reducer_Web_Cooking), nameof(Reducer_Web_Cooking.ResolvePredictionTier)), log, prefix: nameof(CountStackedItems))
-        && Hooks.TryPatch(harmony, typeof(CookingPlan), "the planner's tag tally",
-            () => AccessTools.Method(typeof(Reducer_Web_Cooking), nameof(Reducer_Web_Cooking.SelectBestMatchedRecipe)), log, prefix: nameof(CountStackedTags));
+    public static bool Apply(PatchKit hooks) =>
+        hooks.PatchScope(typeof(CookingPlan), typeof(Reducer_Web_Cooking), nameof(Reducer_Web_Cooking.PreMatchRecipes), "the recipe planner", nameof(OpenPlan), nameof(ClosePlan))
+        && hooks.Patch(typeof(CookingPlan), typeof(Reducer_Web_Cooking), nameof(Reducer_Web_Cooking.ResolvePredictionTier), prefix: nameof(CountStackedItems),
+            consequence: "the planner's item tally")
+        && hooks.Patch(typeof(CookingPlan), typeof(Reducer_Web_Cooking), nameof(Reducer_Web_Cooking.SelectBestMatchedRecipe), prefix: nameof(CountStackedTags),
+            consequence: "the planner's tag tally");
 
     private static void OpenPlan(State_Web_Cooking state)
     {

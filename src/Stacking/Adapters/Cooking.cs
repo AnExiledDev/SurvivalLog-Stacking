@@ -1,6 +1,6 @@
 using System;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate;
-using HarmonyLib;
 using Stacking.Core;
 
 namespace Stacking.Adapters;
@@ -21,18 +21,18 @@ internal static class Cooking
 
     public static bool IsCountingStacks => _isCountingStacks;
 
-    public static void Apply(Harmony harmony, Action<string> log)
+    public static void Apply(PatchKit hooks, Action<string> log)
     {
         _log = log;
 
-        if (!CookingSettle.Apply(harmony, log))
+        if (!CookingSettle.Apply(hooks))
         {
             log("cooking still counts a stack as one ingredient: a finished cook could not be hooked");
 
             return;
         }
 
-        if (!CookingPlan.Apply(harmony, log))
+        if (!CookingPlan.Apply(hooks))
         {
             log("cooking still counts a stack as one ingredient: the recipe planner could not be hooked");
 

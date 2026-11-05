@@ -1,6 +1,6 @@
 using System;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.Battle.Logic;
-using HarmonyLib;
 
 namespace Stacking.Adapters;
 
@@ -16,10 +16,10 @@ internal static class NewStacks
     private static bool? _isInstalled;
 
     /// <summary>True when every add made through Start starts its own stack.</summary>
-    public static bool Apply(Harmony harmony, Action<string> log)
+    public static bool Apply(PatchKit hooks)
     {
-        _isInstalled ??= Hooks.TryPatch(harmony, typeof(NewStacks), "starting a new stack",
-            () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.FindStackableItem)), log, postfix: nameof(NoStackWhileStarting));
+        _isInstalled ??= hooks.Patch(typeof(NewStacks), typeof(ItemManager), nameof(ItemManager.FindStackableItem), postfix: nameof(NoStackWhileStarting),
+            consequence: "starting a new stack");
 
         return _isInstalled.Value;
     }

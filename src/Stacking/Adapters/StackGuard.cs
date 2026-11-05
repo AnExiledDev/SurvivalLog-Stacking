@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
 using HarmonyLib;
@@ -20,7 +20,6 @@ namespace Stacking.Adapters;
 internal static class StackGuard
 {
     private const float SecondsPerHour = 3600f;
-    private const int MaxLoggedFailures = 3;
     private const int MaxLoggedDecisions = 10;
 
     /// <summary>Set by the limit writer on each sweep.</summary>
@@ -40,18 +39,18 @@ internal static class StackGuard
 
     private static Action<string> _log = _ => { };
     private static Action<string> _logFileOnly = _ => { };
+    private static PatchKit? _hooks;
     private static bool _canNarrowSearch = true;
-    private static int _failures;
     private static int _decisionsLogged;
 
     /// <summary>True when the stack search is guarded; without it no new item may become stackable.</summary>
-    public static bool Apply(Harmony harmony, Action<string> log, Action<string> logFileOnly)
+    public static bool Apply(PatchKit hooks, Action<string> log, Action<string> logFileOnly)
     {
+        _hooks = hooks;
         _log = log;
         _logFileOnly = logFileOnly;
 
-        var isGuarded = TryPatch(harmony, "the stack search", () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.FindStackableItem)),
-            nameof(OnlyMatchingFreshness), nameof(RefuseOtherFreshness));
+        var isGuarded = Patch(hooks, "the stack search", nameof(ItemManager.FindStackableItem), null, nameof(OnlyMatchingFreshness), nameof(RefuseOtherFreshness));
 
         if (!isGuarded)
         {
@@ -61,20 +60,35 @@ internal static class StackGuard
         }
 
         // Without these an add's freshness is unknown, and unknown always starts a new stack: safe, just less stacking.
-        TryPatch(harmony, "adding to a bag", () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.TryAddItemToBag)), nameof(RememberAdd), nameof(ForgetAdd));
-        TryPatch(harmony, "adding an item", () => AddItemOverload(hasUses: true), nameof(RememberAdd), nameof(ForgetAdd));
-        TryPatch(harmony, "adding a plain item", () => AddItemOverload(hasUses: false), nameof(RememberPlainAdd), nameof(ForgetAdd));
+        Patch(hooks, "adding to a bag", nameof(ItemManager.TryAddItemToBag), null, nameof(RememberAdd), nameof(ForgetAdd));
+        PatchAddItem(hooks, "adding an item", hasUses: true, nameof(RememberAdd));
+        PatchAddItem(hooks, "adding a plain item", hasUses: false, nameof(RememberPlainAdd));
         log("items that are newly stackable only join stacks of the same freshness and uses");
 
         return true;
     }
 
-    private static bool TryPatch(Harmony harmony, string what, Func<MethodBase?> target, string prefix, string postfix) =>
-        Hooks.TryPatch(harmony, typeof(StackGuard), what, target, _log, prefix, postfix);
+    private static bool Patch(PatchKit hooks, string what, string method, Type[]? parameters, string prefix, string postfix) =>
+        hooks.Patch(typeof(StackGuard), typeof(ItemManager), method, parameters, prefix: prefix, postfix: postfix, consequence: what);
 
-    private static MethodInfo AddItemOverload(bool hasUses) =>
-        AccessTools.GetDeclaredMethods(typeof(ItemManager))
-            .Single(method => method.Name == nameof(ItemManager.AddItem) && method.GetParameters().Any(p => p.Name == "useTimes") == hasUses);
+    /// <summary>The game has two AddItem overloads, told apart by whether they take a use count; the hook names the one it means by its parameters.</summary>
+    private static void PatchAddItem(PatchKit hooks, string what, bool hasUses, string prefix)
+    {
+        var overloads = AccessTools.GetDeclaredMethods(typeof(ItemManager))
+            .Where(method => method.Name == nameof(ItemManager.AddItem) && method.GetParameters().Any(p => p.Name == "useTimes") == hasUses)
+            .ToArray();
+
+        if (overloads.Length != 1)
+        {
+            _log($"{HookFailure.Prefix} {nameof(ItemManager)}.{nameof(ItemManager.AddItem)}, {what}: {overloads.Length} overloads match, not one");
+
+            return;
+        }
+
+        var parameters = overloads[0].GetParameters().Select(parameter => parameter.ParameterType).ToArray();
+
+        Patch(hooks, what, nameof(ItemManager.AddItem), parameters, prefix, nameof(ForgetAdd));
+    }
 
     private static void RememberAdd(int startTime, int timeLeft, int useTimes, float timeScale, int maxUseTimes, out Freshness? __state)
     {
@@ -204,9 +218,7 @@ internal static class StackGuard
 
     internal static float? NowHours()
     {
-        if (!BaseSingleton<BattleLogicWorld>.IsInstanceCreated) return null;
-
-        var time = BaseSingleton<BattleLogicWorld>.Instance._GameTimeManager;
+        var time = GameSingleton.Existing<BattleLogicWorld>()?._GameTimeManager;
 
         return time == null ? null : time.GetTotalSeconds() / SecondsPerHour;
     }
@@ -217,10 +229,5 @@ internal static class StackGuard
     private static string Describe(Freshness? item) =>
         item is { } f ? $"expires {f.ExpiresAt:0.0}h x{f.TimeScale:0.##}, uses {f.UseTimes}/{f.MaxUseTimes}" : "unknown";
 
-    private static void Fail(string what, Exception ex)
-    {
-        _failures++;
-
-        if (_failures <= MaxLoggedFailures) _log($"{what} failed, the item starts a new stack (logged {_failures} of {MaxLoggedFailures}): {ex}");
-    }
+    private static void Fail(string what, Exception ex) => _hooks?.Fail($"{what}, the item starts a new stack", ex);
 }

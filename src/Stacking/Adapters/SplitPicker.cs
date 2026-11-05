@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using ExiledToolkit;
-using GameCore.HotUpdate.ReduxUI;
+using ExiledToolkit.Game;
+using ExiledToolkit.Kit;
+using ExiledToolkit.Web;
 using Stacking.Core;
 using UnityEngine;
 
@@ -21,8 +23,8 @@ internal sealed class SplitPicker
 
     private readonly Action<string> _log;
     private readonly PickerSession<SplitRequest> _session = new();
+    private readonly WebKeyboard _keyboard = new();
     private string? _script;
-    private bool? _wasKeyboardEnabled;
     private bool _hasReportedRunFailure;
     private (string Text, float At)? _lastLoggedToast;
 
@@ -49,7 +51,9 @@ internal sealed class SplitPicker
         if (!_session.Shown(token, now)) return;
 
         PickerHooks.Opened();
-        ClaimKeyboard();
+
+        // The page's number box needs the keyboard, which the game gives the web UI only while one of its own boxes has focus.
+        _keyboard.Claim();
     }
 
     public void Gone(int token)
@@ -147,52 +151,22 @@ internal sealed class SplitPicker
     private void Disengage()
     {
         PickerHooks.Closed();
-        ReleaseKeyboard();
+        _keyboard.Release();
         Run(PickerCalls.Close(), withScript: false);
-    }
-
-    /// <summary>The page's number box needs the keyboard, which the game gives the web UI only while one of its own boxes has focus.</summary>
-    private void ClaimKeyboard()
-    {
-        var layer = WebLayer();
-
-        if (layer == null) return;
-
-        _wasKeyboardEnabled ??= layer.IsKeyboardEnabled;
-        layer.SetKeyboardEnabled(true);
-    }
-
-    private void ReleaseKeyboard()
-    {
-        if (_wasKeyboardEnabled is not { } wasEnabled) return;
-
-        _wasKeyboardEnabled = null;
-        WebLayer()?.SetKeyboardEnabled(wasEnabled);
     }
 
     private bool Run(string call, bool withScript = true)
     {
-        var webView = WebLayer()?.canvasWebViewPrefab?.WebView;
+        if (WebUi.TryRun(withScript ? Script() + ";" + call : call, out var failure)) return true;
 
-        if (webView == null) return false;
-
-        try
+        if (failure != null && !_hasReportedRunFailure)
         {
-            webView.ExecuteJavaScript(withScript ? Script() + ";" + call : call, null);
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            if (!_hasReportedRunFailure) _log("could not run the split picker's script in the web UI (reported once): " + ex.Message);
-
+            _log("could not run the split picker's script in the web UI (reported once): " + failure.Message);
             _hasReportedRunFailure = true;
-
-            return false;
         }
-    }
 
-    private static WebUILayer? WebLayer() => GameSingleton.Existing<ReduxUISystem>()?.GetWebUILayer();
+        return false;
+    }
 
     private string Script()
     {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.Battle.Logic;
 using InstanceIds = Il2CppSystem.Collections.Generic.List<long>;
 

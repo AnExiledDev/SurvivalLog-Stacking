@@ -15,9 +15,12 @@
   var PREFIX = 'slmod|stacking|onto|';
   var STATION_PAGES = /\/(ToolTable|BrewPanel|Cooking|Shredder|Compressor|DyePanel|DroneHub|GreenhouseBuild|AidDepot|RatCage|Heater|FuelGenerator|MaterialRack|TrapPanel)\.html/;
   var TRADE_PAGE = /\/TradeUI\.html/;
-  var SCAN_MS = 400;
+  var WATCHED_PAGES = /\/(ToolTable|BrewPanel|Cooking|Shredder|Compressor|DyePanel|DroneHub|GreenhouseBuild|AidDepot|RatCage|Heater|FuelGenerator|MaterialRack|TrapPanel|TradeUI)\.html/;
   var TRADE_CELL = 56;
   var TRADE_DRAG_THRESHOLD = 5;
+
+  // Exiled's Toolkit's page API, once it has loaded; only the pages it hands over send anything.
+  var toolkit = null;
 
   function itemId(node) {
     return node && /^[1-9][0-9]*$/.test(node.id) ? node.id : null;
@@ -59,7 +62,7 @@
       var dragged = draggedItem(doc);
       var target = dragged ? itemUnder(doc, dragged, e.clientX, e.clientY) : null;
 
-      if (target && window.vuplex) window.vuplex.postMessage(PREFIX + dragged.id + '|' + target.id);
+      if (target) toolkit.send(PREFIX, dragged.id + '|' + target.id);
     } catch (err) {}
   }
 
@@ -137,34 +140,30 @@
       var draggedId = String(ds.item.id);
       var targetId = target ? String(target.id) : null;
 
-      if (targetId && /^[1-9][0-9]*$/.test(draggedId) && /^[1-9][0-9]*$/.test(targetId) && window.vuplex) window.vuplex.postMessage(PREFIX + draggedId + '|' + targetId);
+      if (targetId && /^[1-9][0-9]*$/.test(draggedId) && /^[1-9][0-9]*$/.test(targetId)) toolkit.send(PREFIX, draggedId + '|' + targetId);
     } catch (err) {}
   }
 
   // Each loaded station page gets one listener, in the capture phase, so it runs before the bag script's own.
-  function watch(frame) {
-    try {
-      var win = frame.contentWindow;
+  function watch(doc) {
+    var win = doc.defaultView;
 
-      if (!win || win.__slstackingDropsWatched) return;
+    if (!win) return false;
 
-      var url = win.document.URL;
-      var handler = TRADE_PAGE.test(url) ? onTradeMouseUp : STATION_PAGES.test(url) ? onMouseUp : null;
+    if (win.__slstackingDropsWatched) return;
 
-      if (!handler) return;
+    var url = doc.URL;
+    var handler = TRADE_PAGE.test(url) ? onTradeMouseUp : STATION_PAGES.test(url) ? onMouseUp : null;
 
-      win.__slstackingDropsWatched = true;
-      win.addEventListener('mouseup', function (e) { handler(win, e); }, true);
-    } catch (err) {}
+    if (!handler) return;
+
+    win.__slstackingDropsWatched = true;
+    win.addEventListener('mouseup', function (e) { handler(win, e); }, true);
   }
 
-  // A live list the browser keeps current, so the poll searches the document for frames only once.
-  var frames = document.getElementsByTagName('iframe');
-
-  function scan() {
-    for (var i = 0; i < frames.length; i++) watch(frames[i]);
-  }
-
-  scan();
-  setInterval(scan, SCAN_MS);
+  // Exiled's Toolkit hands over each station and trade page once for every document its frame loads.
+  (window.ExiledToolkitReady = window.ExiledToolkitReady || []).push(function (etk) {
+    toolkit = etk;
+    etk.watchPages(WATCHED_PAGES, watch);
+  });
 })();

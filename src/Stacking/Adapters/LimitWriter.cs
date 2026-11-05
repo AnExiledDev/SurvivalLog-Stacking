@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
+using ExiledToolkit.Game;
+using ExiledToolkit.Kit;
 using GameCore.HotUpdate;
 using Stacking.Core;
 using ItemTable = Il2CppSystem.Collections.Generic.Dictionary<int, GameCore.HotUpdate.Config_Item>;
@@ -127,7 +129,7 @@ internal sealed class LimitWriter
 
     private static bool TryTables([NotNullWhen(true)] out ConfigManager? config, [NotNullWhen(true)] out ItemTable? table)
     {
-        config = BaseSingleton<ConfigManager>.IsInstanceCreated ? BaseSingleton<ConfigManager>.Instance : null;
+        config = GameSingleton.Existing<ConfigManager>();
         table = config?._Config_Item_Dict;
 
         return config != null && table != null && table.Count > 0;

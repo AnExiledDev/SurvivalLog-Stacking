@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
-using HarmonyLib;
 using Stacking.Core;
 using UnityEngine;
 using GameItems = Il2CppSystem.Collections.Generic.List<GameCore.HotUpdate.Battle.Logic.ItemData>;
@@ -20,31 +20,27 @@ namespace Stacking.Adapters;
 /// </summary>
 internal static class CookingSettle
 {
-    private const int MaxLoggedPopUpFailures = 3;
-
     [ThreadStatic] private static Settle? _settle;
 
-    private static Action<string> _log = _ => { };
-    private static int _popUpFailures;
+    private static PatchKit? _hooks;
 
     /// <summary>True when every hook the settle needs is in place; the left-behind pop-up is optional.</summary>
-    public static bool Apply(Harmony harmony, Action<string> log)
+    public static bool Apply(PatchKit hooks)
     {
-        _log = log;
+        _hooks = hooks;
 
-        var isHooked = Hooks.TryPatchScope(harmony, typeof(CookingSettle), "a finished cook",
-                           () => AccessTools.Method(typeof(Furniture), nameof(Furniture.SettleCookingResult)), log, nameof(OpenSettle), nameof(CloseSettle))
-                       && Hooks.TryPatch(harmony, typeof(CookingSettle), "the recipes a cook used",
-                           () => AccessTools.Method(typeof(Furniture), nameof(Furniture.BuildMatchedEntriesFromRecipeIds)), log, postfix: nameof(OpenLedger))
-                       && Hooks.TryPatch(harmony, typeof(CookingSettle), "what a used item leaves behind",
-                           () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.ResolveConsumeReturnItems)), log, postfix: nameof(RememberReturnCall))
-                       && Hooks.TryPatch(harmony, typeof(CookingSettle), "removing an item",
-                           () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.RemoveItem), new[] { typeof(long) }), log, prefix: nameof(TakeUsedUnits));
+        var isHooked = hooks.PatchScope(typeof(CookingSettle), typeof(Furniture), nameof(Furniture.SettleCookingResult), "a finished cook", nameof(OpenSettle), nameof(CloseSettle))
+                       && hooks.Patch(typeof(CookingSettle), typeof(Furniture), nameof(Furniture.BuildMatchedEntriesFromRecipeIds), postfix: nameof(OpenLedger),
+                           consequence: "the recipes a cook used")
+                       && hooks.Patch(typeof(CookingSettle), typeof(ItemManager), nameof(ItemManager.ResolveConsumeReturnItems), postfix: nameof(RememberReturnCall),
+                           consequence: "what a used item leaves behind")
+                       && hooks.Patch(typeof(CookingSettle), typeof(ItemManager), nameof(ItemManager.RemoveItem), new[] { typeof(long) }, prefix: nameof(TakeUsedUnits),
+                           consequence: "removing an item");
 
         if (!isHooked) return false;
 
-        Hooks.TryPatch(harmony, typeof(CookingSettle), "the pop-up listing what a cook left behind",
-            () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.NotifyConsumeReturnPop)), log, prefix: nameof(ShowExtraReturns));
+        hooks.Patch(typeof(CookingSettle), typeof(ItemManager), nameof(ItemManager.NotifyConsumeReturnPop), prefix: nameof(ShowExtraReturns),
+            consequence: "the pop-up listing what a cook left behind");
 
         return true;
     }
@@ -129,9 +125,7 @@ internal static class CookingSettle
         }
         catch (Exception ex)
         {
-            _popUpFailures++;
-
-            if (_popUpFailures <= MaxLoggedPopUpFailures) _log($"listing what a cook left behind failed, the items are still in the bag (logged {_popUpFailures} of {MaxLoggedPopUpFailures}): {ex}");
+            _hooks?.Fail("listing what a cook left behind, the items are still in the bag", ex);
         }
         finally
         {

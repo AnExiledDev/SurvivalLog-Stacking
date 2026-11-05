@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 using Stacking.Core;
 using UnityEngine;
 
@@ -21,7 +21,6 @@ namespace Stacking.Adapters;
 internal static class RightClickSplit
 {
     private const long ClickExpiryMs = 500;
-    private const int MaxLoggedFailures = 3;
 
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
     private static readonly object Gate = new();
@@ -29,29 +28,28 @@ internal static class RightClickSplit
     /// <summary>The split each outstanding press of this mod asked for, oldest first; never longer than the presses owed an answer.</summary>
     private static readonly Queue<SplitKind> Asked = new();
 
-    private static Action<string> _log = _ => { };
+    private static PatchKit? _hooks;
     private static DropKeyProbes _probes = DropKeyProbes.None;
     private static (SplitKind Kind, long At)? _click;
     private static bool _canProbe;
-    private static int _failures;
 
-    public static void Apply(Harmony harmony, Action<string> log)
+    public static void Apply(PatchKit hooks, Action<string> log)
     {
-        _log = log;
+        _hooks = hooks;
 
-        var canSeeKeys = Hooks.TryPatch(harmony, typeof(RightClickSplit), "noticing the drop key",
-            () => AccessTools.Method(typeof(Reducer_Web_BackpackUI), nameof(Reducer_Web_BackpackUI.RA_DropKey)), log, prefix: nameof(NoteDropKey));
+        var canSeeKeys = Patch(hooks, "noticing the drop key", nameof(Reducer_Web_BackpackUI.RA_DropKey), nameof(NoteDropKey));
 
         // Without seeing every drop key, the player's own could not be told from this mod's, so no press is sent.
-        _canProbe = canSeeKeys && Hooks.TryPatch(harmony, typeof(RightClickSplit), "dropping an item from the bag",
-            () => AccessTools.Method(typeof(Reducer_Web_BackpackUI), nameof(Reducer_Web_BackpackUI.RA_DropItem)), log, prefix: nameof(SplitInsteadOfDrop));
+        _canProbe = canSeeKeys && Patch(hooks, "dropping an item from the bag", nameof(Reducer_Web_BackpackUI.RA_DropItem), nameof(SplitInsteadOfDrop));
 
-        var canCatchTransfer = Hooks.TryPatch(harmony, typeof(RightClickSplit), "sending an item to the other bag",
-            () => AccessTools.Method(typeof(Reducer_Web_BackpackUI), nameof(Reducer_Web_BackpackUI.RA_QuickTransferItem)), log, prefix: nameof(SplitInsteadOfTransfer));
+        var canCatchTransfer = Patch(hooks, "sending an item to the other bag", nameof(Reducer_Web_BackpackUI.RA_QuickTransferItem), nameof(SplitInsteadOfTransfer));
 
         if (!_canProbe) log("a right-click with Shift or Ctrl does not split with one bag open this session");
         if (!canCatchTransfer) log("a right-click with Shift or Ctrl does not split with two bags open this session");
     }
+
+    private static bool Patch(PatchKit hooks, string what, string method, string prefix) =>
+        hooks.Patch(typeof(RightClickSplit), typeof(Reducer_Web_BackpackUI), method, prefix: prefix, consequence: what);
 
     /// <summary>Once per frame, on the main thread, after the keys are sampled and a closed bag is noticed.</summary>
     public static void Watch()
@@ -227,10 +225,5 @@ internal static class RightClickSplit
         }
     }
 
-    private static void Fail(string what, Exception ex)
-    {
-        _failures++;
-
-        if (_failures <= MaxLoggedFailures) _log($"{what} failed, the click does what the game does (logged {_failures} of {MaxLoggedFailures}): {ex}");
-    }
+    private static void Fail(string what, Exception ex) => _hooks?.Fail($"{what}, the click does what the game does", ex);
 }

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 using Il2CppInterop.Runtime;
 using Stacking.Core;
 using UnityEngine;
@@ -23,28 +23,27 @@ namespace Stacking.Adapters;
 /// </summary>
 internal static class TradeSplit
 {
-    private const int MaxLoggedFailures = 3;
-
+    private static PatchKit? _hooks;
     private static Action<string> _log = _ => { };
     private static PendingOffer? _offer;
     private static readonly List<PendingTakeBack> Recounts = new();
     private static (PendingJoin Wait, SplitRequest Request)? _join;
     private static (long StackId, float SentAt)? _recountSent;
-    private static int _failures;
 
     /// <summary>The game's type for the trade window, looked up once: each lookup makes a new object.</summary>
     private static Il2CppSystem.Type? _tradeScreen;
 
-    public static void Apply(Harmony harmony, Action<string> log)
+    public static void Apply(PatchKit hooks, Action<string> log)
     {
+        _hooks = hooks;
         _log = log;
 
         // Both save registers and reserve stack (24 and 18 bytes) before their first compare and jump, so neither has
         // a relative jump or call in its first 14 bytes (Dobby rule).
-        var drags = Hooks.TryPatch(harmony, typeof(TradeSplit), "dragging an item in the trade window", // rva 0x2c5a220
-            () => AccessTools.Method(typeof(Reducer_Web_TradeUI), "DragItemCore"), log, prefix: nameof(SplitInsteadOfDrag));
-        var clicks = Hooks.TryPatch(harmony, typeof(TradeSplit), "clicking an item in the trade window", // rva 0x2c562e0
-            () => AccessTools.Method(typeof(Reducer_Web_TradeUI), "ClickItemCore"), log, prefix: nameof(SplitInsteadOfClick));
+        var drags = hooks.Patch(typeof(TradeSplit), typeof(Reducer_Web_TradeUI), "DragItemCore", prefix: nameof(SplitInsteadOfDrag), // rva 0x2c5a220
+            consequence: "dragging an item in the trade window");
+        var clicks = hooks.Patch(typeof(TradeSplit), typeof(Reducer_Web_TradeUI), "ClickItemCore", prefix: nameof(SplitInsteadOfClick), // rva 0x2c562e0
+            consequence: "clicking an item in the trade window");
 
         if (drags) log("a drag with Shift or Ctrl splits a stack anywhere in the trade window, and the units land where they are dropped");
         if (clicks) log("a transfer click offers one unit in the trade window, and a right-click with Shift or Ctrl offers or takes back part of a stack");
@@ -424,10 +423,5 @@ internal static class TradeSplit
         return false;
     }
 
-    private static void Fail(Exception ex)
-    {
-        _failures++;
-
-        if (_failures <= MaxLoggedFailures) _log($"splitting a stack in the trade window failed, the game does what it does (logged {_failures} of {MaxLoggedFailures}): {ex}");
-    }
+    private static void Fail(Exception ex) => _hooks?.Fail("splitting a stack in the trade window, the game does what it does", ex);
 }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.Battle.Logic;
-using HarmonyLib;
 using Stacking.Core;
 
 namespace Stacking.Adapters;
@@ -14,7 +14,6 @@ namespace Stacking.Adapters;
 /// </summary>
 internal static class BagAddFreshness
 {
-    private const int MaxLoggedFailures = 3;
     private const int MaxLoggedFixes = 5;
 
     /// <summary>One add tops up at most a few stacks; more means a list left behind by an add that threw.</summary>
@@ -23,28 +22,27 @@ internal static class BagAddFreshness
     /// <summary>The stacks found by the add running on this thread, with the speed each had when found.</summary>
     [ThreadStatic] private static List<(ItemData Stack, float TimeScale)>? _found;
 
-    private static Action<string> _log = _ => { };
+    private static PatchKit? _hooks;
     private static Action<string> _logFileOnly = _ => { };
-    private static int _failures;
     private static int _fixesLogged;
 
-    public static void Apply(Harmony harmony, Action<string> log, Action<string> logFileOnly)
+    public static void Apply(PatchKit hooks, Action<string> log, Action<string> logFileOnly)
     {
-        _log = log;
+        _hooks = hooks;
         _logFileOnly = logFileOnly;
 
         // The search is noted only once the add is hooked, so stacks are noted only while an add runs. An add that
         // throws leaves its list behind, never read again; NoteFound caps how much it can hold.
-        if (!Hooks.TryPatch(harmony, typeof(BagAddFreshness), "adding to a bag, for shelf life in a cooler bag",
-                () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.TryAddItemToBag)), log, prefix: nameof(OpenAdd), postfix: nameof(CloseAdd)))
+        if (!hooks.Patch(typeof(BagAddFreshness), typeof(ItemManager), nameof(ItemManager.TryAddItemToBag), prefix: nameof(OpenAdd), postfix: nameof(CloseAdd),
+                consequence: "adding to a bag, for shelf life in a cooler bag"))
         {
             log("a stack topped up in a cooler bag may lose shelf life, as in the base game");
 
             return;
         }
 
-        if (Hooks.TryPatch(harmony, typeof(BagAddFreshness), "the stack search, for shelf life in a cooler bag",
-                () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.FindStackableItem)), log, postfix: nameof(NoteFound)))
+        if (hooks.Patch(typeof(BagAddFreshness), typeof(ItemManager), nameof(ItemManager.FindStackableItem), postfix: nameof(NoteFound),
+                consequence: "the stack search, for shelf life in a cooler bag"))
         {
             log("a stack topped up in a cooler bag keeps the shelf life the added items had");
         }
@@ -105,10 +103,5 @@ internal static class BagAddFreshness
         }
     }
 
-    private static void Fail(string what, Exception ex)
-    {
-        _failures++;
-
-        if (_failures <= MaxLoggedFailures) _log($"{what} failed (logged {_failures} of {MaxLoggedFailures}): {ex}");
-    }
+    private static void Fail(string what, Exception ex) => _hooks?.Fail(what, ex);
 }

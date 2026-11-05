@@ -1,6 +1,6 @@
 # Stacking settings
 
-Settings live in `BepInEx\config\com.dev.survivallog.stacking.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, where they take effect at once, or edit the file while the game is closed. Cooking CountWholeStacks and Splitting Enabled take effect at the next game start. Delete the file to get the defaults back. Without Exiled's Toolkit installed, changes made on the Mods screen take effect at the next game start instead.
+Settings live in `BepInEx\config\com.dev.survivallog.stacking.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, where they take effect at once, or edit the file while the game is closed. Cooking CountWholeStacks and Splitting Enabled take effect at the next game start. Delete the file to get the defaults back.
 
 ## StackLimits
 
@@ -55,4 +55,4 @@ Turning splitting off does not change the station rule: a stack moved into a coo
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `UiScale` | `0` | How big Stacking's own windows, panels and messages are drawn, in percent, from 75 to 200. At `0` they follow the UI size set in Exiled's Toolkit (its `UiScale`). Needs Exiled's Toolkit 0.11.0 or newer. |
+| `UiScale` | `0` | How big Stacking's own windows, panels and messages are drawn, in percent, from 75 to 200. At `0` they follow the UI size set in Exiled's Toolkit (its `UiScale`). |

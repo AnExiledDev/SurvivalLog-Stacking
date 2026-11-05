@@ -1,6 +1,6 @@
 using System;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.Battle.Logic;
-using HarmonyLib;
 using Stacking.Core;
 using UnityEngine;
 
@@ -13,23 +13,19 @@ namespace Stacking.Adapters;
 /// </summary>
 internal static class ShredderStacks
 {
-    private const int MaxLoggedFailures = 3;
-
     [ThreadStatic] private static Settle? _settle;
 
-    private static Action<string> _log = _ => { };
+    private static PatchKit? _hooks;
     private static Action<string> _logFileOnly = _ => { };
-    private static int _failures;
 
-    public static bool Apply(Harmony harmony, Action<string> log, Action<string> logFileOnly)
+    public static bool Apply(PatchKit hooks, Action<string> log, Action<string> logFileOnly)
     {
-        _log = log;
+        _hooks = hooks;
         _logFileOnly = logFileOnly;
 
-        var isHooked = Hooks.TryPatchScope(harmony, typeof(ShredderStacks), "a finished shred",
-                           () => AccessTools.Method(typeof(Furniture), nameof(Furniture.SettleShred)), log, nameof(OpenSettle), nameof(CloseSettle))
-                       && Hooks.TryPatch(harmony, typeof(ShredderStacks), "the shredder removing what it shredded",
-                           () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.ForceRemoveItem), new[] { typeof(long) }), log, prefix: nameof(TakeOneUnit));
+        var isHooked = hooks.PatchScope(typeof(ShredderStacks), typeof(Furniture), nameof(Furniture.SettleShred), "a finished shred", nameof(OpenSettle), nameof(CloseSettle))
+                       && hooks.Patch(typeof(ShredderStacks), typeof(ItemManager), nameof(ItemManager.ForceRemoveItem), new[] { typeof(long) }, prefix: nameof(TakeOneUnit),
+                           consequence: "the shredder removing what it shredded");
 
         log(isHooked
             ? "the shredder shreds every item of a stack, one at a time, each with its own yield"
@@ -106,12 +102,7 @@ internal static class ShredderStacks
         }
     }
 
-    private static void Fail(string what, Exception ex)
-    {
-        _failures++;
-
-        if (_failures <= MaxLoggedFailures) _log($"{what} failed, the game's own removal went ahead (logged {_failures} of {MaxLoggedFailures}): {ex}");
-    }
+    private static void Fail(string what, Exception ex) => _hooks?.Fail($"{what}, the game's own removal went ahead", ex);
 
     private sealed record Settle(int Frame, long ShreddedItemId);
 }

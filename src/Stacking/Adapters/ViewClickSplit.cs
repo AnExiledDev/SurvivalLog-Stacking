@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 using Stacking.Core;
 
 namespace Stacking.Adapters;
@@ -16,8 +16,6 @@ namespace Stacking.Adapters;
 /// </summary>
 internal static class ViewClickSplit
 {
-    private const int MaxLoggedFailures = 3;
-
     /// <summary>
     /// Each view's item click. Every one opens mov [rsp+8],rbx; mov [rsp+10h],rsi; push rdi; sub rsp,20h, 15 bytes,
     /// before its first compare and short jump, so none has a relative jump or call in its first 14 bytes (Dobby rule).
@@ -40,19 +38,18 @@ internal static class ViewClickSplit
         ("the material rack", typeof(Ac_MaterialRack_ItemClick)), // rva 0x27ec5c0
     };
 
-    private static Action<string> _log = _ => { };
-    private static int _failures;
+    private static PatchKit? _hooks;
 
-    public static void Apply(Harmony harmony, Action<string> log)
+    public static void Apply(PatchKit hooks, Action<string> log)
     {
-        _log = log;
+        _hooks = hooks;
 
         var splitsIn = new List<string>();
 
         foreach (var (view, click) in Views)
         {
-            if (Hooks.TryPatch(harmony, typeof(ViewClickSplit), $"clicking an item in {view}",
-                    () => AccessTools.Method(click, "SendAction", new[] { typeof(string) }), log, prefix: nameof(SplitInsteadOfClick)))
+            if (hooks.Patch(typeof(ViewClickSplit), click, "SendAction", new[] { typeof(string) }, prefix: nameof(SplitInsteadOfClick),
+                    consequence: $"clicking an item in {view}"))
             {
                 splitsIn.Add(view);
             }
@@ -90,10 +87,5 @@ internal static class ViewClickSplit
     /// <summary>The game's own test for the player's bag (ItemManager.IsPlayerOwnedContainer) compares with this id.</summary>
     private static long? PlayersBag() => GameSingleton.Existing<BattleLogicWorld>()?._AgentManager?.LeadingRoleId;
 
-    private static void Fail(Exception ex)
-    {
-        _failures++;
-
-        if (_failures <= MaxLoggedFailures) _log($"splitting a right-clicked stack in a station view failed, the click does what the game does (logged {_failures} of {MaxLoggedFailures}): {ex}");
-    }
+    private static void Fail(Exception ex) => _hooks?.Fail("splitting a right-clicked stack in a station view, the click does what the game does", ex);
 }

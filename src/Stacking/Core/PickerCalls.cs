@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Linq;
-using System.Text;
+using ExiledToolkit.Web;
 
 namespace Stacking.Core;
 
@@ -22,34 +22,7 @@ public static class PickerCalls
     /// script, so a page that reloaded and lost it answers gone from here instead of installing a fresh, empty picker.
     /// </summary>
     public static string Check(int token) =>
-        $"{Page}?{Page}.check({Number(token)}):window.vuplex&&window.vuplex.postMessage({Quote($"{PickerAnswer.Prefix}gone|{Number(token)}")})";
-
-    /// <summary>A JavaScript string literal that no quote, backslash or line break in the text can end early.</summary>
-    public static string Quote(string text)
-    {
-        var literal = new StringBuilder(text.Length + 2).Append('"');
-
-        foreach (var c in text)
-        {
-            switch (c)
-            {
-                case '"':
-                    literal.Append("\\\"");
-                    break;
-                case '\\':
-                    literal.Append("\\\\");
-                    break;
-                case < ' ' or '\u2028' or '\u2029':
-                    literal.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
-                    break;
-                default:
-                    literal.Append(c);
-                    break;
-            }
-        }
-
-        return literal.Append('"').ToString();
-    }
+        $"{Page}?{Page}.check({Number(token)}):window.vuplex&&window.vuplex.postMessage({JsText.Literal($"{PickerAnswer.Prefix}gone|{Number(token)}")})";
 
     private static string Words(bool isChinese)
     {
@@ -59,7 +32,7 @@ public static class PickerCalls
             ("cancel", Texts.PickerCancel), ("split", Texts.PickerSplit),
         };
 
-        return "{" + string.Join(",", words.Select(word => Quote(word.Item1) + ":" + Quote(word.Item2.Pick(isChinese)))) + "}";
+        return "{" + string.Join(",", words.Select(word => JsText.Literal(word.Item1) + ":" + JsText.Literal(word.Item2.Pick(isChinese)))) + "}";
     }
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);

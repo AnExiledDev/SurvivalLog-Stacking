@@ -4,22 +4,42 @@ using Xunit;
 namespace Stacking.Tests;
 
 /// <summary>
-/// The split picker follows Exiled's Toolkit's UI size: picker.js hands the Toolkit its backdrop, run in Jint on a fake
-/// root page (PickerFake.js). The backdrop fills the screen at any size, so the plate inside it is what must fit.
+/// The split picker follows Exiled's Toolkit's UI size: picker.js hands its backdrop to the Toolkit's page API (api.js,
+/// from the Toolkit's source), run in Jint on a fake root page (PickerFake.js). The backdrop fills the screen at any
+/// size, so the plate inside it is what must fit. The game can run either script first.
 /// </summary>
 public class PickerUiSizeTests
 {
-    [Fact]
-    public void The_picker_is_handed_over_once_with_its_plate_to_fit()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_picker_is_handed_over_once_with_its_plate_to_fit(bool isToolkitFirst)
     {
-        var page = new Page();
+        var page = new Page(isToolkitFirst);
 
         page.Run("__slstacking.open(1, 20, 10); __slstacking.open(2, 20, 10)");
+        page.LoadToolkitIfLate();
 
         Assert.Equal(1, page.Number("handed.length"));
         Assert.Equal("Stacking", page.Text("handed[0].options.mod"));
         Assert.Equal(("sls-root", "sls-plate"), (page.Text("handed[0].el.id"), page.Text("handed[0].options.fit.className")));
         Assert.True(page.Bool("handed[0].options.fit === pickerRoot().children[0]"));
+    }
+
+    /// <summary>A picker opened before the Toolkit's page API loads is drawn plain until it arrives, then handed over.</summary>
+    [Fact]
+    public void A_picker_opened_before_the_Toolkit_loads_is_handed_over_when_it_does()
+    {
+        var page = new Page(isToolkitFirst: false);
+
+        page.Run("__slstacking.open(1, 20, 10)");
+
+        Assert.Equal(0, page.Number("handed.length"));
+
+        page.LoadToolkitIfLate();
+
+        Assert.Equal(1, page.Number("handed.length"));
+        Assert.True(page.Bool("handed[0].el === pickerRoot()"));
     }
 
     /// <summary>The Toolkit lets go of a panel taken out of its page, so a picker built again must be handed again.</summary>
@@ -36,14 +56,15 @@ public class PickerUiSizeTests
     }
 
     [Fact]
-    public void Before_the_Toolkit_loads_the_picker_waits_for_it()
+    public void Before_the_Toolkits_UI_size_script_loads_the_picker_waits_for_it()
     {
-        var page = new Page("delete window.ExiledUi");
+        var page = new Page(before: "delete window.ExiledUi");
 
         page.Run("__slstacking.open(1, 20, 10)");
 
         Assert.Equal(1, page.Number("window.__exiledUiWait.length"));
         Assert.Equal("sls-root", page.Text("window.__exiledUiWait[0][0].id"));
+        Assert.Equal("Stacking", page.Text("window.__exiledUiWait[0][1].mod"));
     }
 
     /// <summary>Messages go through the Toolkit's toasts now, so the page draws none of its own.</summary>
@@ -58,16 +79,30 @@ public class PickerUiSizeTests
         Assert.Equal(1, page.Number("handed.length"));
     }
 
-    /// <summary>picker.js on PickerFake.js; <paramref name="before"/> runs between the two.</summary>
+    /// <summary>
+    /// picker.js on PickerFake.js, after api.js or, with <paramref name="isToolkitFirst"/> false, before it until
+    /// <see cref="LoadToolkitIfLate"/>; <paramref name="before"/> runs ahead of both scripts.
+    /// </summary>
     private sealed class Page
     {
         private readonly Engine _engine = new();
+        private bool _isToolkitLoaded;
 
-        public Page(string? before = null)
+        public Page(bool isToolkitFirst = true, string? before = null)
         {
             _engine.Execute(Resource("Stacking.Tests.PickerFake.js"));
             if (before != null) _engine.Execute(before);
+            if (isToolkitFirst) LoadToolkitIfLate();
             _engine.Execute(Resource("Stacking.picker.js"));
+        }
+
+        /// <summary>The Toolkit's page API arriving, unless it already has.</summary>
+        public void LoadToolkitIfLate()
+        {
+            if (_isToolkitLoaded) return;
+
+            _engine.Execute(Resource("ExiledToolkit.api.js"));
+            _isToolkitLoaded = true;
         }
 
         public void Run(string statements) => _engine.Execute(statements);

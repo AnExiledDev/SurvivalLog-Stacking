@@ -94,8 +94,11 @@
     root.appendChild(plate);
 
     document.body.appendChild(root);
-    // The backdrop fills the screen at any size, so the plate is what has to fit.
-    uiSize(root, { fit: plate });
+    // Exiled's Toolkit draws the picker at the player's UI size; the backdrop fills the screen at any size, so the
+    // plate is what has to fit.
+    (window.ExiledToolkitReady = window.ExiledToolkitReady || []).push(function (etk) {
+      etk.size(root, { mod: 'Stacking', fit: plate });
+    });
 
     // Nothing under the picker may see its clicks; a press on the dimmed area around it cancels. A press on the plate
     // itself keeps the focus in the number box, so typing and Enter still reach it.
@@ -236,22 +239,6 @@
 
   function isShowing(token) {
     return !!asked && asked.token === token && !!ui && document.body.contains(ui.root) && ui.root.style.display === 'flex';
-  }
-
-  // Hands a panel to Exiled's Toolkit to be drawn at the player's UI size. Before the Toolkit's script has loaded it
-  // waits in a list the Toolkit reads; without the Toolkit nothing happens.
-  function uiSize(node, options) {
-    options = Object.assign({ mod: 'Stacking' }, options);
-    var toolkit = window.ExiledUi;
-
-    if (toolkit) {
-      toolkit.size(node, options);
-      return;
-    }
-
-    var waiting = window.__exiledUiWait = window.__exiledUiWait || [];
-    waiting.push([node, options]);
-    if (waiting.length > 32) waiting.shift();
   }
 
   window.__slstacking = { open: open, close: close, check: check };

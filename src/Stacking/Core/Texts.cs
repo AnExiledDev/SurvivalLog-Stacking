@@ -1,12 +1,7 @@
 using System.Collections.Generic;
+using ExiledToolkit.Kit;
 
 namespace Stacking.Core;
-
-/// <summary>One piece of on-screen text in the two languages the game ships.</summary>
-public readonly record struct Phrase(string En, string Zh)
-{
-    public string Pick(bool isChinese) => isChinese ? Zh : En;
-}
 
 /// <summary>The words the mod puts on screen: the split picker and the messages a split can end with.</summary>
 public static class Texts

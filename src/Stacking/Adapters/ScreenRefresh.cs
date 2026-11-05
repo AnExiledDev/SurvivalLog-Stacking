@@ -1,6 +1,6 @@
 using System;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 using Stacking.Core;
 
 namespace Stacking.Adapters;
@@ -21,13 +21,13 @@ internal static class ScreenRefresh
     private static Action<string> _log = _ => { };
     private static bool _hasReportedFailure;
 
-    public static void Apply(Harmony harmony, Action<string> log)
+    public static void Apply(PatchKit hooks, Action<string> log)
     {
         _log = log;
-        Hooks.TryPatch(harmony, typeof(ScreenRefresh), "the crafting table's bag refresh",
-            () => AccessTools.Method(typeof(Ac_ToolTable_RefreshBag), nameof(Ac_ToolTable_RefreshBag.SendAction)), log, prefix: nameof(HoldToolTable));
-        Hooks.TryPatch(harmony, typeof(ScreenRefresh), "the cooking screen's bag refresh",
-            () => AccessTools.Method(typeof(Ac_Cooking_RefreshBag), nameof(Ac_Cooking_RefreshBag.SendAction)), log, prefix: nameof(HoldCooking));
+        hooks.Patch(typeof(ScreenRefresh), typeof(Ac_ToolTable_RefreshBag), nameof(Ac_ToolTable_RefreshBag.SendAction), prefix: nameof(HoldToolTable),
+            consequence: "the crafting table's bag refresh");
+        hooks.Patch(typeof(ScreenRefresh), typeof(Ac_Cooking_RefreshBag), nameof(Ac_Cooking_RefreshBag.SendAction), prefix: nameof(HoldCooking),
+            consequence: "the cooking screen's bag refresh");
     }
 
     /// <summary>Holds both refreshes until the returned batch is disposed, which sends each one that was asked for.</summary>

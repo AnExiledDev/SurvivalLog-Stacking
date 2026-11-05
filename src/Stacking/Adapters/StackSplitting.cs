@@ -1,5 +1,5 @@
 using System;
-using HarmonyLib;
+using ExiledToolkit.Game;
 using Stacking.Core;
 
 namespace Stacking.Adapters;
@@ -22,24 +22,24 @@ internal static class StackSplitting
     private static int _unknownAnswers;
 
     /// <summary>True when drops can be split; the ticker only needs adding then.</summary>
-    public static bool Apply(Harmony harmony, Action<string> log, Action<string> logFileOnly)
+    public static bool Apply(PatchKit hooks, Action<string> log, Action<string> logFileOnly)
     {
         _log = log;
 
-        if (!SplitHooks.Apply(harmony, log))
+        if (!SplitHooks.Apply(hooks, log))
         {
             log("stacks cannot be split this session: a drop could not be caught, so every drag moves the whole stack");
 
             return false;
         }
 
-        var canAsk = PickerHooks.Apply(harmony, log);
+        var canAsk = PickerHooks.Apply();
 
         if (!canAsk) log("Ctrl+Shift cannot ask how many this session; Shift and Ctrl still split");
 
-        RightClickSplit.Apply(harmony, log);
-        ViewClickSplit.Apply(harmony, log);
-        TradeSplit.Apply(harmony, log);
+        RightClickSplit.Apply(hooks, log);
+        ViewClickSplit.Apply(hooks, log);
+        TradeSplit.Apply(hooks, log);
         WatchStationDrops(canAsk, log);
         _picker = new SplitPicker(log);
         _executor = new SplitExecutor(log, logFileOnly, _picker, SplitHooks.CanStartStacks, canAsk);

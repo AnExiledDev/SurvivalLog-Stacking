@@ -4,9 +4,9 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 using Stacking.Core;
 using GameIds = Il2CppSystem.Collections.Generic.List<long>;
 using GameNeeds = Il2CppSystem.Collections.Generic.Dictionary<int, int>;
@@ -49,13 +49,14 @@ internal static class CraftingFill
     private static readonly RawItems Raw = new(() => _log);
 
     /// <summary>The material check is only hooked once the fill is, so a recipe never reads as ready that its fill cannot take.</summary>
-    public static void Apply(Harmony harmony, StationMover mover, Action<string> log, Action<string> logFileOnly)
+    public static void Apply(PatchKit hooks, StationMover mover, Action<string> log, Action<string> logFileOnly)
     {
         _mover = mover;
         _log = log;
         _logFileOnly = logFileOnly;
 
-        if (!TryPatch(harmony, "the crafting table's fill", nameof(Reducer_Web_ToolTable.SelectItemsForRecipeLinked), nameof(TakeUnitsFromStacks)))
+        if (!hooks.Patch(typeof(CraftingFill), typeof(Reducer_Web_ToolTable), nameof(Reducer_Web_ToolTable.SelectItemsForRecipeLinked), postfix: nameof(TakeUnitsFromStacks),
+                consequence: "the crafting table's fill"))
         {
             log("the crafting table fills recipes with whole items only this session, so a stack fills no recipe that needs fewer than it holds");
 
@@ -66,11 +67,11 @@ internal static class CraftingFill
 
         // The recipe list asks the pool of everything the bench and its storages hold whether it fits each recipe
         // exactly; the pool knows neither the table nor its storages, so the list rebuild hands them over.
-        var isListScoped = Hooks.TryPatchScope(harmony, typeof(CraftingFill), "the crafting table's recipe list",
-            () => AccessTools.Method(typeof(Reducer_Web_ToolTable), nameof(Reducer_Web_ToolTable.RefreshRecipeList)), log, nameof(OpenRebuild), nameof(CloseRebuild));
+        var isListScoped = hooks.PatchScope(typeof(CraftingFill), typeof(Reducer_Web_ToolTable), nameof(Reducer_Web_ToolTable.RefreshRecipeList), "the crafting table's recipe list",
+            nameof(OpenRebuild), nameof(CloseRebuild));
 
-        if (isListScoped && Hooks.TryPatch(harmony, typeof(CraftingFill), "the crafting table's material check",
-                () => AccessTools.Method(typeof(Reducer_Web_ToolTable.MaterialPoolIndex), nameof(Reducer_Web_ToolTable.MaterialPoolIndex.CanExactFill)), log, postfix: nameof(CountPooledUnits)))
+        if (isListScoped && hooks.Patch(typeof(CraftingFill), typeof(Reducer_Web_ToolTable.MaterialPoolIndex), nameof(Reducer_Web_ToolTable.MaterialPoolIndex.CanExactFill),
+                postfix: nameof(CountPooledUnits), consequence: "the crafting table's material check"))
         {
             log("the crafting table counts every item in a stack, and its fill takes single items off stacks");
         }
@@ -122,9 +123,6 @@ internal static class CraftingFill
             if (!nested.ContainsGenericParameters) Prepare(nested);
         }
     }
-
-    private static bool TryPatch(Harmony harmony, string what, string method, string postfix) =>
-        Hooks.TryPatch(harmony, typeof(CraftingFill), what, () => AccessTools.Method(typeof(Reducer_Web_ToolTable), method), _log, postfix: postfix);
 
     /// <summary>
     /// The pool's check during a recipe list rebuild, asked again over units for the table being rebuilt, over the

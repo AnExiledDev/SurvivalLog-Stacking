@@ -2,11 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Reflection;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 using Stacking.Core;
 using UnityEngine;
 
@@ -23,7 +22,6 @@ namespace Stacking.Adapters;
 internal static class SplitHooks
 {
     private const long PendingExpiryMs = 500;
-    private const int MaxLoggedFailures = 3;
 
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
     private static readonly ConcurrentQueue<SplitRequest> Requests = new();
@@ -51,41 +49,39 @@ internal static class SplitHooks
 
     [ThreadStatic] private static bool _isInViewDrag;
 
-    private static Action<string> _log = _ => { };
+    private static PatchKit? _hooks;
     private static (SplitRequest Request, long SeenAt)? _pending;
     private static volatile bool _wasBackpackClosed;
-    private static int _failures;
 
     /// <summary>Without it the game would add the split units to any stack in the bag, wherever the player dropped them.</summary>
     public static bool CanStartStacks { get; private set; }
 
     /// <summary>False when no drop can be split; a split onto a free spot also needs CanStartStacks.</summary>
-    public static bool Apply(Harmony harmony, Action<string> log)
+    public static bool Apply(PatchKit hooks, Action<string> log)
     {
-        _log = log;
+        _hooks = hooks;
 
-        var isCatchingMoves = TryPatch(harmony, "moving an item in a bag", () => AccessTools.Method(typeof(Ac_Item_ChangePos), nameof(Ac_Item_ChangePos.SendAction)),
-            prefix: nameof(SplitInsteadOfMove));
-        var isCatchingDrops = TryPatch(harmony, "dropping an item on another", () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.OnSwapItem)),
-            prefix: nameof(SplitInsteadOfDrop));
+        var isCatchingMoves = hooks.Patch(typeof(SplitHooks), typeof(Ac_Item_ChangePos), nameof(Ac_Item_ChangePos.SendAction), prefix: nameof(SplitInsteadOfMove),
+            consequence: "moving an item in a bag");
+        var isCatchingDrops = hooks.Patch(typeof(SplitHooks), typeof(ItemManager), nameof(ItemManager.OnSwapItem), prefix: nameof(SplitInsteadOfDrop),
+            consequence: "dropping an item on another");
 
         if (!isCatchingMoves && !isCatchingDrops) return false;
 
-        if (!Hooks.TryPatchScope(harmony, typeof(SplitHooks), "dragging an item in a bag",
-                () => AccessTools.Method(typeof(Reducer_Web_BackpackUI), nameof(Reducer_Web_BackpackUI.RA_DragItem)), log,
+        if (!hooks.PatchScope(typeof(SplitHooks), typeof(Reducer_Web_BackpackUI), nameof(Reducer_Web_BackpackUI.RA_DragItem), "dragging an item in a bag",
                 open: nameof(RememberSplitDrop), close: nameof(ForgetSplitDrop)))
         {
             return false;
         }
 
-        CatchViewDrags(harmony, log, isCatchingMoves);
+        CatchViewDrags(hooks, log, isCatchingMoves);
 
         if (!isCatchingMoves) log("a split stack cannot go to a free spot this session: a drag held Shift or Ctrl moves the whole stack there");
         if (!isCatchingDrops) log("a split stack cannot top up another this session: a drag held Shift or Ctrl onto a stack does what the game does");
 
-        CanStartStacks = NewStacks.Apply(harmony, log);
-        TryPatch(harmony, "closing the bag", () => AccessTools.Method(typeof(Reducer_Web_BackpackUI), nameof(Reducer_Web_BackpackUI.RA_Close)),
-            postfix: nameof(NoteBackpackClosed));
+        CanStartStacks = NewStacks.Apply(hooks);
+        hooks.Patch(typeof(SplitHooks), typeof(Reducer_Web_BackpackUI), nameof(Reducer_Web_BackpackUI.RA_Close), postfix: nameof(NoteBackpackClosed),
+            consequence: "closing the bag");
 
         return true;
     }
@@ -97,7 +93,7 @@ internal static class SplitHooks
     /// the cooking view sends its own move to the item manager instead, so it is caught there. The heater, fuel
     /// generator and material rack views send no move within the bag at all, so a drag there has nothing to split.
     /// </summary>
-    private static void CatchViewDrags(Harmony harmony, Action<string> log, bool isCatchingMoves)
+    private static void CatchViewDrags(PatchKit hooks, Action<string> log, bool isCatchingMoves)
     {
         var splitsIn = new List<string>();
 
@@ -105,19 +101,19 @@ internal static class SplitHooks
         {
             foreach (var (view, reducer, method) in ViewDrags)
             {
-                if (TryPatchViewDrag(harmony, log, view, reducer, method)) splitsIn.Add(view);
+                if (hooks.PatchScope(typeof(SplitHooks), reducer, method, $"dragging an item in {view}", open: nameof(EnterViewDrag), close: nameof(LeaveViewDrag))) splitsIn.Add(view);
             }
         }
 
-        if (TryPatch(harmony, "dragging an item in the cooking view", () => AccessTools.Method(typeof(ItemManager), nameof(ItemManager.OnCookingDragMove)),
-                prefix: nameof(SplitInsteadOfCookingMove)))
+        if (hooks.Patch(typeof(SplitHooks), typeof(ItemManager), nameof(ItemManager.OnCookingDragMove), prefix: nameof(SplitInsteadOfCookingMove),
+                consequence: "dragging an item in the cooking view"))
         {
             splitsIn.Add("cooking");
         }
 
         // Dobby rule: ExecuteSmartDrop (rva 0x26cb360) opens with two register saves and seven pushes, no jump or call.
-        if (TryPatch(harmony, "a smart drop in a station view", () => AccessTools.Method(typeof(ItemManager), "ExecuteSmartDrop"),
-                prefix: nameof(SplitInsteadOfSmartDrop)))
+        if (hooks.Patch(typeof(SplitHooks), typeof(ItemManager), "ExecuteSmartDrop", prefix: nameof(SplitInsteadOfSmartDrop),
+                consequence: "a smart drop in a station view"))
         {
             splitsIn.Add("smart drops");
         }
@@ -125,10 +121,6 @@ internal static class SplitHooks
         log(splitsIn.Count == 0 ? "a drag in a view other than the bag moves the whole stack this session" : "a drag also splits in the views of " + string.Join(", ", splitsIn));
         log("a drag with Shift or Ctrl onto a free spot does not split in the heater, fuel generator or material rack views: the game never moves an item within the bag there");
     }
-
-    private static bool TryPatchViewDrag(Harmony harmony, Action<string> log, string view, Type reducer, string method) =>
-        Hooks.TryPatchScope(harmony, typeof(SplitHooks), $"dragging an item in {view}", () => AccessTools.Method(reducer, method), log,
-            open: nameof(EnterViewDrag), close: nameof(LeaveViewDrag));
 
     public static bool TakeBackpackClosed()
     {
@@ -138,9 +130,6 @@ internal static class SplitHooks
 
         return wasClosed;
     }
-
-    private static bool TryPatch(Harmony harmony, string what, Func<MethodBase?> target, string? prefix = null, string? postfix = null) =>
-        Hooks.TryPatch(harmony, typeof(SplitHooks), what, target, _log, prefix, postfix);
 
     private static void RememberSplitDrop(Ac_BackpackUI_DragItem ac)
     {
@@ -288,10 +277,5 @@ internal static class SplitHooks
 
     private static Cell? CellOrNone(int x, int y) => x < 0 || y < 0 ? null : new Cell(x, y);
 
-    private static void Fail(string what, Exception ex)
-    {
-        _failures++;
-
-        if (_failures <= MaxLoggedFailures) _log($"{what} failed, the drop moves the whole stack (logged {_failures} of {MaxLoggedFailures}): {ex}");
-    }
+    private static void Fail(string what, Exception ex) => _hooks?.Fail($"{what}, the drop moves the whole stack", ex);
 }
