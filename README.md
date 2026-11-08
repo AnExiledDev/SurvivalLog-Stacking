@@ -82,6 +82,7 @@ Every failure is written to `BepInEx\stacking.log`, including any item that coul
 
 - Survival Log 1.1.20719. Built for this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game.
+- Optional: [Mod Manager](https://www.nexusmods.com/survivallog/mods/73). With it, you can change every setting in game on its Mods screen and see what each one does, without opening the config file.
 - Not together with BaseButler. Both change stack limits and they will fight; remove BaseButler before installing this.
 - [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.19.0 or newer. Stacking does not load without it. It shows the mod's short messages as toasts, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the panel that asks how many to split. Stacking's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
 
