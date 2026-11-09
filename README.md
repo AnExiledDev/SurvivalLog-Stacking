@@ -2,11 +2,11 @@
 
 Bigger stacks that keep fresh food apart from old food, cooking and crafting that count every item in a stack, and a way to split stacks.
 
-In Survival Log most seeds and food take one bag slot each, so a few days of farming fill every storage you own. Stacking raises the stack limit per item category (materials and seeds to 99 and food to 20 to start with) without letting a fresh meal merge into a rotting one. A juicer, a cooking bench and the crafting table count every item in a stack, stacks never sit whole inside a cooking or crafting station, and Shift, Ctrl or Ctrl+Shift splits a stack when you drag or right-click it.
+In Survival Log most seeds and food take one bag slot each, so a few days of farming fill every storage you own. Stacking lets you raise the stack limit per item category, up to 999, without letting a fresh meal merge into a rotting one. Out of the box every limit is the game's own: nothing stacks higher until you set a category's limit (each setting suggests a number, such as 99 for materials and seeds). A juicer, a cooking bench and the crafting table count every item in a stack, stacks never sit whole inside a cooking or crafting station, and Shift, Ctrl or Ctrl+Shift splits a stack when you drag or right-click it.
 
 ## Features
 
-- **Stack limits per category**: each item category (Seed, Food, Material, Tool and the rest) has its own setting. Materials and seeds start at 99; food, fertilizer and fuel at 20; renovation materials at 30; meds, household items, plants and throwables at 10. Furniture, tools, books, story items and other one-off items keep the game's limit until you set one. Each setting in the config shows the game's own limit for its category. A limit only ever raises the game's, it never lowers one.
+- **Stack limits per category**: each item category (Seed, Food, Material, Tool and the rest) has its own setting. Every category keeps the game's limit until you set one. Each setting in the config shows the game's own limit for its category and a suggested number: 99 for materials and seeds; 20 for food, fertilizer and fuel; 30 for renovation materials; 10 for meds, household items, plants and throwables. Furniture, tools, books, story items and other one-off items get no suggestion. A limit only ever raises the game's, it never lowers one.
 - **Fresh food stays apart**: the game's own stack search ignores freshness, so a bigger limit alone would let a fresh meal merge into a rotting one. For items the game never stacked, the mod only stacks items with the same freshness left (within an hour) and the same uses. A meal that matches nothing starts its own stack, as the game did before.
 - **Items that never spoil stack together**: seeds, fuel, materials and anything else without a shelf life join a stack of their own kind no matter when you picked them up, or whether you found them on the map. Only their uses have to match.
 - **Dishes and items with uses keep their limit**: every dish a cooking recipe can make, tools whose uses run out and anything similar are left at the game's limit. Reusable items you use directly, such as dyes and a comb, keep their limit, since the game would take one from a stack per use; reusable materials such as wire stack. A dish holds as many servings as the cook split it into, and the game only takes one serving at a time from a dish that does not stack, so dishes never stack.
@@ -44,7 +44,7 @@ Stacking adds no data of its own to your save and does not edit game files. The 
 
 ## How it works
 
-**Stack limits** are set per category, up to 999. A number at or below the game's own limit keeps the game's limit, and `0` means "the game's limit". Items the game already stacks are simply raised to your number. Items the game never stacked only get raised when the freshness check is in place, so old and new food can never merge.
+**Stack limits** are set per category, up to 999. A number at or below the game's own limit keeps the game's limit, and `0`, the default, means "the game's limit". Items the game already stacks are simply raised to your number. Items the game never stacked only get raised when the freshness check is in place, so old and new food can never merge.
 
 **Stations** are found by the game's own tests: cooking furniture (benches, pots, juicers and the rest), hot pots, brew barrels, the compressor and shredder trays, and the bench of the crafting table on screen. Compost bins, material racks and robot molds are not stations.
 
@@ -105,7 +105,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.stacking.cfg`, created the 
 
 The split panel and the messages a split shows follow the game's language, English or Simplified Chinese.
 
-A config file you already have keeps its saved numbers. To get the new default stack limits, delete its `[StackLimits]` section (or the whole file) while the game is closed.
+A config file you already have keeps its saved numbers, so an update never changes your limits. To go back to the game's limits, delete its `[StackLimits]` section (or the whole file) while the game is closed.
 
 ## Troubleshooting
 

@@ -1,14 +1,16 @@
 Name: Stacking
-Summary: Bigger stacks without fresh food merging into rotting food: materials and seeds stack to 99, food to 20, and any category can go up to 999. Split stacks with Shift, Ctrl or a how-many panel, offer part of a stack in trades, and cooking and crafting count every item in a stack, so three strawberries in one slot still make three smoothies.
+Summary: Bigger stacks without fresh food merging into rotting food: set any item category's limit, up to 999. Limits start at the game's own; each setting suggests one. Split stacks with Shift, Ctrl or a how-many panel, offer part of a stack in trades, and cooking and crafting count every item in a stack, so three strawberries make three smoothies.
 
 Description (BBCode):
 [center][img]https://sldb.core-directive.com/media/save/2-changes-stay.png[/img][/center]
 
 Most seeds and food take one bag slot each, so storage fills up fast. Stacking raises the stack limit per item category without letting a fresh meal merge into a rotting one, and lets you split stacks with a key held.
 
+Out of the box the stack limits are the game's own: set a category's limit on the Mod Manager's Mods screen or in the config to raise it. Each setting suggests a number, such as 99 for materials and seeds. Splitting, and cooking and crafting that count every item in a stack, work from the start.
+
 [size=5]Main features[/size]
 [list]
-[*][b]Stack limits per category[/b]: materials and seeds stack to 99 and food to 20 out of the box, with smaller raises for meds, fuel, fertilizer and other everyday items. Every category can be changed in the config, up to 999.[/*]
+[*][b]Stack limits per category[/b]: every category starts at the game's limit and can be raised in the config, up to 999. Each setting suggests a number: 99 for materials and seeds, 20 for food, and smaller raises for meds, fuel, fertilizer and other everyday items.[/*]
 [*][b]Fresh food stays apart[/b]: food only stacks with food of the same freshness, so nothing old sneaks into a fresh stack.[/*]
 [*][b]Items that never spoil stack together[/b]: seeds, fuel, materials and anything else without a shelf life join a stack of their own kind no matter when you picked them up, or whether you found them on the map.[/*]
 [*][b]Cooking counts every item[/b]: a stack of three strawberries makes three smoothies, the same as three loose ones.[/*]
@@ -85,9 +87,11 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 
 大多数种子和食物各占一个背包格子，储物空间很快就满了。Stacking 按物品类别提高堆叠上限，但不会让新鲜的饭菜和快要腐坏的混在一起，还可以按住按键拆分堆叠。
 
+默认堆叠上限与游戏相同：在 Mod Manager 的「模组」界面或配置里为某个类别设置上限即可提高。每项设置都有建议值，例如材料和种子 99。拆分堆叠，以及烹饪和制作按整堆计数，从一开始就有效。
+
 [size=5]主要功能[/size]
 [list]
-[*][b]按类别设置堆叠上限[/b]：默认材料和种子可堆叠 99 个，食物 20 个；药品、燃料、肥料和其他日用品的上限也有小幅提高。每个类别都可以在配置中修改，最高 999。[/*]
+[*][b]按类别设置堆叠上限[/b]：每个类别默认保持游戏上限，可以在配置中提高，最高 999。每项设置都有建议值：材料和种子 99，食物 20，药品、燃料、肥料和其他日用品也有小幅提高。[/*]
 [*][b]新鲜食物单独堆放[/b]：食物只和新鲜程度相同的食物叠在一起，旧食物不会混进新鲜的一堆。[/*]
 [*][b]不会腐坏的物品叠在一起[/b]：种子、燃料、材料等没有保质期的物品，无论何时拾取、是否在地图上找到，都会叠进同类物品的堆里。[/*]
 [*][b]烹饪按每一件计数[/b]：一堆三个草莓能做三杯奶昔，和三个散放的草莓一样。[/*]

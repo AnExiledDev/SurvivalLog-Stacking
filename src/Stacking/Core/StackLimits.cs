@@ -20,6 +20,9 @@ public static class StackLimits
 {
     public const int Highest = 999;
 
+    /// <summary>Every category's default: 0 keeps the game's own limit, so installing the mod changes no stack until the player sets one.</summary>
+    public const int KeepGame = 0;
+
     public static int Clamp(int wanted) => Math.Clamp(wanted, 0, Highest);
 
     /// <summary>Every item a cook can make, as the game's own codex collects them.</summary>

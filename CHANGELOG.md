@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.4
+
+- A new install now keeps the game's own stack limits until you set one: every `[StackLimits]` setting defaults to `0`. Each setting's description suggests a number, such as 99 for materials and seeds and 20 for food, the old defaults. Settings you already saved are kept.
+- Made for Survival Log 1.1.20719.
+
 ## 0.8.3
 
 - Now uses Exiled's Toolkit for its shared parts, so it needs Exiled's Toolkit 0.19.0 or newer.

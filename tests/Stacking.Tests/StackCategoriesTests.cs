@@ -16,7 +16,7 @@ public class StackCategoriesTests
         Assert.Equal(Enumerable.Range(1, 22), StackCategories.All.Select(category => category.Id).Order());
     }
 
-    /// <summary>Furniture, story items, robot modules, tools, books, records and other one-offs keep the game's limit.</summary>
+    /// <summary>Furniture, story items, robot modules, tools, books, records and other one-offs get no suggested raise.</summary>
     [Theory]
     [InlineData(3)] // Books
     [InlineData(4)] // ElectricalAppliances
@@ -30,17 +30,17 @@ public class StackCategoriesTests
     [InlineData(19)] // Collectible
     [InlineData(20)] // Record
     [InlineData(22)] // TaskItem
-    public void Categories_of_one_off_items_keep_the_games_limit_by_default(int id)
+    public void Categories_of_one_off_items_get_no_suggested_raise(int id)
     {
-        Assert.Equal(0, Category(id).Default);
+        Assert.Equal(0, Category(id).Suggested);
     }
 
     [Fact]
-    public void Materials_stack_above_the_games_limit_by_default_because_players_hoard_them()
+    public void Materials_get_a_suggestion_above_the_games_limit_because_players_hoard_them()
     {
         var material = Category(Material);
 
-        Assert.True(material.Game is { } game && material.Default > game.Highest);
+        Assert.True(material.Game is { } game && material.Suggested > game.Highest);
     }
 
     [Theory]
@@ -54,26 +54,36 @@ public class StackCategoriesTests
     [InlineData(15)] // Flower
     [InlineData(16)] // Throwable
     [InlineData(Renovation)]
-    public void Everyday_consumables_stack_higher_than_the_game_by_default(int id)
+    public void Everyday_consumables_get_a_suggestion_above_the_games_limit(int id)
     {
         var category = Category(id);
 
-        Assert.True(category.Game is { } game && category.Default > game.Highest);
+        Assert.True(category.Game is { } game && category.Suggested > game.Highest);
     }
 
-    /// <summary>A default at or below the game's limit would look like a raise in the config and change nothing.</summary>
+    /// <summary>A suggestion at or below the game's limit would look like a raise in the config and change nothing.</summary>
     [Fact]
-    public void Every_raised_default_is_above_the_games_own_limit()
+    public void Every_suggested_raise_is_above_the_games_own_limit()
     {
-        var raised = StackCategories.All.Where(category => category.Default > 0);
+        var raised = StackCategories.All.Where(category => category.Suggested > 0);
 
-        Assert.All(raised, category => Assert.True(category.Game is not { } game || category.Default > game.Highest));
+        Assert.All(raised, category => Assert.True(category.Game is not { } game || category.Suggested > game.Highest));
     }
 
     [Fact]
-    public void Every_default_is_a_value_the_config_accepts()
+    public void Every_suggestion_is_a_value_the_config_accepts()
     {
-        Assert.All(StackCategories.All, category => Assert.Equal(StackLimits.Clamp(category.Default), category.Default));
+        Assert.All(StackCategories.All, category => Assert.Equal(StackLimits.Clamp(category.Suggested), category.Suggested));
+    }
+
+    /// <summary>Installing the mod changes no stack: every category's default keeps the game's own limit.</summary>
+    [Fact]
+    public void The_default_limit_raises_no_item_above_the_games_own()
+    {
+        var rows = StackCategories.All.Select(category => new ItemRow(category.Id, category.Id, StackLimit: 1, Uses: 1)).ToArray();
+        var wanted = StackCategories.All.ToDictionary(category => category.Id, _ => StackLimits.KeepGame);
+
+        Assert.Empty(StackLimits.Plan(rows, wanted, canGuardFreshness: true).Limits);
     }
 
     [Fact]
@@ -82,8 +92,8 @@ public class StackCategoriesTests
         var lines = StackCategories.Describe(Category(Renovation)).Split('\n');
 
         Assert.Equal(2, lines.Length);
-        Assert.Contains("Game limit 1 to 10, default 30, highest 999.", lines[0]);
-        Assert.Contains("游戏上限 1 至 10，默认 30，最高 999。", lines[1]);
+        Assert.Contains("Game limit 1 to 10, default 0, suggested 30, highest 999.", lines[0]);
+        Assert.Contains("游戏上限 1 至 10，默认 0，建议 30，最高 999。", lines[1]);
     }
 
     /// <summary>The limits live in the config itself, not in a separate file.</summary>
@@ -98,7 +108,7 @@ public class StackCategoriesTests
     {
         var added = StackCategories.For(99, "Gadget");
 
-        Assert.Equal(0, added.Default);
+        Assert.Equal(0, added.Suggested);
         Assert.StartsWith("Stack size for Gadget items.", StackCategories.Describe(added));
     }
 }

@@ -10,10 +10,11 @@ public readonly record struct GameLimit(int Lowest, int Highest)
 }
 
 /// <summary>
-/// One of the game's item categories as its config entry shows it: this mod's default limit, the game's own limit
-/// (none for a category the game has no items in), and what the category holds, in English and in Chinese.
+/// One of the game's item categories as its config entry shows it: the limit this mod suggests (0 for none), the game's
+/// own limit (none for a category the game has no items in), and what the category holds, in English and in Chinese.
+/// Every entry defaults to <see cref="StackLimits.KeepGame"/>; the suggestion is only shown.
 /// </summary>
-public sealed record StackCategory(int Id, int Default, GameLimit? Game, string Holds, string HoldsChinese);
+public sealed record StackCategory(int Id, int Suggested, GameLimit? Game, string Holds, string HoldsChinese);
 
 public static class StackCategories
 {
@@ -21,8 +22,8 @@ public static class StackCategories
 
     /// <summary>
     /// Every category of the game's ItemCategory, by its number. The game limits and example items were taken from the
-    /// item table of game version 1.1.18317. Furniture, story, quest and other one-off items keep the game's limit;
-    /// materials, seeds and everyday consumables stack higher.
+    /// item table of game version 1.1.18317. Furniture, story, quest and other one-off items get no suggestion;
+    /// materials, seeds and everyday consumables get a suggested limit above the game's.
     /// </summary>
     public static readonly IReadOnlyList<StackCategory> All = new StackCategory[]
     {
@@ -102,16 +103,18 @@ public static class StackCategories
         All.FirstOrDefault(category => category.Id == id)
         ?? new StackCategory(id, 0, null, $"Stack size for {key} items.", $"{key} 类物品的堆叠数量。");
 
-    /// <summary>The config text: what the category holds, the game's limit and this mod's default, in English then Chinese.</summary>
+    /// <summary>The config text: what the category holds, the game's limit, the default and this mod's suggestion, in English then Chinese.</summary>
     public static string Describe(StackCategory category)
     {
         var game = category.Game;
+        var suggested = category.Suggested > 0 ? $", suggested {category.Suggested}" : "";
+        var suggestedChinese = category.Suggested > 0 ? $"，建议 {category.Suggested}" : "";
         var limits = game is null
-            ? $"Default {category.Default}, highest {StackLimits.Highest}"
-            : $"Game limit {game.Value.Text(" to ")}, default {category.Default}, highest {StackLimits.Highest}";
+            ? $"Default {StackLimits.KeepGame}{suggested}, highest {StackLimits.Highest}"
+            : $"Game limit {game.Value.Text(" to ")}, default {StackLimits.KeepGame}{suggested}, highest {StackLimits.Highest}";
         var limitsChinese = game is null
-            ? $"默认 {category.Default}，最高 {StackLimits.Highest}"
-            : $"游戏上限 {game.Value.Text(" 至 ")}，默认 {category.Default}，最高 {StackLimits.Highest}";
+            ? $"默认 {StackLimits.KeepGame}{suggestedChinese}，最高 {StackLimits.Highest}"
+            : $"游戏上限 {game.Value.Text(" 至 ")}，默认 {StackLimits.KeepGame}{suggestedChinese}，最高 {StackLimits.Highest}";
 
         return $"{category.Holds} {limits}. 0 keeps the game's limit, and dishes a cooking recipe makes and items with more than one use always keep it.\n"
             + $"{category.HoldsChinese}{limitsChinese}。设为 0 保持游戏上限；烹饪配方做出的菜品和可多次使用的物品始终保持游戏上限。";
