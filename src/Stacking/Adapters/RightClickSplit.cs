@@ -204,7 +204,7 @@ internal static class RightClickSplit
         return Clock.ElapsedMilliseconds - seen.At <= ClickExpiryMs ? seen.Kind : null;
     }
 
-    /// <summary>True when the game's own action should run instead, because there is nothing to split.</summary>
+    /// <summary>True when the game's action should run instead, because there is nothing to split.</summary>
     private static bool SplitOff(long? itemId, SplitKind kind)
     {
         try

@@ -12,7 +12,7 @@ using UnityEngine;
 namespace Stacking.Adapters;
 
 /// <summary>
-/// Catches a stack dropped with Shift or Ctrl held. The bag's drag handler runs the game's own checks first and then
+/// Catches a stack dropped with Shift or Ctrl held. The bag's drag handler runs the game's checks first and then
 /// either moves the stack or drops it on the item under the cursor; the split takes the place of that move or drop,
 /// so every drop the game would refuse is still refused. The bag also shows inside the shop and the station views
 /// (crafting table, brewing, cooking, shredder and the rest), each with a drag handler of its own that ends in the
@@ -191,7 +191,7 @@ internal static class SplitHooks
         return false;
     }
 
-    /// <summary>A move into a station the station rule holds the stack to is planned as the game's own, which that rule cuts to one unit.</summary>
+    /// <summary>A move into a station the station rule holds the stack to is planned as the game's, which that rule cuts to one unit.</summary>
     private static bool SplitInsteadOfCookingMove(ItemManager __instance, long itemId, long fromOwnerId, long toOwnerId, Vector2Int bagPos) =>
         !SplitScene.IsLive(__instance) || ViewDragRequest(itemId, fromOwnerId, toOwnerId, bagPos, cursor: null) is not { } request || RunsOriginal(request);
 

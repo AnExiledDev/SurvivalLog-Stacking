@@ -179,7 +179,7 @@ internal static class TradeSplit
         }
     }
 
-    /// <summary>True when the game's own drag should run instead, because this drag splits nothing.</summary>
+    /// <summary>True when the game's drag should run instead, because this drag splits nothing.</summary>
     private static bool SplitInsteadOfDrag(string fromGrid, string toGrid, string itemKey, int x, int y, State_Web_TradeUI state, ref State_Web_TradeUI __result)
     {
         try
@@ -203,7 +203,7 @@ internal static class TradeSplit
         }
     }
 
-    /// <summary>True when the game's own click should run instead, because this click splits nothing.</summary>
+    /// <summary>True when the game's click should run instead, because this click splits nothing.</summary>
     private static bool SplitInsteadOfClick(string itemKey, string fromGrid, bool rightClick, State_Web_TradeUI state, ref State_Web_TradeUI __result)
     {
         try

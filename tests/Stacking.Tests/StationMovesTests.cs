@@ -212,7 +212,7 @@ public sealed class FakeStationStore : IStationStore
         return FreeCellAnswer;
     }
 
-    /// <summary>The game's own move of the unit into the station, as the steps replay it.</summary>
+    /// <summary>The game's move of the unit into the station, as the steps replay it.</summary>
     public Action MovesInto(long itemId, long stationOwnerId) =>
         () => Run(Replay, () => _items[itemId] = Existing(itemId) with { OwnerId = stationOwnerId, At = new Cell(0, 0) });
 

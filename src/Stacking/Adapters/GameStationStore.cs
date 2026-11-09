@@ -8,7 +8,7 @@ namespace Stacking.Adapters;
 
 /// <summary>
 /// The game's items as the station steps see them, for one stack: its units are given back the freshness it had
-/// before it moved. Every call goes through the game's own item calls, and every check is the core's. A move that
+/// before it moved. Every call goes through the game's item calls, and every check is the core's. A move that
 /// takes one unit into a plain container names it as a station for that move alone.
 /// </summary>
 internal sealed class GameStationStore : IStationStore

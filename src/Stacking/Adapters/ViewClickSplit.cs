@@ -84,7 +84,7 @@ internal static class ViewClickSplit
         }
     }
 
-    /// <summary>The game's own test for the player's bag (ItemManager.IsPlayerOwnedContainer) compares with this id.</summary>
+    /// <summary>The game's test for the player's bag (ItemManager.IsPlayerOwnedContainer) compares with this id.</summary>
     private static long? PlayersBag() => GameSingleton.Existing<BattleLogicWorld>()?._AgentManager?.LeadingRoleId;
 
     private static void Fail(Exception ex) => _hooks?.Fail("splitting a right-clicked stack in a station view, the click does what the game does", ex);

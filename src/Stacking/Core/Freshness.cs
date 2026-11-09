@@ -57,7 +57,7 @@ public static class StackIdentity
     }
 
     /// <summary>
-    /// Shelf life left, measured as the game's own portion merge measures it: clock hours to expiry times the spoil rate
+    /// Shelf life left, measured as the game's portion merge measures it: clock hours to expiry times the spoil rate
     /// where the item sits, so a bag item and a fridge item with equal freshness compare equal.
     /// </summary>
     private static float ShelfHoursLeft(Freshness item, float nowHours) => (item.ExpiresAt - nowHours) * item.TimeScale;

@@ -1,12 +1,12 @@
 Name: Stacking
-Summary: Bigger stacks without fresh food merging into rotting food: set any item category's limit, up to 999. Limits start at the game's own; each setting suggests one. Split stacks with Shift, Ctrl or a how-many panel, offer part of a stack in trades, and cooking and crafting count every item in a stack, so three strawberries make three smoothies.
+Summary: Bigger stacks without fresh food merging into rotting food: set any item category's limit, up to 999. Limits start at the game's; each setting suggests one. Split stacks with Shift, Ctrl or a how-many panel, offer part of a stack in trades, and cooking and crafting count every item in a stack, so three strawberries make three smoothies.
 
 Description (BBCode):
 [center][img]https://sldb.core-directive.com/media/save/2-changes-stay.png[/img][/center]
 
 Most seeds and food take one bag slot each, so storage fills up fast. Stacking raises the stack limit per item category without letting a fresh meal merge into a rotting one, and lets you split stacks with a key held.
 
-Out of the box the stack limits are the game's own: set a category's limit on the Mod Manager's Mods screen or in the config to raise it. Each setting suggests a number, such as 99 for materials and seeds. Splitting, and cooking and crafting that count every item in a stack, work from the start.
+Out of the box the stack limits are the game's: set a category's limit on the Mod Manager's Mods screen or in the config to raise it. Each setting suggests a number, such as 99 for materials and seeds. Splitting, and cooking and crafting that count every item in a stack, work from the start.
 
 [size=5]Main features[/size]
 [list]
@@ -29,7 +29,7 @@ Out of the box the stack limits are the game's own: set a category's limit on th
 [*][b]Shift + drop[/b]: move half the stack.[/*]
 [*][b]Ctrl + drop[/b]: move one.[/*]
 [*][b]Ctrl + Shift + drop[/b]: a small panel asks how many.[/*]
-[*][b]Shift, Ctrl or Ctrl + Shift + right-click[/b]: split onto the nearest free spot. With two bags open, Ctrl and Ctrl + Shift right-click stay the game's own "send every item of this kind".[/*]
+[*][b]Shift, Ctrl or Ctrl + Shift + right-click[/b]: split onto the nearest free spot. With two bags open, Ctrl and Ctrl + Shift right-click stay the game's "send every item of this kind".[/*]
 [*][b]Ctrl + click[/b]: never opens the item details. In the bag it is still the game's quick use.[/*]
 [/list]
 

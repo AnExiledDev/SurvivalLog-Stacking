@@ -33,7 +33,7 @@ internal abstract record StationWork
 }
 
 /// <summary>
-/// Keeps stacks out of cooking and crafting stations at the game's own move points, so a move made by the player, by
+/// Keeps stacks out of cooking and crafting stations at the game's move points, so a move made by the player, by
 /// the game's fill buttons or by another mod is held to the rule alike: a move of one item into a station is stopped
 /// and replayed with one unit, a whole-bag move is put right after it, and a station never tops up a stack. Any other
 /// move that lands a stack in a station is caught where every move ends, as the item enters the station's list, and
@@ -368,7 +368,7 @@ internal static class StationGuard
     {
         _failures++;
 
-        if (_failures <= MaxLoggedFailures) _log($"{what} failed, the game's own move went ahead (logged {_failures} of {MaxLoggedFailures}): {ex}");
-        else if (_failures % FailureCountEvery == 0) _log($"{_failures - MaxLoggedFailures} more failures since the first {MaxLoggedFailures}, the game's own move went ahead each time; the latest: {what}");
+        if (_failures <= MaxLoggedFailures) _log($"{what} failed, the game's move went ahead (logged {_failures} of {MaxLoggedFailures}): {ex}");
+        else if (_failures % FailureCountEvery == 0) _log($"{_failures - MaxLoggedFailures} more failures since the first {MaxLoggedFailures}, the game's move went ahead each time; the latest: {what}");
     }
 }

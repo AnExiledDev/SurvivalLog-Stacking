@@ -174,7 +174,7 @@ internal static class CraftingFill
 
         Shelves.Start(state.Pointer, itemState.Pointer);
 
-        // The bench holds one unit a slot only while the table's screen is open; with it closed nothing is cut and the game's own check stands.
+        // The bench holds one unit a slot only while the table's screen is open; with it closed nothing is cut and the game's check stands.
         if (StackGuard.NewlyStackable.Count == 0 || Live() is not { } items || BenchOf(state) is not { } bench || !Stations.IsStation(items, bench)) return Shelves;
 
         if (itemState._OwnerCache_k__BackingField is not { } cache) return Shelves;
@@ -324,7 +324,7 @@ internal static class CraftingFill
 
     /// <summary>
     /// The game sends items a recipe does not use off the bench only as it moves its picks there, after the pick, so
-    /// items left from an earlier recipe would hold the cells the units need. They go home first, by the game's own
+    /// items left from an earlier recipe would hold the cells the units need. They go home first, by the game's
     /// call; the bench items the plan uses stay.
     /// </summary>
     private static void ClearBench(State_Web_ToolTable state, State_Data_Item itemState, long bench, long leftOwnerId, IEnumerable<WholePick> whole)
@@ -404,7 +404,7 @@ internal static class CraftingFill
 
         if (itemState._OwnerCache_k__BackingField is not { } cache) return held;
 
-        // The bench holds one unit a slot only while the table's screen is open; with it closed nothing is cut and the game's own pick stands.
+        // The bench holds one unit a slot only while the table's screen is open; with it closed nothing is cut and the game's pick stands.
         var canCut = Stations.IsStation(items, bench);
         var seen = new HashSet<long>();
         var isRaw = Raw.TryOpen(cache);
@@ -468,7 +468,7 @@ internal static class CraftingFill
     {
         _failures++;
 
-        if (_failures <= MaxLoggedFailures) _log($"{what}; the game's own result stands (logged {_failures} of {MaxLoggedFailures})");
-        else if (_failures % FailureCountEvery == 0) _log($"{_failures - MaxLoggedFailures} more failures since the first {MaxLoggedFailures}, the game's own result stood each time; the latest: {what}");
+        if (_failures <= MaxLoggedFailures) _log($"{what}; the game's result stands (logged {_failures} of {MaxLoggedFailures})");
+        else if (_failures % FailureCountEvery == 0) _log($"{_failures - MaxLoggedFailures} more failures since the first {MaxLoggedFailures}, the game's result stood each time; the latest: {what}");
     }
 }

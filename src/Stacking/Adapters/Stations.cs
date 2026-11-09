@@ -7,7 +7,7 @@ using Il2CppInterop.Runtime;
 namespace Stacking.Adapters;
 
 /// <summary>
-/// Which containers are cooking or crafting stations, by the game's own tests: its cooking furniture (benches, pots,
+/// Which containers are cooking or crafting stations, by the game's tests: its cooking furniture (benches, pots,
 /// juicers and the rest of the cooking table), hot pots, brew barrels, the compressor and shredder trays, and the
 /// bench of the crafting table open on screen. Compost bins, racks and robot molds are not stations; they keep their
 /// own rules.

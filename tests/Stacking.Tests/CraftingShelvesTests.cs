@@ -65,7 +65,7 @@ public class CraftingShelvesTests
         Assert.True(shelves.CanFill(Needs((Glass, 2), (Metal, 1))));
     }
 
-    /// <summary>The game's own check already says yes then; this check only turns a no into a yes the fill makes good.</summary>
+    /// <summary>The game's check already says yes then; this check only turns a no into a yes the fill makes good.</summary>
     [Fact]
     public void A_recipe_whole_items_fill_on_their_own_is_left_to_the_game()
     {

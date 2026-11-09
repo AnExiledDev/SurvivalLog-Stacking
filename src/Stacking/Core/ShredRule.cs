@@ -3,7 +3,7 @@ namespace Stacking.Core;
 /// <summary>What a finished shred does to the item it just shredded.</summary>
 public enum ShredRemoval
 {
-    /// <summary>The game's own removal, unchanged.</summary>
+    /// <summary>The game's removal, unchanged.</summary>
     Vanilla,
 
     /// <summary>One unit comes off the stack and the rest stays in the hopper for the next shred.</summary>

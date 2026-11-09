@@ -20,12 +20,12 @@ public static class StackLimits
 {
     public const int Highest = 999;
 
-    /// <summary>Every category's default: 0 keeps the game's own limit, so installing the mod changes no stack until the player sets one.</summary>
+    /// <summary>Every category's default: 0 keeps the game's limit, so installing the mod changes no stack until the player sets one.</summary>
     public const int KeepGame = 0;
 
     public static int Clamp(int wanted) => Math.Clamp(wanted, 0, Highest);
 
-    /// <summary>Every item a cook can make, as the game's own codex collects them.</summary>
+    /// <summary>Every item a cook can make, as the game's codex collects them.</summary>
     public static IReadOnlySet<int> CookedItems(IEnumerable<RecipeOutputs> recipes) =>
         recipes.SelectMany(recipe => new[] { recipe.Perfect, recipe.Good, recipe.Normal, recipe.Fail }).Where(id => id > 0).ToHashSet();
 
@@ -38,7 +38,7 @@ public static class StackLimits
 
     /// <summary>
     /// Raises each item to its category's limit. An item the game never stacked is only raised when the freshness
-    /// guard is in place, because the game's own stack search ignores freshness and would merge old food into new.
+    /// guard is in place, because the game's stack search ignores freshness and would merge old food into new.
     /// </summary>
     public static StackPlan Plan(IEnumerable<ItemRow> gameRows, IReadOnlyDictionary<int, int> wantedByCategory, bool canGuardFreshness)
     {
@@ -76,13 +76,13 @@ public static class StackLimits
     }
 
     /// <summary>
-    /// The limit an item should carry now. One the plan does not raise goes back to the game's own limit, so a category
+    /// The limit an item should carry now. One the plan does not raise goes back to the game's limit, so a category
     /// turned down or off during play gives its items the game's limit again.
     /// </summary>
     public static int LimitFor(StackPlan plan, ItemRow gameRow) =>
         plan.Limits.TryGetValue(gameRow.Id, out var limit) ? limit : gameRow.StackLimit;
 
-    /// <summary>One line per category, so a player can see the game's own limits before choosing theirs.</summary>
+    /// <summary>One line per category, so a player can see the game's limits before choosing theirs.</summary>
     public static IEnumerable<string> Describe(IEnumerable<ItemRow> gameRows, StackPlan plan, Func<int, string> categoryName)
     {
         foreach (var category in gameRows.GroupBy(row => row.Category).OrderBy(group => group.Key))

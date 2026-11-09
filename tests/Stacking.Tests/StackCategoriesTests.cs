@@ -76,7 +76,7 @@ public class StackCategoriesTests
         Assert.All(StackCategories.All, category => Assert.Equal(StackLimits.Clamp(category.Suggested), category.Suggested));
     }
 
-    /// <summary>Installing the mod changes no stack: every category's default keeps the game's own limit.</summary>
+    /// <summary>Installing the mod changes no stack: every category's default keeps the game's limit.</summary>
     [Fact]
     public void The_default_limit_raises_no_item_above_the_games_own()
     {

@@ -4,7 +4,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.stacking.cfg`, created the 
 
 ## StackLimits
 
-Each setting is the most items of one item category in one stack. The setting names are the game's own category names; the second column is the name the game shows. Every one defaults to `0`, the game's own limit, so no stack changes until you set one; the Suggested column is a good place to start.
+Each setting is the most items of one item category in one stack. The setting names are the game's category names; the second column is the name the game shows. Every one defaults to `0`, the game's limit, so no stack changes until you set one; the Suggested column is a good place to start.
 
 | Setting | Shown in game as | Game limit | Default | Suggested | For example |
 | --- | --- | --- | --- | --- | --- |
@@ -31,7 +31,7 @@ Each setting is the most items of one item category in one stack. The setting na
 | `Renovation` | Renovation Materials | 1 to 10 | `0` | `30` | Wallpaper and flooring (10 in the game). Dyes can be used again and again, so they keep the game's limit. |
 | `TaskItem` | Quest Items | 1 | `0` |  | Garage Key, Cold Storage Key |
 
-Each takes a whole number from 0 to 999; a bigger number counts as 999 and a negative one as 0. `0`, or any number at or below the game's own limit, keeps the game's limit: a setting only ever raises a limit, it never lowers one. Dishes a cooking recipe can make, and items with more than one use that runs out, always keep the game's limit. Reusable items you use directly, such as dyes, a comb or dumbbells, keep the game's limit too, because the game would take one from the stack each time you use one. Reusable materials such as wire and iron rods stack like any other.
+Each takes a whole number from 0 to 999; a bigger number counts as 999 and a negative one as 0. `0`, or any number at or below the game's limit, keeps the game's limit: a setting only ever raises a limit, it never lowers one. Dishes a cooking recipe can make, and items with more than one use that runs out, always keep the game's limit. Reusable items you use directly, such as dyes, a comb or dumbbells, keep the game's limit too, because the game would take one from the stack each time you use one. Reusable materials such as wire and iron rods stack like any other.
 
 For items the game never stacked (most food, for example), only items with the same freshness left (within an hour) and the same uses share a stack. Items that never spoil, such as seeds, fuel and materials, share a stack whenever their uses match, no matter when they were picked up, and items found on the map share a stack with ones you made or bought.
 

@@ -1,5 +1,5 @@
 // Stacking's split picker. Runs in Root.html, the document every game page iframe sits in, and draws over all of
-// them in the game's own colours and fonts, as Storage Hub's panel does. Asks how many units of a dropped stack to
+// them in the game's colours and fonts, as Storage Hub's panel does. Asks how many units of a dropped stack to
 // move and answers through vuplex.postMessage("slmod|stacking|split|<token>|<units>" or "slmod|stacking|cancel|<token>").
 // Says "slmod|stacking|shown|<token>" once the picker is on screen and again whenever the plugin checks on it, or
 // "slmod|stacking|gone|<token>" when it is not; the plugin gives the game its keys and clicks back on gone or silence.

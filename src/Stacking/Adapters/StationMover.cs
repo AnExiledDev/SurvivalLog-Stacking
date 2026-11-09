@@ -8,7 +8,7 @@ namespace Stacking.Adapters;
 
 /// <summary>
 /// Carries out the station rule through the core's steps (see StationMoves), which check every step and put right any
-/// that did not land: one unit goes into a station by the game's own move, so every check the game runs still runs,
+/// that did not land: one unit goes into a station by the game's move, so every check the game runs still runs,
 /// and the rest stays where it was. A stack found in a station keeps one unit there and the rest goes back.
 /// </summary>
 internal sealed class StationMover
@@ -81,7 +81,7 @@ internal sealed class StationMover
 
     /// <summary>
     /// For the game's quick move, whose callers must learn at once whether the item moved: true when it left its bag,
-    /// false when it stayed, null when the stack was not the core's to move and the game's own move should run.
+    /// false when it stayed, null when the stack was not the core's to move and the game's move should run.
     /// </summary>
     public bool? TakeOneNow(ItemManager items, StationWork.TakeOne move, long? oneUnitTarget = null)
     {
@@ -93,7 +93,7 @@ internal sealed class StationMover
         }
         catch (Exception ex)
         {
-            _log($"a quick move of one unit into station {move.ToOwnerId} could not start, the game's own move runs: {ex}");
+            _log($"a quick move of one unit into station {move.ToOwnerId} could not start, the game's move runs: {ex}");
 
             return null;
         }
@@ -102,7 +102,7 @@ internal sealed class StationMover
 
         _redraws.Enqueue((move.FromOwnerId, move.ToOwnerId));
 
-        // Once the steps have run, the game's own move must not run as well, so an item that cannot be read stayed.
+        // Once the steps have run, the game's move must not run as well, so an item that cannot be read stayed.
         return report.Outcome != StationOutcome.Unreadable && HasLeft(items, move);
     }
 

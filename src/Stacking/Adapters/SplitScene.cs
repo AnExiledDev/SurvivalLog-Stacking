@@ -98,7 +98,7 @@ internal static class SplitScene
     private static StackFacts Facts(ItemData item) =>
         new(item.ItemConfigId, item.Polluted, item.IsMapPreset, item.InstanceWeight != 0, StackGuard.Read(item));
 
-    /// <summary>The game's own merge compares quality values twice, the shown values and when their effects end; so does this.</summary>
+    /// <summary>The game's merge compares quality values twice, the shown values and when their effects end; so does this.</summary>
     private static bool IsSameQuality(ItemData a, ItemData b) =>
         ItemValueDisplayHelper.AreVdEqual(a.InstanceVD, b.InstanceVD) && ItemValueDisplayHelper.AreVdEqual(a.InstanceEffectEnd, b.InstanceEffectEnd);
 

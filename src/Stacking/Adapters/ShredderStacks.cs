@@ -9,7 +9,7 @@ namespace Stacking.Adapters;
 /// <summary>
 /// Makes the shredder shred every unit of a stack. A finished shred (Furniture.SettleShred) hands out one item's yield
 /// and then force-removes the item it shredded; while it settles, that removal takes one unit off a stack instead, and
-/// the game's own restart picks the rest of the stack as the next item to shred.
+/// the game's restart picks the rest of the stack as the next item to shred.
 /// </summary>
 internal static class ShredderStacks
 {
@@ -102,7 +102,7 @@ internal static class ShredderStacks
         }
     }
 
-    private static void Fail(string what, Exception ex) => _hooks?.Fail($"{what}, the game's own removal went ahead", ex);
+    private static void Fail(string what, Exception ex) => _hooks?.Fail($"{what}, the game's removal went ahead", ex);
 
     private sealed record Settle(int Frame, long ShreddedItemId);
 }

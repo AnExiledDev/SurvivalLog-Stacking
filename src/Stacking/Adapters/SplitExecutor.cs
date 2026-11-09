@@ -10,7 +10,7 @@ namespace Stacking.Adapters;
 
 /// <summary>
 /// Carries out a split drop on the main thread, a frame after the game handed it over. Plans it again from the live
-/// bags, runs the checks the game's own move would have run, then moves the units. Every unit is accounted for: if a
+/// bags, runs the checks the game's move would have run, then moves the units. Every unit is accounted for: if a
 /// step fails, the stacks are put back as they were before anything is reported.
 /// </summary>
 internal sealed class SplitExecutor
@@ -76,7 +76,7 @@ internal sealed class SplitExecutor
     }
 
     /// <summary>
-    /// The checks the game's move runs once it knows the item may leave its bag. Each of the game's own shows the
+    /// The checks the game's move runs once it knows the item may leave its bag. Each of the game's shows the
     /// player why; the rest show a toast.
     /// </summary>
     private bool IsAllowed(SplitRequest request, int configId)
@@ -303,7 +303,7 @@ internal sealed class SplitExecutor
             items.IncreaseItemCount(target, plan.Units);
             StackCounts.Expect(target, targetBefore + plan.Units);
 
-            // The game's own removal of a whole stack: it leaves the bag and the caches, and only then is reported
+            // The game's removal of a whole stack: it leaves the bag and the caches, and only then is reported
             // destroyed, the bag told it is gone, and the object pooled, so `source` must not be read after this.
             if (isWholeStack) items.ForceRemoveItem(request.ItemId);
             else

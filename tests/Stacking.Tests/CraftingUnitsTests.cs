@@ -31,7 +31,7 @@ public class CraftingUnitsTests
     private static UnitsTaken Take(FakeStationStore store, int units, Func<long, long, StationReport> takeOne, Func<long, long, bool> moveBack) =>
         CraftingUnits.Take(store.Find, [new UnitTake(Nail, Bag, units)], Bench, takeOne, moveBack);
 
-    /// <summary>The second unit is the stack's last, so it stays a whole pick for the game's own move rather than a cut.</summary>
+    /// <summary>The second unit is the stack's last, so it stays a whole pick for the game's move rather than a cut.</summary>
     [Fact]
     public void Two_units_off_a_stack_of_two_put_one_on_the_bench_and_leave_the_last_for_the_game_to_move()
     {

@@ -15,7 +15,7 @@ public abstract record UnitsTaken
 
     /// <summary>
     /// Every unit landed. Most are on the bench already; a stack worn down to its last unit is left where it is as a
-    /// whole pick, for the game's own move to carry onto the bench with the rest of its picks.
+    /// whole pick, for the game's move to carry onto the bench with the rest of its picks.
     /// </summary>
     public sealed record Landed(IReadOnlyList<BenchUnit> OnBench, IReadOnlyList<WholePick> Whole) : UnitsTaken;
 

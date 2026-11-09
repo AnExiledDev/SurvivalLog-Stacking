@@ -4,7 +4,7 @@ using GameCore.HotUpdate.Battle.Logic;
 
 namespace Stacking.Adapters;
 
-/// <summary>Changing a stack's count through the game's own calls, checked, so a step that did not land is noticed and undone.</summary>
+/// <summary>Changing a stack's count through the game's calls, checked, so a step that did not land is noticed and undone.</summary>
 internal static class StackCounts
 {
     /// <summary>The game's count calls report whether a stack emptied, not whether they worked, so the count itself is checked.</summary>

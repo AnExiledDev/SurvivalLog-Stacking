@@ -166,7 +166,7 @@ public readonly record struct OfferedStack(long Id, Cell At);
 
 public enum TradeDrag
 {
-    /// <summary>No split: the game's own drag.</summary>
+    /// <summary>No split: the game's drag.</summary>
     Game,
 
     /// <summary>Part of a stack in the bag offered on the drone cell it was dropped on.</summary>
@@ -184,7 +184,7 @@ public enum TradeDrag
 
 public enum TradeClick
 {
-    /// <summary>The game's own click.</summary>
+    /// <summary>The game's click.</summary>
     Game,
 
     /// <summary>Part of the stack offered, or part of an offer taken back, as the keys held say.</summary>

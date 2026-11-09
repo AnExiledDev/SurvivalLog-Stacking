@@ -3,7 +3,7 @@ namespace Stacking.Core;
 /// <summary>What happens when a stack goes into a cooking or crafting station.</summary>
 public enum StationEntry
 {
-    /// <summary>The game's own move, unchanged.</summary>
+    /// <summary>The game's move, unchanged.</summary>
     Vanilla,
 
     /// <summary>One unit goes in; the rest stays where it was.</summary>
@@ -22,7 +22,7 @@ public static class StationRule
 
     /// <summary>
     /// A click on a stack in a station view feeds a container one unit at a time: the shredder hopper, the compressor
-    /// bin and the dye vat take one unit per click whatever the item, the game's own stacks too, so the player chooses
+    /// bin and the dye vat take one unit per click whatever the item, the game's stacks too, so the player chooses
     /// how much goes in. A drag still moves what it carries.
     /// </summary>
     public static StationEntry ClickEntry(bool isIntoFeeder, bool isWithinOneBag, int count, bool hasOwnWeight) =>

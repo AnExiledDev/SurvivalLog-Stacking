@@ -37,7 +37,7 @@ public sealed class Plugin : BasePlugin
             "On: a cooking bench counts every item in a stack as an ingredient, like loose items, and the finished cook uses up the items its dishes took. Off: a stack counts as one ingredient, as in the base game. Takes effect at the next game start.\n"
             + "开启：烹饪家具把堆叠里的每一件都算作食材，和散放的物品一样，烹饪完成时扣除菜品用掉的数量。关闭：一个堆叠只算一份食材，与原版游戏相同。下次启动游戏时生效。", null, "ModManager.Restart")).Value;
 
-        // Off means the game's own drags and right-clicks, which only an unpatched game gives, so this waits for the next start.
+        // Off means the game's drags and right-clicks, which only an unpatched game gives, so this waits for the next start.
         var isSplitting = Config.Bind("Splitting", "Enabled", true, new ConfigDescription(
             "Hold Shift while you drop a stack to move half, Ctrl to move one, or Ctrl+Shift to choose how many; a right-click with the same keys splits the stack onto the nearest free spot in the same bag or storage. Off: drags and right-clicks work as in the base game. Takes effect at the next game start.\n"
             + "拖拽放下堆叠时按住 Shift 移动一半，按住 Ctrl 移动 1 件，按住 Ctrl+Shift 自选数量；按住同样的键右键点击，会把堆叠拆分到同一背包或储物空间里最近的空位。关闭：拖拽和右键与原版游戏相同。下次启动游戏时生效。", null, "ModManager.Restart")).Value;
@@ -57,7 +57,7 @@ public sealed class Plugin : BasePlugin
         // The units kept out must start a stack of their own, so the station rule needs NewStacks, splitting or not.
         if (canGuardFreshness) KeepStacksOutOfStations(hooks, log);
 
-        // Any stack can reach the shredder hopper, the game's own stacks too, so this does not wait on the guard.
+        // Any stack can reach the shredder hopper, the game's stacks too, so this does not wait on the guard.
         ShredderStacks.Apply(hooks, log.Write, log.WriteFileOnly);
 
         StackTicker.Log = log.Write;

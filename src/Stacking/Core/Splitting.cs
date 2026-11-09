@@ -37,7 +37,7 @@ public enum StackMatch
     Same,
 }
 
-/// <summary>What decides whether two stacks of an item may become one: the game's own stack rules, plus freshness.</summary>
+/// <summary>What decides whether two stacks of an item may become one: the game's stack rules, plus freshness.</summary>
 public readonly record struct StackFacts(int ConfigId, bool IsPolluted, bool IsMapPreset, bool HasOwnWeight, Freshness Freshness);
 
 public sealed record GridItem(long Id, Footprint Cells, int Count, StackMatch Match);
@@ -163,7 +163,7 @@ public static class Splitting
 
     /// <summary>
     /// A plain drop onto a matching stack tops it up with as many units as it and the bag's weight limit take, and the
-    /// rest stays where it was. Any other plain drop is the game's own, so it never shows a refusal. The stack under
+    /// rest stays where it was. Any other plain drop is the game's, so it never shows a refusal. The stack under
     /// the cursor counts even when the dragged item's cells would not fit there.
     /// </summary>
     private static SplitPlan PlanJoin(StackDrag drag, BagGrid destination, int stackLimit, int unitsWeightAllows)
@@ -241,7 +241,7 @@ public static class Splitting
     }
 
     /// <summary>
-    /// How many units a bag can take before it is over its weight limit, by the game's own test (weight after the move
+    /// How many units a bag can take before it is over its weight limit, by the game's test (weight after the move
     /// above the limit is refused). Moving within one bag changes nothing.
     /// </summary>
     public static int UnitsWeightAllows(bool isSameBag, bool checksWeight, float maxWeight, float currentWeight, float unitWeight)

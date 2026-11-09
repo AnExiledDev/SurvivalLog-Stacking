@@ -40,7 +40,7 @@ public interface IStationStore
     /// <summary>Sets a stack's count; never asked for less than one.</summary>
     void SetCount(long itemId, int count);
 
-    /// <summary>The game's own move of an item into a container at a cell, which the game may refuse.</summary>
+    /// <summary>The game's move of an item into a container at a cell, which the game may refuse.</summary>
     void MoveTo(long itemId, long ownerId, Cell at);
 
     /// <summary>
@@ -113,7 +113,7 @@ public sealed record StationReport(StationOutcome Outcome, IReadOnlyList<string>
 public static class StationMoves
 {
     /// <summary>
-    /// The stack is cut to one unit and the game's own move runs again, so the game places the unit, refuses it, or
+    /// The stack is cut to one unit and the game's move runs again, so the game places the unit, refuses it, or
     /// shows why. The rest then starts a stack of its own where the stack stood. If the rest cannot be kept, the unit
     /// comes back and the stack is whole again; if even that fails, the rest goes anywhere in the bag that takes it.
     /// </summary>

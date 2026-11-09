@@ -35,7 +35,7 @@ public static class TableWatch
 
     /// <summary>
     /// Up to <see cref="CanaryCount"/> raised items, spread across the id range, to check between full writes.
-    /// Only raised items are watched: a reload puts the game's own limit back, which only shows on an item this mod raised.
+    /// Only raised items are watched: a reload puts the game's limit back, which only shows on an item this mod raised.
     /// </summary>
     public static IReadOnlyList<int> PickCanaries(IEnumerable<int> raisedIds)
     {

@@ -2,7 +2,7 @@
 
 ## 0.8.4
 
-- A new install now keeps the game's own stack limits until you set one: every `[StackLimits]` setting defaults to `0`. Each setting's description suggests a number, such as 99 for materials and seeds and 20 for food, the old defaults. Settings you already saved are kept.
+- A new install now keeps the game's stack limits until you set one: every `[StackLimits]` setting defaults to `0`. Each setting's description suggests a number, such as 99 for materials and seeds and 20 for food, the old defaults. Settings you already saved are kept.
 - Made for Survival Log 1.1.20719.
 
 ## 0.8.3
@@ -95,13 +95,13 @@
 ## 0.6.0
 
 - Mod Manager's Mods screen links to this changelog.
-- Stack limits changed on the Mod Manager's Mods screen take effect within a few seconds. A category turned down or off gives its items the game's own limit again. Cooking and splitting still need a game restart.
+- Stack limits changed on the Mod Manager's Mods screen take effect within a few seconds. A category turned down or off gives its items the game's limit again. Cooking and splitting still need a game restart.
 - Mod Manager's Mods screen shows the mod's name, description, category and links.
 - Exiled's Toolkit 0.4.0 or newer is optional. With it, settings you change on the Mods screen take effect right away. Without it, they take effect the next time you start the game.
 
 ## 0.5.0
 
-- Dropping a stack on a stack of the same item joins them into one stack, as far as the stack limit allows, and the rest stays where it was. The game only ever swapped the two. A drop on anything else is the game's own move, as before.
+- Dropping a stack on a stack of the same item joins them into one stack, as far as the stack limit allows, and the rest stays where it was. The game only ever swapped the two. A drop on anything else is the game's move, as before.
 - Shift, Ctrl and Ctrl+Shift drags split a stack while a crafting table, cooking bench, compressor, dye station or drone hub is open. Those windows moved the whole stack before.
 - Storage Hub's Home tab takes one item per click from a stack, because other mods can now move one item off a stack.
 

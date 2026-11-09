@@ -4,7 +4,7 @@ namespace Stacking;
 
 /// <summary>
 /// For other mods, found by name so they run without this one: takes one unit off a stack and moves it to another
-/// container by the game's own quick move, leaving the rest where it was. Call it on the main thread.
+/// container by the game's quick move, leaving the rest where it was. Call it on the main thread.
 /// </summary>
 public static class UnitMoves
 {
