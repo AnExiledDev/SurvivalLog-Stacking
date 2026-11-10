@@ -71,23 +71,18 @@ internal static class StackGuard
     private static bool Patch(PatchKit hooks, string what, string method, Type[]? parameters, string prefix, string postfix) =>
         hooks.Patch(typeof(StackGuard), typeof(ItemManager), method, parameters, prefix: prefix, postfix: postfix, consequence: what);
 
-    /// <summary>The game has two AddItem overloads, told apart by whether they take a use count; the hook names the one it means by its parameters.</summary>
+    /// <summary>
+    /// The game has two AddItem overloads, told apart by whether they take a use count. Unless exactly one matches,
+    /// the hook is left out and logged as a failure.
+    /// </summary>
     private static void PatchAddItem(PatchKit hooks, string what, bool hasUses, string prefix)
     {
         var overloads = AccessTools.GetDeclaredMethods(typeof(ItemManager))
             .Where(method => method.Name == nameof(ItemManager.AddItem) && method.GetParameters().Any(p => p.Name == "useTimes") == hasUses)
             .ToArray();
 
-        if (overloads.Length != 1)
-        {
-            _log($"{HookFailure.Prefix} {nameof(ItemManager)}.{nameof(ItemManager.AddItem)}, {what}: {overloads.Length} overloads match, not one");
-
-            return;
-        }
-
-        var parameters = overloads[0].GetParameters().Select(parameter => parameter.ParameterType).ToArray();
-
-        Patch(hooks, what, nameof(ItemManager.AddItem), parameters, prefix, nameof(ForgetAdd));
+        hooks.Patch(overloads.Length == 1 ? overloads[0] : null, $"{nameof(ItemManager)}.{nameof(ItemManager.AddItem)}", typeof(StackGuard),
+            prefix: prefix, postfix: nameof(ForgetAdd), consequence: what);
     }
 
     private static void RememberAdd(int startTime, int timeLeft, int useTimes, float timeScale, int maxUseTimes, out Freshness? __state)

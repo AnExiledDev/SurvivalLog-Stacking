@@ -15,11 +15,11 @@ using Stacking.Core;
 namespace Stacking;
 
 [BepInPlugin(Guid, "Stacking", Version)]
-[BepInDependency(ToolkitGuid, ">=0.19.0")]
+[BepInDependency(ToolkitGuid, ">=0.20.0")]
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.8.4";
+    private const string Version = "0.8.5";
     private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
     private const int MaxLoggedFailures = 3;
 
