@@ -224,9 +224,9 @@ public class SplittingTests
     [InlineData(Refusal.NoRoom, "No room to split the stack there")]
     [InlineData(Refusal.StackFull, "That stack is already full")]
     [InlineData(Refusal.TooHeavy, "That would be too heavy for the container")]
-    [InlineData(Refusal.OtherCondition, "Those don't stack: freshness or condition differs")]
-    [InlineData(Refusal.OwnRules, "Stacks can't be split into or out of this container; split them in your bag first")]
-    [InlineData(Refusal.Unreadable, "Couldn't read this container's layout, so nothing split: see BepInEx/stacking.log")]
+    [InlineData(Refusal.OtherCondition, "Those don't stack because their freshness or condition is different")]
+    [InlineData(Refusal.OwnRules, "Stacks can't be split into or out of this container. Split them in your bag first")]
+    [InlineData(Refusal.Unreadable, "Couldn't read this container's slots, so nothing was split. See BepInEx/stacking.log")]
     public void Every_refusal_tells_the_player_the_reason_decided_for_it(Refusal reason, string words)
     {
         Assert.Equal(words, Splitting.Explain(reason).En);
@@ -246,7 +246,7 @@ public class SplittingTests
     {
         var landing = Splitting.LandingOf(5, new Cell(4, 0), 5, new Cell(2, 1));
 
-        Assert.Equal("That spot was taken, so the split-off stack went elsewhere in the container", Splitting.Explain(landing)?.En);
+        Assert.Equal("That spot was taken, so the new stack went somewhere else in the container", Splitting.Explain(landing)?.En);
     }
 
     /// <summary>The game's add drops a stack it cannot place, which gives it another owner; its cell says nothing then.</summary>
@@ -255,7 +255,7 @@ public class SplittingTests
     {
         var landing = Splitting.LandingOf(9, new Cell(2, 1), 5, new Cell(2, 1));
 
-        Assert.Equal("No room in the container, so the split-off stack was dropped on the ground", Splitting.Explain(landing)?.En);
+        Assert.Equal("No room in the container, so the new stack was dropped on the ground", Splitting.Explain(landing)?.En);
     }
 
     [Fact]

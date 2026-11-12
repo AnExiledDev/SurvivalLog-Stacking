@@ -1,27 +1,27 @@
 Name: Stacking
-Summary: Bigger stacks without fresh food merging into rotting food: set any item category's limit, up to 999. Limits start at the game's; each setting suggests one. Split stacks with Shift, Ctrl or a how-many panel, offer part of a stack in trades, and cooking and crafting count every item in a stack, so three strawberries make three smoothies.
+Summary: Bigger stacks without fresh food merging into rotting food. Set any item category's stack limit, up to 999. Limits start at the game's and each setting suggests a number. Split stacks with Shift, Ctrl or a panel that asks how many, offer part of a stack in trades, and cooking and crafting count every item in a stack, so three strawberries make three smoothies.
 
 Description (BBCode):
 [center][img]https://sldb.core-directive.com/media/save/2-changes-stay.png[/img][/center]
 
 Most seeds and food take one bag slot each, so storage fills up fast. Stacking raises the stack limit per item category without letting a fresh meal merge into a rotting one, and lets you split stacks with a key held.
 
-Out of the box the stack limits are the game's: set a category's limit on the Mod Manager's Mods screen or in the config to raise it. Each setting suggests a number, such as 99 for materials and seeds. Splitting, and cooking and crafting that count every item in a stack, work from the start.
+When you first install it, every stack limit stays at the game's limit. To raise one, set that category's limit on the Mod Manager's Mods screen or in the config. Each setting suggests a number, such as 99 for materials and seeds. Splitting stacks, and counting every item in a stack when you cook or craft, are on from the start.
 
 [size=5]Main features[/size]
 [list]
-[*][b]Stack limits per category[/b]: every category starts at the game's limit and can be raised in the config, up to 999. Each setting suggests a number: 99 for materials and seeds, 20 for food, and smaller raises for meds, fuel, fertilizer and other everyday items.[/*]
+[*][b]Stack limits per category[/b]: every category starts at the game's limit, and you can raise it in the config up to 999. Each setting suggests a number, such as 99 for materials and seeds, 20 for food, fuel and fertilizer, and 10 for meds and household items.[/*]
 [*][b]Fresh food stays apart[/b]: food only stacks with food of the same freshness, so nothing old sneaks into a fresh stack.[/*]
 [*][b]Items that never spoil stack together[/b]: seeds, fuel, materials and anything else without a shelf life join a stack of their own kind no matter when you picked them up, or whether you found them on the map.[/*]
 [*][b]Cooking counts every item[/b]: a stack of three strawberries makes three smoothies, the same as three loose ones.[/*]
 [*][b]No stacks in stations[/b]: moving a stack into a cooking or crafting station puts in one item, and the rest stays where it was.[/*]
 [*][b]The crafting table counts every item[/b]: a recipe that needs two glass can be made from a stack of eight, and the fill button and batch crafting take single items off the stack.[/*]
 [*][b]Split by drag[/b]: hold Shift to move half a stack, Ctrl to move one, or Ctrl+Shift to choose how many.[/*]
-[*][b]Split by right-click[/b]: the same keys with a right-click split the part off onto the nearest free spot.[/*]
-[*][b]Offer part of a stack[/b]: in the merchant's trade window, the same keys with a drag onto the drone or a right-click offer only that part, and the same from the drone back to your bag takes only that part back. A split drag inside the drone or your bag works too. A right-click or Shift left-click on your side offers one item at a time. Dropping a stack on a stack of the same item joins them, in your bag or on the drone.[/*]
+[*][b]Split by right-click[/b]: the same keys with a right-click split part of the stack onto the nearest free spot.[/*]
+[*][b]Offer part of a stack[/b]: in the merchant's trade window, hold the same keys while you drag a stack onto the drone or right-click it, and only that part is offered. Doing the same from the drone back to your bag takes only that part back. A split drag inside the drone or inside your bag works too. A right-click or Shift left-click on your side offers one item at a time. Dropping a stack on a stack of the same item joins them, in your bag or on the drone.[/*]
 [*][b]One item into the shredder, compressor and dye vat[/b]: a quick-move click on a stack in a material rack or storage tab of these windows puts in one item.[/*]
-[*][b]Ctrl-click opens no item details[/b]: in any window, from the bag to the merchant's trade window. In the bag, Ctrl-click still uses an item at once where the game allows it.[/*]
-[*][b]Dishes and items with uses keep their limit[/b]: dishes never stack, since each one holds its own servings, and tools whose uses run out are left alone. Reusable items you use directly, such as dyes, keep their limit too; reusable materials such as wire stack.[/*]
+[*][b]Ctrl-click doesn't open item details[/b]: this works in every window, from the bag to the merchant's trade window. In the bag, a Ctrl-click still uses an item at once where the game allows it.[/*]
+[*][b]Dishes and items with uses keep their limit[/b]: dishes never stack, since each one holds its own servings, and tools whose uses run out are left alone. Reusable items you use directly, such as dyes, keep their limit too. Reusable materials such as wire do stack.[/*]
 [/list]
 
 [size=5]Hotkeys[/size]
@@ -29,21 +29,21 @@ Out of the box the stack limits are the game's: set a category's limit on the Mo
 [*][b]Shift + drop[/b]: move half the stack.[/*]
 [*][b]Ctrl + drop[/b]: move one.[/*]
 [*][b]Ctrl + Shift + drop[/b]: a small panel asks how many.[/*]
-[*][b]Shift, Ctrl or Ctrl + Shift + right-click[/b]: split onto the nearest free spot. With two bags open, Ctrl and Ctrl + Shift right-click stay the game's "send every item of this kind".[/*]
-[*][b]Ctrl + click[/b]: never opens the item details. In the bag it is still the game's quick use.[/*]
+[*][b]Shift, Ctrl or Ctrl + Shift + right-click[/b]: split onto the nearest free spot. With two bags open, Ctrl and Ctrl + Shift right-click still send every item of that kind to the other side, as the game normally does.[/*]
+[*][b]Ctrl + click[/b]: never opens the item details. In the bag it still uses the item at once, like it normally does.[/*]
 [/list]
 
-The mod adds no data of its own to your save and does not edit game files, but the stacks and moves it makes are real items in your bags and storages. You can remove it at any time; stacks already bigger than the game's limit stay as they are.
+The mod doesn't add any data of its own to your save and doesn't edit game files, but the stacks and moves it makes are real items in your bags and storages. You can remove it at any time, and stacks already bigger than the game's limit stay as they are.
 
 Works in English and Chinese.
 
 [size=5]Known issues[/size]
 [list]
 [*]Dishes that already share a stack from an earlier version stay in that stack.[/*]
-[*]In the merchant's trade window, click with the game's highlight key held to offer every stack of a kind at once.[/*]
-[*]Do not use it together with BaseButler. Remove BaseButler first.[/*]
-[*]Dropping a stack on the floor moves the whole stack, whatever you hold.[/*]
-[*]Compost bins and robot molds refuse a split, and a material rack refuses a split into it from elsewhere. Split in your bag first, then drag the part you want.[/*]
+[*]In the merchant's trade window, a Ctrl-click does nothing. To offer every stack of a kind at once, click with the game's highlight key held.[/*]
+[*]Don't use it with BaseButler, since both change stack limits. Remove BaseButler first.[/*]
+[*]Dropping a stack on the floor always moves the whole stack, whatever keys you hold.[/*]
+[*]Compost bins and robot molds refuse a split, and a material rack refuses a split into it from somewhere else. Split in your bag first, then drag the part you want.[/*]
 [*]Two items up to an hour apart in freshness can share a stack.[/*]
 [/list]
 
@@ -54,9 +54,9 @@ Works in English and Chinese.
 [list]
 [*]Survival Log 1.1.20719. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
-[*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.20.0 or newer. Stacking does not load without it. It shows the mod's short messages as toasts, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the panel that asks how many to split. Stacking's own UiScale setting can set a size for this mod alone.[/*]
+[*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.20.0 or newer. Stacking does not load without it. It shows the mod's short messages as toasts, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the panel that asks how many to split. Stacking's UiScale setting can set a size for this mod alone.[/*]
 [*]Optional: [url=https://www.nexusmods.com/survivallog/mods/73]Mod Manager[/url]. With it, you can change every setting in game on its Mods screen and see what each one does, without opening the config file.[/*]
-[*]Not together with BaseButler.[/*]
+[*]Doesn't work with BaseButler. Remove BaseButler first.[/*]
 [/list]
 
 [size=5]Installation[/size]
@@ -73,11 +73,11 @@ Works in English and Chinese.
 Delete [font=Courier New]Stacking.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder. Stacks already bigger than the game's limit stay in your save as they are.
 
 [size=5]Configuration[/size]
-To change the stack limit of any item category, or turn off the cooking count or splitting, edit [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font] while the game is closed, or do it in game on the Mod Manager's Mods screen, where changes take effect at once (see [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url] for every setting; the cfg file explains each setting in English and Chinese). Cooking CountWholeStacks and Splitting Enabled take effect at the next game start.
+You can change the stack limit of any item category, or turn off the cooking count or splitting. Do it in game on the Mod Manager's Mods screen, where changes take effect at once, or edit [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font] while the game is closed. The cfg file explains each setting in English and Chinese, and [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url] lists every setting. Cooking CountWholeStacks and Splitting Enabled take effect at the next game start.
 
 [size=5]Feedback[/size]
 Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or post in this page's Posts tab. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\stacking.log[/font].
-To reach me directly, message [b]exiled.dev[/b] on Discord; you can find me in the [url=https://discord.gg/MZGg4gQAUe]official Survival Log Discord[/url]. I'm also on X as [url=https://x.com/AnExiledDev]@AnExiledDev[/url].
+To reach me directly, message [b]exiled.dev[/b] on Discord. You can find me in the [url=https://discord.gg/MZGg4gQAUe]official Survival Log Discord[/url]. I'm also on X as [url=https://x.com/AnExiledDev]@AnExiledDev[/url].
 
 [size=5]Source and license[/size]
 Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]github.com/AnExiledDev/SurvivalLog-Stacking[/url]
@@ -87,22 +87,22 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 
 大多数种子和食物各占一个背包格子，储物空间很快就满了。Stacking 按物品类别提高堆叠上限，但不会让新鲜的饭菜和快要腐坏的混在一起，还可以按住按键拆分堆叠。
 
-默认堆叠上限与游戏相同：在 Mod Manager 的「模组」界面或配置里为某个类别设置上限即可提高。每项设置都有建议值，例如材料和种子 99。拆分堆叠，以及烹饪和制作按整堆计数，从一开始就有效。
+刚安装时，所有堆叠上限都和游戏相同。想提高某个类别的上限，可以在 Mod Manager 的「模组」界面或配置文件里设置。每项设置都有建议值，例如材料和种子 99。拆分堆叠，以及烹饪和制作时按每一件计数，一安装就生效。
 
 [size=5]主要功能[/size]
 [list]
-[*][b]按类别设置堆叠上限[/b]：每个类别默认保持游戏上限，可以在配置中提高，最高 999。每项设置都有建议值：材料和种子 99，食物 20，药品、燃料、肥料和其他日用品也有小幅提高。[/*]
+[*][b]按类别设置堆叠上限[/b]：每个类别默认保持游戏上限，可以在配置中提高，最高 999。每项设置都有建议值，例如材料和种子 99，食物、燃料和肥料 20，药品和日用品 10。[/*]
 [*][b]新鲜食物单独堆放[/b]：食物只和新鲜程度相同的食物叠在一起，旧食物不会混进新鲜的一堆。[/*]
 [*][b]不会腐坏的物品叠在一起[/b]：种子、燃料、材料等没有保质期的物品，无论何时拾取、是否在地图上找到，都会叠进同类物品的堆里。[/*]
 [*][b]烹饪按每一件计数[/b]：一堆三个草莓能做三杯奶昔，和三个散放的草莓一样。[/*]
 [*][b]家具里不放整堆[/b]：把一堆物品移进烹饪或制作家具时只放进一件，其余留在原处。[/*]
 [*][b]工作台按每一件计数[/b]：需要两块玻璃的配方可以用一堆八块的玻璃来做，一键填充和批量制作会从堆叠里逐件取用。[/*]
-[*][b]拖拽拆分[/b]：按住 Shift 移动半堆，按住 Ctrl 移动 1 件，按住 Ctrl+Shift 自选数量。[/*]
+[*][b]拖拽拆分[/b]：按住 Shift 移动半堆，按住 Ctrl 移动 1 件，按住 Ctrl+Shift 选择移动数量。[/*]
 [*][b]右键拆分[/b]：按住同样的键右键点击，会把拆出的部分放到最近的空位。[/*]
 [*][b]只交出一部分[/b]：在商人的交易界面，按住同样的键拖到无人机上或右键点击，只交出拆出的那部分；从无人机拖回背包或在无人机上右键点击，只取回那部分。在无人机或背包内部按住这些键拖动也能拆分。在你这一侧右键或 Shift+左键点击一堆物品，每次交出一件。在背包或无人机上把一堆物品放到同种物品上，会合并成一堆。[/*]
 [*][b]粉碎机、压缩机和染料桶一次放一件[/b]：在这些界面的材料架或储物标签页里快速移动一堆物品时，只放进一件。[/*]
 [*][b]Ctrl+点击不打开物品详情[/b]：在任何界面都是如此，从背包到商人的交易界面。在背包里，游戏允许时 Ctrl+点击仍会直接使用物品。[/*]
-[*][b]菜品和有使用次数的物品保持原上限[/b]：每份菜品都有自己的份数，所以菜品从不堆叠；使用次数会用完的工具也保持不变。直接使用的可反复使用物品（如染料）也保持原上限；可反复使用的材料，如电线，可以堆叠。[/*]
+[*][b]菜品和有使用次数的物品保持原上限[/b]：每份菜品都有自己的份数，所以菜品从不堆叠；使用次数会用完的工具也保持不变。直接使用的可反复使用物品（如染料）也保持原上限。可反复使用的材料，如电线，可以堆叠。[/*]
 [/list]
 
 [size=5]快捷键[/size]
@@ -110,19 +110,19 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 [*][b]Shift + 放下[/b]：移动半堆。[/*]
 [*][b]Ctrl + 放下[/b]：移动 1 件。[/*]
 [*][b]Ctrl + Shift + 放下[/b]：弹出一个小面板，选择移动数量。[/*]
-[*][b]Shift、Ctrl 或 Ctrl + Shift + 右键[/b]：拆分到最近的空位。同时打开两个背包时，Ctrl 和 Ctrl + Shift + 右键仍是游戏自己的「发送所有同类物品」。[/*]
-[*][b]Ctrl + 点击[/b]：从不打开物品详情。在背包里仍是游戏的快速使用。[/*]
+[*][b]Shift、Ctrl 或 Ctrl + Shift + 右键[/b]：拆分到最近的空位。同时打开两个背包时，Ctrl 和 Ctrl + Shift + 右键仍和游戏里一样，把所有同类物品发送到另一边。[/*]
+[*][b]Ctrl + 点击[/b]：从不打开物品详情。在背包里仍和游戏里一样直接使用物品。[/*]
 [/list]
 
-模组不会往存档里写入它自己的数据，也不会修改游戏文件，但它做出的堆叠和移动都是你背包和储物空间里的真实物品。你可以随时移除它；已经超过游戏上限的堆叠会保持原样。
+模组不会往存档里写入它自己的数据，也不会修改游戏文件，但它做出的堆叠和移动都是你背包和储物空间里的真实物品。你可以随时移除它，已经超过游戏上限的堆叠会保持原样。
 
 支持英文和中文。
 
 [size=5]已知问题[/size]
 [list]
 [*]以前版本里已经叠在一起的菜品会保持原样。[/*]
-[*]在商人的交易界面，按住游戏的高亮键点击，可一次交出同类的全部堆叠。[/*]
-[*]不要和 BaseButler 一起使用。请先移除 BaseButler。[/*]
+[*]在商人的交易界面，Ctrl+点击没有作用。想一次交出同类的全部堆叠，请按住游戏的高亮键点击。[/*]
+[*]不要和 BaseButler 一起使用，两者都会修改堆叠上限。请先移除 BaseButler。[/*]
 [*]把一堆物品丢到地上时，无论按住什么键都会移动整堆。[/*]
 [*]堆肥箱和机器人模具不接受拆分，材料架不接受从别处拆分进来。请先在背包里拆分，再把需要的部分拖过去。[/*]
 [*]新鲜程度相差不到一小时的两件物品可能叠在同一堆。[/*]
@@ -136,6 +136,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]，请先安装。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.20.0 或更新版本。没有它本模组不会加载。它把本模组的简短提示显示为弹出通知，让在 Mod Manager 的「模组」界面改动的设置无需重启即可生效，它的界面大小设置还能调整询问拆分数量的面板的大小。Stacking 自己的 UiScale 设置可以单独调整本模组的大小。[/*]
 [*]可选：[url=https://www.nexusmods.com/survivallog/mods/73]Mod Manager[/url]。装了它，可以在游戏里它的「模组」界面修改每项设置，并看到每项的说明，不用打开配置文件。[/*]
+[*]不能和 BaseButler 一起使用，请先移除 BaseButler。[/*]
 [/list]
 
 [size=5]安装[/size]
@@ -145,10 +146,11 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-Stacking]
 [*]在「文件」页下载压缩包。[/*]
 [*]把压缩包解压到游戏目录（[font=Courier New]SurvivalLog.exe[/font] 所在的文件夹）。压缩包里带有 BepInEx 文件夹，DLL 会自动放到正确位置。如果提示合并文件夹，选择合并。解压后应为：
 [code]C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\Stacking.dll[/code][/*]
+[*]如果你装了 BaseButler，请从同一个文件夹里删除它的 DLL。[/*]
 [/list]
 
 [size=5]卸载[/size]
-从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]Stacking.dll[/font]。
+从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]Stacking.dll[/font]。已经超过游戏上限的堆叠会原样留在存档里。
 
 [size=5]配置[/size]
 如需修改各类别的堆叠上限，或关闭整堆计数和拆分，可以在游戏内 Mod Manager 的「模组」界面修改（改动立即生效），也可以在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.stacking.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-Stacking/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。Cooking CountWholeStacks 和 Splitting Enabled 会在下次启动游戏时生效。

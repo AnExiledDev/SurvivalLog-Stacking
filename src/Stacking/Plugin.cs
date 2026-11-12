@@ -19,7 +19,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.8.5";
+    private const string Version = "0.8.6";
     private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
     private const int MaxLoggedFailures = 3;
 
@@ -34,13 +34,13 @@ public sealed class Plugin : BasePlugin
         ModUiSize.Bind(Config, "Stacking");
 
         var isCountingWholeStacks = Config.Bind("Cooking", "CountWholeStacks", true, new ConfigDescription(
-            "On: a cooking bench counts every item in a stack as an ingredient, like loose items, and the finished cook uses up the items its dishes took. Off: a stack counts as one ingredient, as in the base game. Takes effect at the next game start.\n"
-            + "开启：烹饪家具把堆叠里的每一件都算作食材，和散放的物品一样，烹饪完成时扣除菜品用掉的数量。关闭：一个堆叠只算一份食材，与原版游戏相同。下次启动游戏时生效。", null, "ModManager.Restart")).Value;
+            "On: a cooking bench counts every item in a stack as an ingredient, the same as loose items, and uses up every item the dishes needed when the cooking finishes. Off: a whole stack counts as one ingredient, as it does without the mod. Takes effect at the next game start.\n"
+            + "开启：烹饪家具把堆叠里的每一件都算作食材，和散放的物品一样，烹饪完成时扣除菜品用掉的数量。关闭：一整堆只算一份食材，和没装模组时一样。下次启动游戏时生效。", null, "ModManager.Restart")).Value;
 
         // Off means the game's drags and right-clicks, which only an unpatched game gives, so this waits for the next start.
         var isSplitting = Config.Bind("Splitting", "Enabled", true, new ConfigDescription(
-            "Hold Shift while you drop a stack to move half, Ctrl to move one, or Ctrl+Shift to choose how many; a right-click with the same keys splits the stack onto the nearest free spot in the same bag or storage. Off: drags and right-clicks work as in the base game. Takes effect at the next game start.\n"
-            + "拖拽放下堆叠时按住 Shift 移动一半，按住 Ctrl 移动 1 件，按住 Ctrl+Shift 自选数量；按住同样的键右键点击，会把堆叠拆分到同一背包或储物空间里最近的空位。关闭：拖拽和右键与原版游戏相同。下次启动游戏时生效。", null, "ModManager.Restart")).Value;
+            "Hold Shift while you drop a stack to move half, Ctrl to move one, or Ctrl+Shift to choose how many. A right-click with the same keys splits the stack onto the nearest free spot in the same bag or storage. Off: drags and right-clicks work as they do without the mod. Takes effect at the next game start.\n"
+            + "拖拽放下堆叠时按住 Shift 移动一半，按住 Ctrl 移动 1 件，按住 Ctrl+Shift 选择移动数量。按住同样的键右键点击，会把堆叠拆分到同一背包或储物空间里最近的空位。关闭：拖拽和右键和没装模组时一样。下次启动游戏时生效。", null, "ModManager.Restart")).Value;
         var log = new ModLog(Log, "stacking.log") { MaxFileBytes = MaxLogFileBytes };
         var hooks = new PatchKit(new Harmony(Guid), log.Write, MaxLoggedFailures);
 

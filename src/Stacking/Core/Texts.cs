@@ -28,25 +28,25 @@ public static class Texts
 
     public static readonly Phrase TooHeavy = new("That would be too heavy for the container", "放进去会超出这个容器的负重");
 
-    public static readonly Phrase OtherCondition = new("Those don't stack: freshness or condition differs", "这两堆不能叠在一起：新鲜程度或状态不同");
+    public static readonly Phrase OtherCondition = new("Those don't stack because their freshness or condition is different", "新鲜程度或状态不同，这两堆不能叠在一起");
 
-    public static readonly Phrase OwnRules = new("Stacks can't be split into or out of this container; split them in your bag first", "这个容器不能拆入或拆出堆叠，请先在背包里拆分");
+    public static readonly Phrase OwnRules = new("Stacks can't be split into or out of this container. Split them in your bag first", "这个容器不能拆入或拆出堆叠，请先在背包里拆分");
 
-    public static readonly Phrase Unreadable = new("Couldn't read this container's layout, so nothing split: see BepInEx/stacking.log", "无法读取这个容器的格子布局，没有拆分任何物品：详见 BepInEx/stacking.log");
+    public static readonly Phrase Unreadable = new("Couldn't read this container's slots, so nothing was split. See BepInEx/stacking.log", "无法读取这个容器的格子，没有拆分任何物品。详见 BepInEx/stacking.log");
 
-    public static readonly Phrase ElsewhereInBag = new("That spot was taken, so the split-off stack went elsewhere in the container", "那个位置已被占用，拆出的一堆放到了容器里的其他位置");
+    public static readonly Phrase ElsewhereInBag = new("That spot was taken, so the new stack went somewhere else in the container", "那个位置已被占用，拆出的新一堆放到了容器里的其他位置");
 
-    public static readonly Phrase OnTheGround = new("No room in the container, so the split-off stack was dropped on the ground", "容器里没有空位，拆出的一堆掉在了地上");
+    public static readonly Phrase OnTheGround = new("No room in the container, so the new stack was dropped on the ground", "容器里没有空位，拆出的新一堆掉在了地上");
 
     public static readonly Phrase TakeOutOnly = new("Items can only be taken out of this box", "这个箱子里的物品只能取出");
 
     public static readonly Phrase NotForThisBasket = new("That can't go in this basket", "这件物品不能放进这个篮子");
 
-    public static readonly Phrase NoNewStacks = new("Splitting onto a free spot is off this session: see BepInEx/stacking.log", "本次游戏中无法拆分到空位：详见 BepInEx/stacking.log");
+    public static readonly Phrase NoNewStacks = new("Splitting onto a free spot doesn't work until you restart the game. See BepInEx/stacking.log", "重启游戏之前无法拆分到空位。详见 BepInEx/stacking.log");
 
-    public static readonly Phrase NoPicker = new("Ctrl+Shift needs the amount picker, which could not start: see BepInEx/stacking.log", "Ctrl+Shift 需要数量选择框，但它没能启动：详见 BepInEx/stacking.log");
+    public static readonly Phrase NoPicker = new("The panel that asks how many couldn't open, so Ctrl+Shift can't split. See BepInEx/stacking.log", "询问数量的面板没能打开，所以 Ctrl+Shift 无法拆分。详见 BepInEx/stacking.log");
 
-    public static readonly Phrase Failed = new("The split failed and nothing moved: see BepInEx/stacking.log", "拆分失败，没有移动任何物品：详见 BepInEx/stacking.log");
+    public static readonly Phrase Failed = new("The split failed and nothing moved. See BepInEx/stacking.log", "拆分失败，没有移动任何物品。详见 BepInEx/stacking.log");
 
     public static IReadOnlyList<Phrase> All { get; } = new[]
     {

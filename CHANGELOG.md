@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.6
+
+- Clearer wording in the settings and in the messages a split shows.
+- Made for Survival Log 1.1.20719.
+
 ## 0.8.5
 
 - Now needs Exiled's Toolkit 0.20.0 or newer.
@@ -7,7 +12,7 @@
 
 ## 0.8.4
 
-- A new install now keeps the game's stack limits until you set one: every `[StackLimits]` setting defaults to `0`. Each setting's description suggests a number, such as 99 for materials and seeds and 20 for food, the old defaults. Settings you already saved are kept.
+- A new install now keeps the game's stack limits until you set your own. Every `[StackLimits]` setting defaults to `0`. Each setting suggests a number, such as 99 for materials and seeds or 20 for food, which were the old defaults. Settings you already saved are kept.
 - Made for Survival Log 1.1.20719.
 
 ## 0.8.3
@@ -17,7 +22,7 @@
 
 ## 0.8.2
 
-- Fixed for the 1.1.20719 game update: the cooking view plans both dish modes from every unit of a stack again, not just the selected one.
+- Fixed for the 1.1.20719 game update: the cooking screen counts every item in a stack again when it works out which dishes you can make.
 - Made for Survival Log 1.1.20719.
 
 ## 0.8.1
@@ -28,7 +33,7 @@
 
 ## 0.8.0
 
-- New: `UiScale` under Interface sets the size of Stacking's own windows on their own, from 75% to 200%, whatever Exiled's Toolkit's UI size is. At 0, the default, they follow the Toolkit's. Needs Exiled's Toolkit 0.11.0 or newer.
+- New: `UiScale` under Interface sets the size of Stacking's windows by itself, from 75% to 200%, separate from Exiled's Toolkit's UI size. At 0, the default, they follow the Toolkit's size. Needs Exiled's Toolkit 0.11.0 or newer.
 - Made for Survival Log 1.1.19611.
 
 ## 0.7.11
@@ -68,7 +73,7 @@
 
 ## 0.7.5
 
-- Crafting table: a recipe you can make only by taking single items off stacks shows as ready again.
+- Fixed: at the crafting table, a recipe you can only make by taking single items off stacks shows as ready again.
 - Made for Survival Log 1.1.19611.
 
 ## 0.7.4
@@ -78,23 +83,23 @@
 
 ## 0.7.3
 
-- Fixed: in the merchant's trade window, dropping a stack on a stack of the same item did not join them, in your bag or on the drone. An offer that gains or loses items is counted again.
+- Fixed: in the merchant's trade window, dropping a stack on a stack of the same item did not join them, in your bag or on the drone. An offer that gains or loses items now updates to the new amount.
 
 ## 0.7.2
 
-- A quick-move click on a stack in a material rack or a storage tab of the shredder, compressor or dye vat window puts one item in, not the whole stack.
+- A quick-move click on a stack in a material rack or a storage tab of the shredder, compressor or dye vat window now puts in one item and leaves the rest of the stack where it was.
 - In the merchant's trade window, a right-click or Shift left-click on a stack on your side offers one item, from a material rack too. Another click adds one more to that offer. The highlight key still offers every stack of the kind.
 - Shift, Ctrl and Ctrl+Shift drags split inside the drone and inside your bag in the trade window, and the split part lands where you dropped it.
-- A split out of a material rack, or inside one, works. A split into a rack from elsewhere is still refused.
+- You can now split a stack out of a material rack or inside one. Splitting into a rack from somewhere else is still refused.
 - Fixed: a split drag from the drone to your bag moved the whole stack, or did not land where it was dropped.
 
 ## 0.7.1
 
-- The trade window takes part of an offer back too. Drag a stack from the drone to your bag, or right-click it on the drone, with Shift (half), Ctrl (one) or Ctrl+Shift (choose how many). Those units go back to your bag; the rest stays offered.
+- You can now take part of an offer back in the trade window. Drag a stack from the drone to your bag, or right-click it on the drone, with Shift (half), Ctrl (one) or Ctrl+Shift (choose how many). Those items go back to your bag, and the rest stays offered.
 
 ## 0.7.0
 
-- The merchant's trade window now offers part of a stack. Drag a stack from your bag onto the drone, or right-click it, with Shift (half), Ctrl (one) or Ctrl+Shift (choose how many). The rest stays in your bag. An offer the merchant refuses goes back on its stack.
+- You can now offer part of a stack in the merchant's trade window. Drag a stack from your bag onto the drone, or right-click it, with Shift (half), Ctrl (one) or Ctrl+Shift (choose how many). The rest stays in your bag. An offer the merchant refuses goes back on its stack.
 - Fixed: the Ctrl+Shift panel moved nothing when Split or Enter was pressed.
 
 ## 0.6.0
@@ -106,7 +111,7 @@
 
 ## 0.5.0
 
-- Dropping a stack on a stack of the same item joins them into one stack, as far as the stack limit allows, and the rest stays where it was. The game only ever swapped the two. A drop on anything else is the game's move, as before.
+- Dropping a stack on a stack of the same item joins them into one stack, as far as the stack limit allows, and the rest stays where it was. Before, the game only swapped the two. Dropping a stack on anything else works as before.
 - Shift, Ctrl and Ctrl+Shift drags split a stack while a crafting table, cooking bench, compressor, dye station or drone hub is open. Those windows moved the whole stack before.
 - Storage Hub's Home tab takes one item per click from a stack, because other mods can now move one item off a stack.
 
