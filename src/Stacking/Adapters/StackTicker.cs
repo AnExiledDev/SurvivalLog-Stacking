@@ -5,8 +5,9 @@ using UnityEngine;
 namespace Stacking.Adapters;
 
 /// <summary>
-/// Every frame, notes the modifier keys and carries out the station rule's moves; every few real seconds, makes sure
-/// the item table carries the chosen limits, and while it writes them, writes a slice each frame.
+/// Every frame, notes the modifier keys and carries out the station rule's moves. Until the item table carries the
+/// chosen limits, it tries every few real seconds, and while it writes them, writes a slice each frame; once they are
+/// written, it stops until the limits change.
 /// </summary>
 public sealed class StackTicker : MonoBehaviour
 {
@@ -34,9 +35,9 @@ public sealed class StackTicker : MonoBehaviour
         SampleKeys();
         MoveIntoStations();
 
-        if (Writer == null) return;
+        if (Writer == null || Writer.IsWritten) return;
 
-        // A full write runs a slice every frame until it is done; otherwise the tables are checked every few seconds.
+        // A full write runs a slice every frame until it is done; before one starts, the tables are tried every few seconds.
         var isWriting = Writer.IsWriting;
 
         if (!isWriting)

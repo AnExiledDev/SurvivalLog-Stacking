@@ -14,9 +14,10 @@ using RecipeTable = Il2CppSystem.Collections.Generic.Dictionary<int, GameCore.Ho
 namespace Stacking.Adapters;
 
 /// <summary>
-/// Writes the chosen stack limits onto the game's item table. The table only exists once the game has loaded it,
-/// and a reload would bring back the game's limits, so each sweep checks whether a table was replaced or a few raised items lost their limit, and only then rewrites the table.
-/// New limits from the settings land at the next sweep, and an item no longer raised gets the game's limit back.
+/// Writes the chosen stack limits onto the game's item table. The table only exists once the game has loaded it, so
+/// the sweep tries every few seconds until it is there. The game builds its tables once, at start, so after one full
+/// write nothing is swept again until the limits change. New limits from the settings land at the next sweep, and an
+/// item no longer raised gets the game's limit back.
 /// A full write reads and writes every item, so it runs a slice of about two milliseconds a frame until it is done.
 /// </summary>
 internal sealed class LimitWriter
@@ -31,10 +32,8 @@ internal sealed class LimitWriter
     /// <summary>Each item's limit as the game first defined it, before this mod wrote over it.</summary>
     private readonly Dictionary<int, int> _gameLimits = new();
 
-    /// <summary>The tables the last full write went to, and a few raised items to check between full writes.</summary>
+    /// <summary>The tables the last full write went to; null until one is done, and again once the limits change.</summary>
     private TableStamp? _lastStamp;
-    private Dictionary<int, int> _canaries = new();
-    private readonly List<Canary> _canariesNow = new();
 
     /// <summary>The full write in progress, and the tables it reads.</summary>
     private SlicedJob? _job;
@@ -56,6 +55,9 @@ internal sealed class LimitWriter
     /// <summary>True while a full write is spread over frames; the ticker then calls <see cref="Continue"/> every frame.</summary>
     public bool IsWriting => _job != null;
 
+    /// <summary>True once a full write of the current limits is done; the ticker then stops sweeping until the limits change.</summary>
+    public bool IsWritten => _job == null && _lastStamp != null;
+
     /// <summary>
     /// Set on the main thread, where the sweep runs. The next sweep writes them and reports them in full; a write in
     /// progress stops, since it was planned for the old limits.
@@ -68,14 +70,12 @@ internal sealed class LimitWriter
         _job = null;
     }
 
-    /// <summary>Starts a full write when a table was replaced or a watched item lost its limit, and runs its first slice.</summary>
+    /// <summary>Starts a full write once the tables are loaded, unless the current limits are already written, and runs its first slice.</summary>
     public void Sweep()
     {
-        if (!TryTables(out var config, out var table)) return;
+        if (IsWritten || !TryTables(out var config, out var table)) return;
 
         var stamp = Stamp(config, table);
-
-        if (_lastStamp == stamp && TableWatch.IsUnchanged(_lastStamp, stamp, Canaries(table))) return;
 
         if (config._Config_CookingRecipe_Dict is not { Count: > 0 } recipes)
         {
@@ -200,26 +200,7 @@ internal sealed class LimitWriter
         yield return true;
 
         Report(rows, plan, written, neverSpoils);
-        Remember(stamp, plan);
-    }
-
-    /// <summary>The watched items as they are now; a missing one reads as limit 0, so it counts as changed. Fills one reused list.</summary>
-    private List<Canary> Canaries(ItemTable table)
-    {
-        _canariesNow.Clear();
-
-        foreach (var (id, written) in _canaries)
-        {
-            _canariesNow.Add(new Canary(written, table.TryGetValue(id, out var item) && item != null ? item._StackLimit_k__BackingField : 0));
-        }
-
-        return _canariesNow;
-    }
-
-    private void Remember(TableStamp stamp, StackPlan plan)
-    {
         _lastStamp = stamp;
-        _canaries = TableWatch.PickCanaries(plan.Limits.Keys).ToDictionary(id => id, id => plan.Limits[id]);
     }
 
     /// <summary>Each value read straight from the row's fields, which is what its properties return.</summary>

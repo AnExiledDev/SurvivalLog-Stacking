@@ -118,7 +118,7 @@ A config file you already have keeps its saved numbers, so an update never chang
 
 Built against BepInEx `6.0.0-be.788`.
 
-Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.8.6 started`. A line starting `stack limits:` lists the limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`, and shows up again each time you change one. The lines after it say which parts of the mod started. Any part that couldn't start is named there, along with what works the way the game normally does instead.
+Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.8.7 started`. A line starting `stack limits:` lists the limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`, and shows up again each time you change one. The lines after it say which parts of the mod started. Any part that couldn't start is named there, along with what works the way the game normally does instead.
 
 The same lines, plus every split, every station move and every failure, are in `BepInEx\stacking.log`, which survives restarts. When that file passes 1 MB, it is renamed `stacking.log.1` and a new one starts.
 

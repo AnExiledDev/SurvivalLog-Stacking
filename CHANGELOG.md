@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.7
+
+- Stack limits are now written once after the game starts, and again when you change one. Before, the mod checked a few items every five seconds the whole time you played.
+- Made for Survival Log 1.1.21271.
+
 ## 0.8.6
 
 - Clearer wording in the settings and in the messages a split shows.

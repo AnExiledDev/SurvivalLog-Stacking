@@ -19,7 +19,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.8.6";
+    private const string Version = "0.8.7";
     private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
     private const int MaxLoggedFailures = 3;
 
