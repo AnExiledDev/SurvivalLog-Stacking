@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.8
+
+- New `[StackLimits] Global` setting sets one stack size for food, meds, household items, materials, seeds, fertilizer, fuel, plants, throwables and renovation materials at once. A category you set on its own keeps its own number. It starts at `0`, so your stacks don't change until you set it.
+- Made for Survival Log 1.1.21671.
+
 ## 0.8.7
 
 - Stack limits are now written once after the game starts, and again when you change one. Before, the mod checked a few items every five seconds the whole time you played.

@@ -111,4 +111,76 @@ public class StackCategoriesTests
         Assert.Equal(0, added.Suggested);
         Assert.StartsWith("Stack size for Gadget items.", StackCategories.Describe(added));
     }
+
+    private const int Food = 1;
+    private const int Tool = 6;
+
+    private static readonly Dictionary<int, int> NothingSet = StackCategories.All.ToDictionary(category => category.Id, _ => StackLimits.KeepGame);
+
+    /// <summary>Global is for the everyday items players hoard; one-off items stay one per slot unless set by name.</summary>
+    [Fact]
+    public void Global_raises_every_everyday_category_and_no_one_off_category()
+    {
+        var wanted = StackCategories.Wanted(NothingSet, 50);
+
+        Assert.Equal(new[] { 1, 2, 5, 9, 10, 11, 13, 15, 16, 21 }, wanted.Keys.Order());
+        Assert.All(wanted.Values, limit => Assert.Equal(50, limit));
+    }
+
+    [Theory]
+    [InlineData(20)]
+    [InlineData(500)]
+    public void A_categorys_own_number_wins_over_global_whether_lower_or_higher(int food)
+    {
+        var set = new Dictionary<int, int>(NothingSet) { [Food] = food };
+
+        Assert.Equal(food, StackCategories.Wanted(set, 99)[Food]);
+    }
+
+    [Fact]
+    public void A_one_off_category_set_by_name_still_rises_next_to_global()
+    {
+        var set = new Dictionary<int, int>(NothingSet) { [Tool] = 5 };
+        var wanted = StackCategories.Wanted(set, 99);
+
+        Assert.Equal(5, wanted[Tool]);
+        Assert.Equal(99, wanted[Material]);
+    }
+
+    /// <summary>An update adds Global at 0, so a player's limits stay exactly as they were.</summary>
+    [Fact]
+    public void Global_at_0_leaves_only_the_categories_set_by_name()
+    {
+        var set = new Dictionary<int, int>(NothingSet) { [Material] = 99 };
+
+        Assert.Equal(new Dictionary<int, int> { [Material] = 99 }, StackCategories.Wanted(set, StackLimits.KeepGame));
+    }
+
+    [Theory]
+    [InlineData(5000, 999)]
+    [InlineData(-3, 0)]
+    public void Global_is_held_to_the_range_the_config_accepts(int global, int expected)
+    {
+        var wanted = StackCategories.Wanted(NothingSet, global);
+
+        Assert.Equal(expected, wanted.GetValueOrDefault(Food));
+    }
+
+    /// <summary>A player reading Food's setting has to know 0 there now means Global, while a tool's 0 still means the game's limit.</summary>
+    [Fact]
+    public void Only_categories_global_raises_say_their_0_uses_global()
+    {
+        Assert.Contains("0 uses the Global setting", StackCategories.Describe(Category(Food)));
+        Assert.DoesNotContain("Global", StackCategories.Describe(Category(Tool)));
+        Assert.Contains("0 keeps the game's limit.", StackCategories.Describe(Category(Tool)));
+    }
+
+    [Fact]
+    public void The_global_description_is_english_then_chinese_and_names_no_other_file()
+    {
+        var lines = StackCategories.GlobalDescription.Split('\n');
+
+        Assert.Equal(2, lines.Length);
+        Assert.DoesNotContain(".log", StackCategories.GlobalDescription);
+    }
 }

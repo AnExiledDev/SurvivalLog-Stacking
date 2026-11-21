@@ -19,7 +19,7 @@ namespace Stacking;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.stacking";
-    private const string Version = "0.8.7";
+    private const string Version = "0.8.8";
     private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
     private const int MaxLoggedFailures = 3;
 
@@ -28,6 +28,8 @@ public sealed class Plugin : BasePlugin
 
     public override void Load()
     {
+        // Bound before the categories so it shows first.
+        var globalEntry = Config.Bind("StackLimits", "Global", StackLimits.KeepGame, StackCategories.GlobalDescription);
         var limitEntries = BindLimits();
 
         // A cook already counted one way has to finish the same way, so the cooking rule waits for the next start.
@@ -65,11 +67,11 @@ public sealed class Plugin : BasePlugin
 
         LiveSettings.Watch(() =>
         {
-            var wantedByCategory = WantedLimits(limitEntries);
+            var wantedByCategory = StackCategories.Wanted(limitEntries.ToDictionary(pair => pair.Key, pair => pair.Value.Value), globalEntry.Value);
 
             writer.UseLimits(wantedByCategory);
             log.Write($"stack limits: {Describe(wantedByCategory)}");
-        }, limitEntries.Values.ToArray<ConfigEntryBase>());
+        }, limitEntries.Values.Append(globalEntry).ToArray<ConfigEntryBase>());
         StackTicker.Writer = writer;
         AddComponent<StackTicker>();
 
@@ -115,20 +117,6 @@ public sealed class Plugin : BasePlugin
         }
 
         return entries;
-    }
-
-    private static Dictionary<int, int> WantedLimits(Dictionary<int, ConfigEntry<int>> entries)
-    {
-        var wanted = new Dictionary<int, int>();
-
-        foreach (var (category, entry) in entries)
-        {
-            var limit = StackLimits.Clamp(entry.Value);
-
-            if (limit > 0) wanted[category] = limit;
-        }
-
-        return wanted;
     }
 
     private static string Describe(Dictionary<int, int> wantedByCategory) =>

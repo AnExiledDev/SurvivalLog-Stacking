@@ -13,6 +13,7 @@ In Survival Log most seeds and food take one bag slot each, so a few days of far
   - 10 for meds, household items, plants and throwables
 
   Furniture, tools, books, story items and other one-off items get no suggestion. A number at or below the game's limit changes nothing, because a setting can only raise a limit.
+- **One setting for all of them**: `Global` sets one stack size for every category in the list above at once. A category you set on its own keeps its own number, so `Global = 50` with `Material = 99` gives materials 99 and the rest 50. Tools, books, furniture and other one-off items only change through their own setting. Global starts at `0`, which changes nothing.
 - **Fresh food stays apart**: without the mod, the game doesn't look at freshness when it stacks items, so a bigger limit alone would let a fresh meal merge into a rotting one. For items the game never stacked, Stacking only puts items together when they have the same freshness left (to within an hour) and the same uses left. A meal that matches no stack starts a new one.
 - **Items that never spoil stack together**: seeds, fuel, materials and anything else without a shelf life join a stack of their own kind no matter when you picked them up, or whether you found them on the map. Only their uses have to match.
 - **Dishes and items with uses keep their limit**: dishes from cooking recipes, tools whose uses run out and anything similar stay at the game's limit. Dishes never stack because each dish holds its own number of servings, and the game takes one serving at a time from it. Reusable items you use directly, such as dyes and the comb, keep their limit too, because the game would take one from the stack each time you use it. Reusable materials such as wire do stack.
@@ -118,7 +119,7 @@ A config file you already have keeps its saved numbers, so an update never chang
 
 Built against BepInEx `6.0.0-be.788`.
 
-Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.8.7 started`. A line starting `stack limits:` lists the limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`, and shows up again each time you change one. The lines after it say which parts of the mod started. Any part that couldn't start is named there, along with what works the way the game normally does instead.
+Check `BepInEx\LogOutput.log` for a line starting `===== Stacking 0.8.8 started`. A line starting `stack limits:` lists the limits in use, for example `Food 20, Drug 10, DailyNecessities 10, Material 99, Seed 99, ...`, and shows up again each time you change one. The lines after it say which parts of the mod started. Any part that couldn't start is named there, along with what works the way the game normally does instead.
 
 The same lines, plus every split, every station move and every failure, are in `BepInEx\stacking.log`, which survives restarts. When that file passes 1 MB, it is renamed `stacking.log.1` and a new one starts.
 

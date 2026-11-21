@@ -96,6 +96,41 @@ public static class StackCategories
     };
 
     /// <summary>
+    /// The categories the Global setting raises: the everyday ones this mod suggests a limit for. Furniture, tools,
+    /// books, story items and other one-offs only go up when their own setting is set.
+    /// </summary>
+    public static IReadOnlySet<int> GlobalCategories { get; } = All.Where(category => category.Suggested > 0).Select(category => category.Id).ToHashSet();
+
+    public const string GlobalDescription =
+        "One stack size for Food, Meds, Household, Materials, Seeds, Fertilizer, Fuel, Plants, Throwables and Renovation Materials at once. A category you set to a number above 0 uses its own number instead. Tools, books, furniture and other one-off items only change through their own setting. Default 0, which changes nothing, highest 999.\n"
+        + "一次设置食物、药物、日用品、材料、种子、肥料、燃料、花卉、投掷物和装修材料的堆叠数量。单独设为大于 0 的类别使用它自己的数值。工具、书籍、家具等一次性物品只按它们自己的设置。默认 0，不做任何改变，最高 999。";
+
+    /// <summary>
+    /// The limit to use per category: the Global limit for every everyday category, then each category's own number
+    /// above 0 on top, higher or lower than Global. Categories left at 0 with no Global limit are left out, so they
+    /// keep the game's limit.
+    /// </summary>
+    public static Dictionary<int, int> Wanted(IReadOnlyDictionary<int, int> setByCategory, int global)
+    {
+        var wanted = new Dictionary<int, int>();
+        var globalLimit = StackLimits.Clamp(global);
+
+        if (globalLimit > 0)
+        {
+            foreach (var id in GlobalCategories) wanted[id] = globalLimit;
+        }
+
+        foreach (var (id, value) in setByCategory)
+        {
+            var limit = StackLimits.Clamp(value);
+
+            if (limit > 0) wanted[id] = limit;
+        }
+
+        return wanted;
+    }
+
+    /// <summary>
     /// The category with this number, or, for one the game adds later, a plain entry under its key name that keeps the
     /// game's limit.
     /// </summary>
@@ -116,7 +151,11 @@ public static class StackCategories
             ? $"默认 {StackLimits.KeepGame}{suggestedChinese}，最高 {StackLimits.Highest}"
             : $"游戏上限 {game.Value.Text(" 至 ")}，默认 {StackLimits.KeepGame}{suggestedChinese}，最高 {StackLimits.Highest}";
 
-        return $"{category.Holds} {limits}. 0 keeps the game's limit. Dishes from cooking recipes and items with more than one use always keep the game's limit.\n"
-            + $"{category.HoldsChinese}{limitsChinese}。设为 0 保持游戏上限。烹饪配方做出的菜品和可多次使用的物品始终保持游戏上限。";
+        var takesGlobal = GlobalCategories.Contains(category.Id);
+        var zero = takesGlobal ? "0 uses the Global setting, or the game's limit while Global is 0." : "0 keeps the game's limit.";
+        var zeroChinese = takesGlobal ? "设为 0 时使用 Global 设置，Global 也为 0 时保持游戏上限。" : "设为 0 保持游戏上限。";
+
+        return $"{category.Holds} {limits}. {zero} Dishes from cooking recipes and items with more than one use always keep the game's limit.\n"
+            + $"{category.HoldsChinese}{limitsChinese}。{zeroChinese}烹饪配方做出的菜品和可多次使用的物品始终保持游戏上限。";
     }
 }
